@@ -1,0 +1,29 @@
+### PURPOSE OF PR
+* Simple summary of this PR
+
+
+### What type of PR is it?
+* fix / feature / improvement /  hot-fix / refactoring
+
+
+### JIRA ISSUE
+* https://ddangcoonfire.atlassian.net/browse/DDAN-3
+
+
+### HAVE YOU CHECKED ...
+* [ ] ADD JIRA ID ON PR TITLE (ex. [DDAN-1234] PR TITLE)
+* [ ] pre-commit
+* [ ] Branch Format ( type/issue-NUM ) (ex. refactoring/DDAN-1234 )
+
+
+### Explanation
+( Adding screenshot would be great help )
+
+### How to Test (Optional)
+
+
+### Question (Optional)
+
+
+
+### Etc (Optional)
