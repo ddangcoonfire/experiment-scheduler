@@ -1,0 +1,3 @@
+
+class Master:
+    pass

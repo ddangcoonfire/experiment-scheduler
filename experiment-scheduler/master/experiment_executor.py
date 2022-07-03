@@ -26,4 +26,9 @@ class ExperimentExecutor:
         """
         runner = self._trigger_runner()
 
-
+    def execute(self):
+        """
+        run this class as daemon process
+        :return:
+        """
+        pass
