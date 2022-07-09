@@ -11,24 +11,16 @@ class ExperimentExecutor:
 
     def _trigger_runner(self):
         """
-        trigger new runner
-
+        trigger new runner by grpc request to task manager
         :return: runner's id
         """
         return self.id
 
-    def toss_experiment(self,target):
-        """
-        wake up new runner with params
-        toss management of experiment to experiment_connector
-        :param target: target experiment_connector
-        :return: None
-        """
-        runner = self._trigger_runner()
 
     def execute(self):
         """
-        run this class as daemon process
+        call _trigger_runner
+        save request to some data
         :return:
         """
         pass

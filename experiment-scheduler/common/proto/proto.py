@@ -1,0 +1,2 @@
+# example https://github.com/aimhubio/aim/blob/main/aim/ext/transport/proto/remote_tracking.proto
+# need to create automated code https://github.com/aimhubio/aim/blob/main/aim/ext/transport/remote_tracking_pb2.py
