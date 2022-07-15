@@ -17,23 +17,52 @@ from concurrent import futures
 import logging
 import math
 import time
+import uuid
+import subprocess
+from enum import Enum
 
 import grpc
 import task_manager_pb2
 import task_manager_pb2_grpc
 
 
+logger = logging.getLogger(__name__)
+
+
+class Response(Enum):
+    """Enum class to represent meaning of each number"""
+    READY = 0
+    RUNNING = 1
+    DONE = 2
+    KILLED = 3
+    ABNORMAL = 4
+
+
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     """Provides methods that implement functionality of route guide server."""
 
     def __init__(self):
-        pass
+        self.tasks = {}
 
     def RunTask(self, request, context):
-        print("gpuidx", request.gpuidx)
-        print("command", request.command)
-        print("name", request.name)
-        return task_manager_pb2.Response(task_id="123", response=2)
+        """
+        Get task request and run it.
+        """
+        task_env = request.task_env
+        task_env['CUDA_VISIBLE_DEVICES'] = str(request.gpuidx)
+
+        task = subprocess.Popen(
+            args=request.command,
+            shell=True,
+            env=task_env
+        )
+
+        # add random hash to make task_id
+        task_id = request.name + '-' + uuid.uuid4().hex
+        self.tasks = {task_id : task}
+        logger.info(f"{task_id} is now running!")
+
+        return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
 
     def KillTask(self, request, context):
         pass
