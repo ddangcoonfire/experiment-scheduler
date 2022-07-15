@@ -15,66 +15,31 @@
 
 from __future__ import print_function
 
-import os
+import logging
+import random
 
 import grpc
-from experiment_scheduler.task_manager.grpc_task_manager import (
-    task_manager_pb2, task_manager_pb2_grpc)
+import task_manager_pb2
+import task_manager_pb2_grpc
 
-TASK_ID = "test-5f10ce8dafd64b048a11d2c5bdf7ae18"
 
-def stub_run_task(stub):
-    print("-------------- run_task --------------")
-    res = stub.run_task(
-        task_manager_pb2.TaskStatement(
-            gpuidx=7,
-            command="sleep 100",
-            name="test",
-            task_env=os.environ.copy()
-        )
-    )
-    print("task_id", res.task_id)
-    print("response", res.status)
+def make_route_note(message, latitude, longitude):
+    return route_guide_pb2.RouteNote(
+        message=message,
+        location=route_guide_pb2.Point(latitude=latitude, longitude=longitude))
 
-def stub_get_all_task(stub):
-    print("-------------- get_all_task --------------")
-    empty = task_manager_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
-    res = stub.get_all_tasks(empty)
-    for val in res.task_status_array:
-        print(val)
 
-def stub_health_check(stub):
-    print("-------------- health_check --------------")
-    empty = task_manager_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
-    res = stub.health_check(empty)
-    print(res)
+def guide_get_one_feature(stub, point):
+    feature = stub.RunTask(point)
+    print("task_id", feature.task_id)
+    print("response", feature.response)
 
-def stub_get_task_log(stub):
-    print("-------------- get_task_log --------------")
-    res = stub.get_task_log(
-        task_manager_pb2.Task(
-            task_id=TASK_ID
-        )
-    )
-    print(res.logfile_path)
 
-def stub_get_task_status(stub):
-    print("-------------- get_task_status --------------")
-    res = stub.get_task_status(
-        task_manager_pb2.Task(
-            task_id=TASK_ID
-        )
-    )
-    print(res.status)
+def guide_get_feature(stub):
+    guide_get_one_feature(
+        stub, task_manager_pb2.TaskStatement(gpuidx=7, command="run hpo", name="something"))
 
-def stub_kill_task(stub):
-    print("-------------- get_task_status --------------")
-    res = stub.kill_task(
-        task_manager_pb2.Task(
-            task_id=TASK_ID
-        )
-    )
-    print(res.status)
+
 
 def run():
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
@@ -82,14 +47,11 @@ def run():
     # of the code.
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = task_manager_pb2_grpc.TaskManagerStub(channel)
-        # stub_run_task(stub)
-        stub_get_all_task(stub)
-        # stub_health_check(stub)
-        # stub_get_task_log(stub)
-        # stub_get_task_status(stub)
-        # stub_kill_task(stub)
+        print("-------------- RunTask --------------")
+        guide_get_feature(stub)
         print("DONE!")
 
 
 if __name__ == '__main__':
+    logging.basicConfig()
     run()
