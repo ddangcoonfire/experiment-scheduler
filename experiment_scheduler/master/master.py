@@ -1,9 +1,9 @@
-from common.grpc_server import GrpcServer
 from master.experiment_executor import ExperimentExecutor
 from master.process_monitor import ProcessMonitor
+from master.master_pb2_grpc import MasterServicer
+import grpc
 
-
-class Master(GrpcServer):
+class Master(MasterServicer):
     """
     Inherit GrpcServer to run Grpc Socket ( get request from submitter )
     """
@@ -11,12 +11,12 @@ class Master(GrpcServer):
         """
         Init GrpcServer.
         """
-        super(max_workers).__init__()
         # something.add ... to server ( , server )
         self.task_managers_address = self.get_task_managers()
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.submitter_socket = None  # something
-
+        self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
+        # self.server.add_insecure_port('[::]:50050')
 
     def execute(self):
         pass
@@ -31,7 +31,9 @@ class Master(GrpcServer):
     def run_submitter_command(self,command):
         pass
         # self.process_monitor.new_experiment(experiment)
-
+    def start_server(self):
+        self.server.start()
+        self.server.wait_for_termination()
 
 if __name__ == "__main__":
     master = Master()
