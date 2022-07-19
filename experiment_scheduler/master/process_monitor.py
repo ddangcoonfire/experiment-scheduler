@@ -35,11 +35,13 @@ class ProcessMonitor:
         :return:
         """
         pass
+        return 0
 
     def run_task(self, command):
         task_manager = self.select_task_manager()
         protobuf = ""
-        self._request_task_manager(task_manager, protobuf, "run_task")
+        task_id = self._request_task_manager(task_manager, protobuf, "run_task")
+        return task_id
 
     def kill_task(self, task_id):
         task_manager = self.select_task_manager()
