@@ -51,7 +51,6 @@ class ProcessMonitor:
         protobuf = ""
         self._request_task_manager(task_manager, protobuf, "get_task_status")
 
-
     def get_all_tasks(self):
         task_manager = self.select_task_manager()
         protobuf = ""

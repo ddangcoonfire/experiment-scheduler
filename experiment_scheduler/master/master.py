@@ -1,7 +1,8 @@
-from master.experiment_executor import ExperimentExecutor
 from master.process_monitor import ProcessMonitor
-from master.master_pb2_grpc import MasterServicer
+from master.grpc.master_pb2_grpc import MasterServicer,add_MasterServicer_to_server
 import grpc
+from concurrent import futures
+
 
 class Master(MasterServicer):
     """
@@ -31,10 +32,16 @@ class Master(MasterServicer):
     def run_submitter_command(self,command):
         pass
         # self.process_monitor.new_experiment(experiment)
-    def start_server(self):
-        self.server.start()
-        self.server.wait_for_termination()
+
+    def request_experiment(self, request, context):
+        task_id = self.process_monitor.run_task()
+        return task_id
+
 
 if __name__ == "__main__":
-    master = Master()
-    master.start_server()
+    master = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_MasterServicer_to_server(Master(), master)
+    master.add_insecure_port('[::]:50050')
+    master.start()
+    master.wait_for_termination()
+
