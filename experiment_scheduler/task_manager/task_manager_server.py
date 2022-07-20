@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Python implementation of the gRPC route guide server."""
-
+import os
 from concurrent import futures
 import logging
 import math
@@ -24,7 +24,6 @@ from enum import Enum
 import grpc
 import task_manager_pb2
 import task_manager_pb2_grpc
-
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +58,45 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
         # add random hash to make task_id
         task_id = request.name + '-' + uuid.uuid4().hex
-        self.tasks = {task_id : task}
+        self.tasks = {task_id: task}
         logger.info(f"{task_id} is now running!")
 
         return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
 
     def KillTask(self, request, context):
-        pass
+        target_process = self.tasks[request.task_id]
+        target_process.kill()
 
-    def GetTaskStatus(self, request_iterator, context):
-        pass        
+        return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
+
+    def GetTaskStatus(self, request, context):
+        target_process = self.tasks[request.task_id]
+        return_code = target_process.returncode
+        if return_code == 0:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
+        elif return_code is None:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.RUNNING)
+        else:
+            target_process_pid = target_process.PID
+            cmd = "ps -o " + target_process_pid + ",s |grep " + target_process_pid
+            status = (os.system(cmd).read().split(' '))[1]
+            return task_manager_pb2.Response(task_id=request.task_id, response=get_status(status))
 
     def GetAllTasks(self, request_iterator, context):
-        pass
+        task_list = self.tasks.values()
+        all_tasks_status = []
+        for target_process in task_list:
+            task_id = get_task_id(self.tasks, target_process)
+            return_code = target_process.returncode
+            if return_code == 0:
+                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.DONE))
+            elif return_code is None:
+                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING))
+            else:
+                target_process_pid = target_process.PID
+                cmd = "ps -o " + target_process_pid + ",s |grep " + target_process_pid
+                status = (os.system(cmd).read().split(' '))[1]
+                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=get_status(status)))
 
 
 def serve():
@@ -86,3 +111,13 @@ def serve():
 if __name__ == '__main__':
     logging.basicConfig()
     serve()
+
+
+def get_status(code):
+    return {'D': 0, 'R': 1, 'X': 3, 'Z': 4}.get(code, '2')
+
+
+def get_task_id(tasks, val):
+    for key, value in tasks.items():
+        if val == value:
+            return key
