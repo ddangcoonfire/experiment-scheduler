@@ -65,23 +65,30 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
     def KillTask(self, request, context):
         target_process = self.tasks[request.task_id]
-        target_process.kill()
-
+        # kill -> 필요한 동작 X / terminate -> 필요한 동작 O
+        # polling 방식 이용
+        target_process.terminate()
+        logger.info(f"{request.task_id} is killed!")
         return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
 
     def GetTaskStatus(self, request, context):
         target_process = self.tasks[request.task_id]
+        # TODO 아이디가 없는 경우에 대한 예외처리 추가
         return_code = target_process.returncode
         if return_code == 0:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
         elif return_code is None:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.RUNNING)
+
+        # TODO return_code 음수인 경우 추가
         else:
             target_process_pid = target_process.PID
-            cmd = "ps -o " + target_process_pid + ",s |grep " + target_process_pid
+            cmd = "ps -o pid,s |grep " + target_process_pid
             status = (os.system(cmd).read().split(' '))[1]
             return task_manager_pb2.Response(task_id=request.task_id, response=get_status(status))
 
+    # TODO 끝난 Task 확인
+    # Polling GetTaskStatus -> Done 일때 로그값 주는 함수 -> 그 후 list에서 삭제
     def GetAllTasks(self, request_iterator, context):
         task_list = self.tasks.values()
         all_tasks_status = []
@@ -94,7 +101,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
                 return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING))
             else:
                 target_process_pid = target_process.PID
-                cmd = "ps -o " + target_process_pid + ",s |grep " + target_process_pid
+                cmd = "ps -o pid,s |grep " + target_process_pid
                 status = (os.system(cmd).read().split(' '))[1]
                 return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=get_status(status)))
 
@@ -112,9 +119,9 @@ if __name__ == '__main__':
     logging.basicConfig()
     serve()
 
-
+# TODO Ready, Abnormal -> 상태 다시 찾아야함 -> return code로
 def get_status(code):
-    return {'D': 0, 'R': 1, 'X': 3, 'Z': 4}.get(code, '2')
+    return {'R': 1, 'X': 3}.get(code, 2)
 
 
 def get_task_id(tasks, val):
