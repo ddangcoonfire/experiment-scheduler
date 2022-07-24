@@ -13,6 +13,7 @@
 # limitations under the License.
 """The Python implementation of the gRPC route guide server."""
 import os
+import signal
 from concurrent import futures
 import logging
 import math
@@ -30,11 +31,11 @@ logger = logging.getLogger(__name__)
 
 class Response(Enum):
     """Enum class to represent meaning of each number"""
-    READY = 0
-    RUNNING = 1
-    DONE = 2
-    KILLED = 3
-    ABNORMAL = 4
+    RUNNING = 0
+    DONE = 1
+    KILLED = 2
+    ABNORMAL = 3
+    NOTFOUND = 4
 
 
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
@@ -65,46 +66,47 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
     def KillTask(self, request, context):
         target_process = self.tasks[request.task_id]
-        # kill -> 필요한 동작 X / terminate -> 필요한 동작 O
-        # polling 방식 이용
-        target_process.terminate()
-        logger.info(f"{request.task_id} is killed!")
-        return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
+        sign = target_process.poll()
+
+        if sign is None:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
+        else:
+            target_process.terminate()
+            logger.info(f"{request.task_id} is killed!")
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
 
     def GetTaskStatus(self, request, context):
         target_process = self.tasks[request.task_id]
-        # TODO 아이디가 없는 경우에 대한 예외처리 추가
+
+        if target_process is None:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)  # CASE: Wrong task_id
+
         return_code = target_process.returncode
         if return_code == 0:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
         elif return_code is None:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.RUNNING)
-
-        # TODO return_code 음수인 경우 추가
+        elif return_code is -signal.SIGTERM:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
         else:
-            target_process_pid = target_process.PID
-            cmd = "ps -o pid,s |grep " + target_process_pid
-            status = (os.system(cmd).read().split(' '))[1]
-            return task_manager_pb2.Response(task_id=request.task_id, response=get_status(status))
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.ABNORMAL)
 
-    # TODO 끝난 Task 확인
-    # Polling GetTaskStatus -> Done 일때 로그값 주는 함수 -> 그 후 list에서 삭제
     def GetAllTasks(self, request_iterator, context):
         task_list = self.tasks.values()
         all_tasks_status = []
         for target_process in task_list:
             task_id = get_task_id(self.tasks, target_process)
             return_code = target_process.returncode
+
             if return_code == 0:
+                self.tasks.pop(task_id)  # Done task should be removed in tasks
                 return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.DONE))
             elif return_code is None:
                 return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING))
+            elif return_code is -signal.SIGTERM:
+                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.KILLED))
             else:
-                target_process_pid = target_process.PID
-                cmd = "ps -o pid,s |grep " + target_process_pid
-                status = (os.system(cmd).read().split(' '))[1]
-                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=get_status(status)))
-
+                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.ABNORMAL))
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -118,10 +120,6 @@ def serve():
 if __name__ == '__main__':
     logging.basicConfig()
     serve()
-
-# TODO Ready, Abnormal -> 상태 다시 찾아야함 -> return code로
-def get_status(code):
-    return {'R': 1, 'X': 3}.get(code, 2)
 
 
 def get_task_id(tasks, val):
