@@ -1,6 +1,10 @@
 import argparse
 import sys
 
+import grpc
+from ..master.grpc import master_pb2
+from ..master.grpc import master_pb2_grpc
+
 from .execute import main as exs_execute
 from .delete import main as exs_delete
 from .edit import main as exs_edit
@@ -35,8 +39,13 @@ def main():
 
     name = parse_args().operation
     del sys.argv[1]
-    COMMAND_LIST[name]()
+    request = COMMAND_LIST[name]()
 
+    # channel = grpc.insecure_channel('localhost:50050')
+    # stub = master_pb2_grpc.MasterStub()
+    # response = stub.Add(matser_pb)
 
 if __name__ == "__main__":
     main()
+
+
