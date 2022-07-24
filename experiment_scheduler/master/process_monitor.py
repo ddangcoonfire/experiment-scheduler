@@ -1,6 +1,6 @@
 import grpc
-# from ..task_manager.task_manager_pb2_grpc import TaskManagerStub
-# from ..task_manager.task_manager_pb2 import TaskStatement
+from ..task_manager.task_manager_pb2_grpc import TaskManagerStub
+from ..task_manager.task_manager_pb2 import TaskStatement
 
 # how to set path in python?
 

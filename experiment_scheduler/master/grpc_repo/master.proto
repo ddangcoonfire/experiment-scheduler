@@ -20,7 +20,7 @@ message TaskStatement {
 }
 
 message TaskCondition {
-    int32 gpuidx = 1;
+    int64 gpuidx = 1;
 }
 
 message Response {
