@@ -5,10 +5,10 @@ option objc_class_prefix = "RTG";
 
 // Interface exported by the server.
 service Master {
-      rpc request_experiment(ExperiemntStatement) returns (Response) {}
+      rpc request_experiments(ExperimentStatement) returns (Response) {}
 }
 
-message ExperiemntStatement {
+message ExperimentStatement {
     string name = 1;
     repeated TaskStatement tasks = 2;
 }

@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import experiment_scheduler.master.grpc_repo.master_pb2 as master__pb2
+from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
 
 
 class MasterStub(object):
@@ -15,9 +15,9 @@ class MasterStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.request_experiment = channel.unary_unary(
-                '/Master/request_experiment',
-                request_serializer=master__pb2.ExperiemntStatement.SerializeToString,
+        self.request_experiments = channel.unary_unary(
+                '/Master/request_experiments',
+                request_serializer=master__pb2.ExperimentStatement.SerializeToString,
                 response_deserializer=master__pb2.Response.FromString,
                 )
 
@@ -26,7 +26,7 @@ class MasterServicer(object):
     """Interface exported by the server.
     """
 
-    def request_experiment(self, request, context):
+    def request_experiments(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -35,9 +35,9 @@ class MasterServicer(object):
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'request_experiment': grpc.unary_unary_rpc_method_handler(
-                    servicer.request_experiment,
-                    request_deserializer=master__pb2.ExperiemntStatement.FromString,
+            'request_experiments': grpc.unary_unary_rpc_method_handler(
+                    servicer.request_experiments,
+                    request_deserializer=master__pb2.ExperimentStatement.FromString,
                     response_serializer=master__pb2.Response.SerializeToString,
             ),
     }
@@ -52,7 +52,7 @@ class Master(object):
     """
 
     @staticmethod
-    def request_experiment(request,
+    def request_experiments(request,
             target,
             options=(),
             channel_credentials=None,
@@ -62,8 +62,8 @@ class Master(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Master/request_experiment',
-            master__pb2.ExperiemntStatement.SerializeToString,
+        return grpc.experimental.unary_unary(request, target, '/Master/request_experiments',
+            master__pb2.ExperimentStatement.SerializeToString,
             master__pb2.Response.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

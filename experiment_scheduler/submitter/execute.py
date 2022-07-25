@@ -1,8 +1,8 @@
 import argparse
 import yaml
 import grpc
-from experiment_scheduler.master.grpc_repo import master_pb2
-from experiment_scheduler.master.grpc_repo import master_pb2_grpc
+from experiment_scheduler.master.grpc_master import master_pb2
+from experiment_scheduler.master.grpc_master import master_pb2_grpc
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Execute exeperiments.')
@@ -28,11 +28,11 @@ def main():
     with open(file_path) as f:
         parsed_yaml = yaml.load(f, Loader=yaml.FullLoader)
 
-    channel = grpc.insecure_channel('localhost:50049')
+    channel = grpc.insecure_channel('localhost:50050')
     stub = master_pb2_grpc.MasterStub(channel)
 
     request = parse_input(parsed_yaml)
-    response = stub.request_experiment(request)
+    response = stub.request_experiments(request)
 
     if (response.response == 0):
         print(response.experiment_id)
