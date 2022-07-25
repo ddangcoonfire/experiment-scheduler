@@ -14,9 +14,7 @@
 """The Python implementation of the gRPC route guide client."""
 
 from __future__ import print_function
-
-import logging
-import random
+import os
 
 import grpc
 import task_manager_pb2
@@ -24,22 +22,22 @@ import task_manager_pb2_grpc
 
 
 def make_route_note(message, latitude, longitude):
-    return route_guide_pb2.RouteNote(
+    return task_manager_pb2.RouteNote(
         message=message,
-        location=route_guide_pb2.Point(latitude=latitude, longitude=longitude))
+        location=task_manager_pb2_grpc.Point(latitude=latitude, longitude=longitude))
 
+def stub_run_task(stub):
+    res = stub.run_task(
+        task_manager_pb2.TaskStatement(
+            gpuidx=7,
+            command="ls",
+            name="test"
+        )
+    )
+    print("task_id", res.task_id)
+    print("response", res.response)
 
-def guide_get_one_feature(stub, point):
-    feature = stub.RunTask(point)
-    print("task_id", feature.task_id)
-    print("response", feature.response)
-
-
-def guide_get_feature(stub):
-    guide_get_one_feature(
-        stub, task_manager_pb2.TaskStatement(gpuidx=7, command="run hpo", name="something"))
-
-
+def stub_run_
 
 def run():
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
@@ -48,10 +46,11 @@ def run():
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = task_manager_pb2_grpc.TaskManagerStub(channel)
         print("-------------- RunTask --------------")
+        stub_run_task(stub)
+        os.sleep(3)
         guide_get_feature(stub)
         print("DONE!")
 
 
 if __name__ == '__main__':
-    logging.basicConfig()
     run()

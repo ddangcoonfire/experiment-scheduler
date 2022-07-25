@@ -16,23 +16,33 @@ class TaskManagerStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.RunTask = channel.unary_unary(
-                '/TaskManager/RunTask',
+        self.health_check = channel.unary_unary(
+                '/TaskManager/health_check',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=task__manager__pb2.ServerStatus.FromString,
+                )
+        self.run_task = channel.unary_unary(
+                '/TaskManager/run_task',
                 request_serializer=task__manager__pb2.TaskStatement.SerializeToString,
-                response_deserializer=task__manager__pb2.Response.FromString,
+                response_deserializer=task__manager__pb2.TaskStatus.FromString,
                 )
-        self.KillTask = channel.unary_unary(
-                '/TaskManager/KillTask',
+        self.get_task_log = channel.unary_unary(
+                '/TaskManager/get_task_log',
                 request_serializer=task__manager__pb2.Task.SerializeToString,
-                response_deserializer=task__manager__pb2.Response.FromString,
+                response_deserializer=task__manager__pb2.TaskLog.FromString,
                 )
-        self.GetTaskStatus = channel.unary_unary(
-                '/TaskManager/GetTaskStatus',
+        self.kill_task = channel.unary_unary(
+                '/TaskManager/kill_task',
                 request_serializer=task__manager__pb2.Task.SerializeToString,
-                response_deserializer=task__manager__pb2.Response.FromString,
+                response_deserializer=task__manager__pb2.TaskStatus.FromString,
                 )
-        self.GetAllTasks = channel.unary_unary(
-                '/TaskManager/GetAllTasks',
+        self.get_task_status = channel.unary_unary(
+                '/TaskManager/get_task_status',
+                request_serializer=task__manager__pb2.Task.SerializeToString,
+                response_deserializer=task__manager__pb2.TaskStatus.FromString,
+                )
+        self.get_all_tasks = channel.unary_unary(
+                '/TaskManager/get_all_tasks',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=task__manager__pb2.AllTasksStatus.FromString,
                 )
@@ -42,25 +52,37 @@ class TaskManagerServicer(object):
     """Interface exported by the server.
     """
 
-    def RunTask(self, request, context):
+    def health_check(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def KillTask(self, request, context):
+    def run_task(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetTaskStatus(self, request, context):
+    def get_task_log(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetAllTasks(self, request, context):
+    def kill_task(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def get_task_status(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def get_all_tasks(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -69,23 +91,33 @@ class TaskManagerServicer(object):
 
 def add_TaskManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'RunTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.RunTask,
+            'health_check': grpc.unary_unary_rpc_method_handler(
+                    servicer.health_check,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=task__manager__pb2.ServerStatus.SerializeToString,
+            ),
+            'run_task': grpc.unary_unary_rpc_method_handler(
+                    servicer.run_task,
                     request_deserializer=task__manager__pb2.TaskStatement.FromString,
-                    response_serializer=task__manager__pb2.Response.SerializeToString,
+                    response_serializer=task__manager__pb2.TaskStatus.SerializeToString,
             ),
-            'KillTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.KillTask,
+            'get_task_log': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_task_log,
                     request_deserializer=task__manager__pb2.Task.FromString,
-                    response_serializer=task__manager__pb2.Response.SerializeToString,
+                    response_serializer=task__manager__pb2.TaskLog.SerializeToString,
             ),
-            'GetTaskStatus': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetTaskStatus,
+            'kill_task': grpc.unary_unary_rpc_method_handler(
+                    servicer.kill_task,
                     request_deserializer=task__manager__pb2.Task.FromString,
-                    response_serializer=task__manager__pb2.Response.SerializeToString,
+                    response_serializer=task__manager__pb2.TaskStatus.SerializeToString,
             ),
-            'GetAllTasks': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetAllTasks,
+            'get_task_status': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_task_status,
+                    request_deserializer=task__manager__pb2.Task.FromString,
+                    response_serializer=task__manager__pb2.TaskStatus.SerializeToString,
+            ),
+            'get_all_tasks': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_all_tasks,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=task__manager__pb2.AllTasksStatus.SerializeToString,
             ),
@@ -101,7 +133,7 @@ class TaskManager(object):
     """
 
     @staticmethod
-    def RunTask(request,
+    def health_check(request,
             target,
             options=(),
             channel_credentials=None,
@@ -111,14 +143,31 @@ class TaskManager(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/RunTask',
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/health_check',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            task__manager__pb2.ServerStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def run_task(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/run_task',
             task__manager__pb2.TaskStatement.SerializeToString,
-            task__manager__pb2.Response.FromString,
+            task__manager__pb2.TaskStatus.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def KillTask(request,
+    def get_task_log(request,
             target,
             options=(),
             channel_credentials=None,
@@ -128,14 +177,14 @@ class TaskManager(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/KillTask',
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/get_task_log',
             task__manager__pb2.Task.SerializeToString,
-            task__manager__pb2.Response.FromString,
+            task__manager__pb2.TaskLog.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetTaskStatus(request,
+    def kill_task(request,
             target,
             options=(),
             channel_credentials=None,
@@ -145,14 +194,14 @@ class TaskManager(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/GetTaskStatus',
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/kill_task',
             task__manager__pb2.Task.SerializeToString,
-            task__manager__pb2.Response.FromString,
+            task__manager__pb2.TaskStatus.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetAllTasks(request,
+    def get_task_status(request,
             target,
             options=(),
             channel_credentials=None,
@@ -162,7 +211,24 @@ class TaskManager(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/GetAllTasks',
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/get_task_status',
+            task__manager__pb2.Task.SerializeToString,
+            task__manager__pb2.TaskStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def get_all_tasks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/get_all_tasks',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             task__manager__pb2.AllTasksStatus.FromString,
             options, channel_credentials,
