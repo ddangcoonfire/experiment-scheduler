@@ -9,14 +9,16 @@ def parse_args():
     parser.add_argument('-f', '--file')
     return parser.parse_args()
 
-def parse_input(parsed_yaml):
+def parse_input_file(parsed_yaml):
     input = master_pb2.ExperiemntStatement(
         name= parsed_yaml['name'],
-        tasks= [master_pb2.TaskStatement(
-            command = task['cmd'],
-            name = task['name'],
-            condition = master_pb2.TaskCondition(gpuidx= task['condition']['gpu'])
-            ) for task in parsed_yaml['tasks']
+        tasks= [
+            master_pb2.TaskStatement(
+                command = task['cmd'],
+                name = task['name'],
+                condition = master_pb2.TaskCondition(
+                    gpuidx= task['condition']['gpu'])
+                ) for task in parsed_yaml['tasks']
         ]
     )
     return input
@@ -31,13 +33,13 @@ def main():
     channel = grpc.insecure_channel('localhost:50050')
     stub = master_pb2_grpc.MasterStub(channel)
 
-    request = parse_input(parsed_yaml)
+    request = parse_input_file(parsed_yaml)
     response = stub.request_experiments(request)
 
-    if (response.response == 0):
-        print(response.experiment_id)
+    if (response.response == master_pb2.Response.ResponseStatus.SUCCESS):
+        print("experiment id is", response.experiment_id)
     else:
-        print("fail")
+        print("fail to request experiments")
 
 
 
