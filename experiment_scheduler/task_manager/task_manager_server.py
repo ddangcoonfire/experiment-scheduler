@@ -65,48 +65,36 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
 
     def KillTask(self, request, context):
-        target_process = self.tasks[request.task_id]
-        sign = target_process.poll()
+        target_process = self.tasks.get[request.task_id]
 
+        if target_process is None:
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)
+        sign = target_process.poll()
         if sign is None:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
         else:
             target_process.terminate()
+            target_process.wait()
             logger.info(f"{request.task_id} is killed!")
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
 
     def GetTaskStatus(self, request, context):
-        target_process = self.tasks[request.task_id]
+        target_process = self.tasks.get(request.task_id)
 
         if target_process is None:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)  # CASE: Wrong task_id
+            return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)
 
-        return_code = target_process.returncode
-        if return_code == 0:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.DONE)
-        elif return_code is None:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.RUNNING)
-        elif return_code is -signal.SIGTERM:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.KILLED)
-        else:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.ABNORMAL)
+        return get_response(request.task_id, target_process)
 
     def GetAllTasks(self, request_iterator, context):
-        task_list = self.tasks.values()
+        task_dict = self.tasks.items()
         all_tasks_status = []
-        for target_process in task_list:
-            task_id = get_task_id(self.tasks, target_process)
-            return_code = target_process.returncode
 
-            if return_code == 0:
-                self.tasks.pop(task_id)  # Done task should be removed in tasks
-                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.DONE))
-            elif return_code is None:
-                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING))
-            elif return_code is -signal.SIGTERM:
-                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.KILLED))
-            else:
-                return all_tasks_status.extend(task_manager_pb2.Response(task_id=task_id, response=Response.ABNORMAL))
+        for (task_id, target_process) in task_dict:
+            all_tasks_status.extend(get_response(task_id, target_process))
+
+        return all_tasks_status
+
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -117,12 +105,18 @@ def serve():
     server.wait_for_termination()
 
 
+def get_response(task_id, target_process):
+    return_code = target_process.returncode
+    if return_code == 0:
+        return task_manager_pb2.Response(task_id=task_id, response=Response.DONE)
+    elif return_code is None:
+        return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
+    elif return_code is (-signal.SIGTERM | -signal.SIGKILL):
+        return task_manager_pb2.Response(task_id=task_id, response=Response.KILLED)
+    elif return_code > 0:
+        return task_manager_pb2.Response(task_id=task_id, response=Response.ABNORMAL)
+
+
 if __name__ == '__main__':
     logging.basicConfig()
     serve()
-
-
-def get_task_id(tasks, val):
-    for key, value in tasks.items():
-        if val == value:
-            return key
