@@ -38,11 +38,11 @@ message TaskStatement {
 message Response {
     string task_id = 1;
     enum ResponseStatus {
-        READY = 0;
-        RUNNING = 1;
-        DONE = 2;
-        KILLED = 3;
-        ABNORMAL = 4;
+        RUNNING = 0;
+        DONE = 1;
+        KILLED = 2;
+        ABNORMAL = 3;
+        NOTFOUND = 4;
     }
     ResponseStatus response = 2; // response가 의미하는 값은 Enum으로 정의
 }
