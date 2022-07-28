@@ -12,6 +12,7 @@ class ExperimentExecutor:
     def _trigger_runner(self):
         """
         trigger new runner by grpc request to task manager
+        trigger new runner by grpc_master request to task manager
         :return: runner's id
         """
         return self.id
