@@ -1,6 +1,6 @@
 import grpc
 from ..task_manager.task_manager_pb2_grpc import TaskManagerStub
-from ..task_manager.task_manager_pb2 import TaskStatement
+from ..task_manager.task_manager_pb2 import TaskStatement, Task
 
 # how to set path in python?
 
@@ -16,6 +16,10 @@ class ProcessMonitor:
         self.init_task_manager_connection()
         self.task_list = dict()
         self.stubs = dict()
+
+    # def _health_check(self, task_manager):
+    #     response = self.stubs[task_manager].health_check()
+    #     return response
 
     def init_task_manager_connection(self):
         """register all task manager's address"""
@@ -41,6 +45,8 @@ class ProcessMonitor:
         # unify all task manager communication here.
         if request_type == "run_task":
             response = self.stubs[task_manager].RunTask(protobuf)
+        elif request_type == "get_task_status":
+            response = self.stubs[task_manager].GetTaskStatus(protobuf)
         else:
             response = None
         return response
@@ -59,7 +65,7 @@ class ProcessMonitor:
 
     def get_task_status(self,task_id):
         task_manager = self.select_task_manager()
-        protobuf = ""
+        protobuf = Task(task_id = task_id)
         self._request_task_manager(task_manager, protobuf, "get_task_status")
 
     def get_all_tasks(self):

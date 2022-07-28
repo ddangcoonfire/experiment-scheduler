@@ -6,11 +6,23 @@ from concurrent import futures
 import uuid
 
 class Master(MasterServicer):
+
+
     """
     Inherit GrpcServer to run Grpc Socket ( get request from submitter )
     Class that runs on server
     """
-
+    """
+        To-Do : 
+        v Health Check
+        Task Manager 의 작업 완료 센싱
+         - get_task_status : master(폴링) / submitter(사용자 요청) 모두 사용가능
+         - process가 필요하나 
+        request_experiments 로직 추가 검증 필요
+        GPU Resource 따라서 Task Manager에 할당하는 알고리즘 추가
+         - Resource를 기다리며 wait하는 알고리즘 필요
+        Resource Monitor랑 통신
+    """
     def __init__(self, max_workers=10):
         """
         Init GrpcServer.
@@ -19,6 +31,7 @@ class Master(MasterServicer):
         self.task_managers_address = self.get_task_managers()
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.submitter_socket = None  # something
+        self.tasks = []
 
     def execute(self):
         pass
@@ -42,8 +55,10 @@ class Master(MasterServicer):
             response = self.request_experiment(task, context)
             if (response.response != 0):
                 response = response_status.Fail
+                # 논의필요
                 break
             else:
+                self.tasks.append(response.experiment_id)
                 response = response_status.SUCCESS
         return master_pb2.Response(experiment_id=experiment_id, response=response)
 
