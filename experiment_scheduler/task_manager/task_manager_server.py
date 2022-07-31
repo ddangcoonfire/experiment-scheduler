@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Python implementation of the gRPC route guide server."""
+import logging
 import os
 import signal
-from concurrent import futures
-import logging
-import uuid
 import subprocess
-from enum import Enum
+import uuid
+from concurrent import futures
 from os import path as osp
 
 import grpc
-import task_manager_pb2
-import task_manager_pb2_grpc
+
+from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2
+from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
-    """Provides methods that implement functionality of route guide server."""
+    """Provides methods that implement functionality of task manager server."""
 
     def __init__(self, log_dir = os.getcwd()):
         self.tasks = {}
@@ -39,9 +39,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         return task_manager_pb2.ServerStatus(alive=True)
 
     def run_task(self, request, context):
-        """
-        Get task request and run it.
-        """
+        """Get task request and run it."""
         task_env = request.task_env
         task_env['CUDA_VISIBLE_DEVICES'] = str(request.gpuidx)
 
@@ -58,37 +56,40 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
         return task_manager_pb2.TaskStatus(
             task_id=task_id,
-            response=task_manager_pb2.TaskStatus.Status.RUNNING
+            status=task_manager_pb2.TaskStatus.Status.RUNNING
         )
 
     def get_task_log(self, request, context):
         """
-        
+        Save an output of the requested task and return output file path.
+        If status of the requeest task is Done, delete it from task manager.
         """
-        if request.task_id not in self.tasks:
+        target_process = self._get_task(request.task_id)
+        if target_process is None:
             return task_manager_pb2.TaskStatus(logfile_path = "")
 
         log_file_path = osp.join(
             self.log_dir, f"{self.tasks[request.task_id]}_log.txt")
 
         with open(log_file_path, "w") as f:
-            f.write(self.stdout)
+            f.write(requested_task.stdout)
 
-        if self.tasks[request.task_id].poll() is None:
-            del self.tasks[request.task_id]
+        if self.tasks[request.task_id].poll() is not None:
+            del requested_task
 
-        return task_manager_pb2.TaskStatus(logfile_path = log_file_path)
+        return task_manager_pb2.TaskLog(logfile_path = log_file_path)
 
     def kill_task(self, request, context):
-        target_process = self.tasks.get(request.task_id)
+        """Kill a requsted task if the task is running"""
+        target_process = self._get_task(request.task_id)
 
         if target_process is None:
-            return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)
+            return task_manager_pb2.TaskStatus(task_id=request.task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
         sign = target_process.poll()
         if sign is None:
             return task_manager_pb2.TaskStatus(
                 task_id=request.task_id,
-                response=task_manager_pb2.TaskStatus.Status.DONE
+                status=task_manager_pb2.TaskStatus.Status.DONE
             )
         else:
             target_process.terminate()
@@ -96,26 +97,47 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             logger.info(f"{request.task_id} is killed!")
             return task_manager_pb2.TaskStatus(
                 task_id=request.task_id,
-                response=task_manager_pb2.TaskStatus.Status.KILLED
+                status=task_manager_pb2.TaskStatus.Status.KILLED
             )
 
     def get_task_status(self, request, context):
-        target_process = self.tasks.get(request.task_id)
+        """Get single requested task status"""
+        target_process = self._get_task(request.task_id)
 
         if target_process is None:
-            return task_manager_pb2.Response(task_id=request.task_id, response=task_manager_pb2.TaskStatus.Status.NOTFOUND)
+            return task_manager_pb2.TaskStatus(task_id=request.task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
 
-        return get_response(request.task_id, target_process)
+        return self._wrap_by_grpc_TaskStatus(request.task_id)
 
     def get_all_tasks(self, request_iterator, context):
-        task_dict = self.tasks.items()
+        """Get all tasks managed by task manager"""
         all_tasks_status = []
 
-        for (task_id, target_process) in task_dict:
-            all_tasks_status.append(get_response(task_id, target_process))
+        for task_id in self.tasks.key():
+            all_tasks_status.append(self._wrap_by_grpc_TaskStatus(task_id))
 
         return all_tasks_status
 
+    def _wrap_by_grpc_TaskStatus(self, task_id):
+        """Make task_manager_pb2.TaskStatus using return code of task."""
+        target_process = self._get_task(task_id)
+        if target_process is None:
+            return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
+
+        return_code = target_process.returncode
+        if return_code == 0:
+            return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.DONE)
+        elif return_code is None:
+            return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.RUNNING)
+        elif return_code is (-signal.SIGTERM or -signal.SIGKILL):
+            return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.KILLED)
+
+    def _get_task(self, task_id):
+        """Get a task instance if exists. if not, return None"""
+        if task_id not in self.tasks:
+            logger.warning(f"{task_id} is not found in task_manager!")
+            return None
+        return self.tasks[task_id]
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -124,17 +146,6 @@ def serve():
     server.add_insecure_port('[::]:50051')
     server.start()
     server.wait_for_termination()
-
-
-def get_response(task_id, target_process):
-    return_code = target_process.returncode
-    if return_code == 0:
-        return task_manager_pb2.Response(task_id=task_id, response=task_manager_pb2.TaskStatus.Status.DONE)
-    elif return_code is None:
-        return task_manager_pb2.Response(task_id=task_id, response=task_manager_pb2.TaskStatus.Status.RUNNING)
-    elif return_code is (-signal.SIGTERM or -signal.SIGKILL):
-        return task_manager_pb2.Response(task_id=task_id, response=task_manager_pb2.TaskStatus.Status.KILLED)
-
 
 
 if __name__ == '__main__':
