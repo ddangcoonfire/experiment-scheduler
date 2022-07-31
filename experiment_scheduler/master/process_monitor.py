@@ -1,7 +1,10 @@
 import grpc
 from ..task_manager.task_manager_pb2_grpc import TaskManagerStub
 from ..task_manager.task_manager_pb2 import TaskStatement, Task
-
+from multiprocessing.pool import ThreadPool
+from multiprocessing import Process, Manager
+import threading
+import time
 # how to set path in python?
 
 class ProcessMonitor:
@@ -10,16 +13,32 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
-    def __init__(self, task_managers):
-        self.task_managers = task_managers
+    def __init__(self, task_manager, pool_size):
+        self.task_manager = task_manager
         self.channels = dict()
         self.init_task_manager_connection()
         self.task_list = dict()
         self.stubs = dict()
+        self.shared_var_manager = Manager()
+        self.thread_queue = self.shared_var_manager.dict()
+        self.thread_queue["is_healthy"] = False
+        self.master_queue = None
+        self.thread_pool = ThreadPool(pool_size)
+        self.health_checker = threading.Thread(target=self._health_check, args=(self.task_manager,))
+        self.health_checker.start()
 
-    # def _health_check(self, task_manager):
-    #     response = self.stubs[task_manager].health_check()
-    #     return response
+    def _health_check(self, task_manager):
+        while True:
+            response = self.stubs[task_manager].health_check()
+            if response:
+                self.thread_queue["is_healthy"] = True
+            else:
+                self.thread_queue["is_healthy"] = False
+            time.sleep(5)
+    # should run this code through a thread.
+
+    def is_healthy(self):
+        return self.thread_queue["is_healthy"]
 
     def init_task_manager_connection(self):
         """register all task manager's address"""
