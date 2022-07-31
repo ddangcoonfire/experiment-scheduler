@@ -65,7 +65,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
 
     def KillTask(self, request, context):
-        target_process = self.tasks.get[request.task_id]
+        target_process = self.tasks.get(request.task_id)
 
         if target_process is None:
             return task_manager_pb2.Response(task_id=request.task_id, response=Response.NOTFOUND)
@@ -91,7 +91,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         all_tasks_status = []
 
         for (task_id, target_process) in task_dict:
-            all_tasks_status.extend(get_response(task_id, target_process))
+            all_tasks_status.append(get_response(task_id, target_process))
 
         return all_tasks_status
 
@@ -111,10 +111,9 @@ def get_response(task_id, target_process):
         return task_manager_pb2.Response(task_id=task_id, response=Response.DONE)
     elif return_code is None:
         return task_manager_pb2.Response(task_id=task_id, response=Response.RUNNING)
-    elif return_code is (-signal.SIGTERM | -signal.SIGKILL):
+    elif return_code is (-signal.SIGTERM or -signal.SIGKILL):
         return task_manager_pb2.Response(task_id=task_id, response=Response.KILLED)
-    elif return_code > 0:
-        return task_manager_pb2.Response(task_id=task_id, response=Response.ABNORMAL)
+
 
 
 if __name__ == '__main__':
