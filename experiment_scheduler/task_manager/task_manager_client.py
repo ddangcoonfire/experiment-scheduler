@@ -14,11 +14,12 @@
 """The Python implementation of the gRPC route guide client."""
 
 from __future__ import print_function
+
 import os
 
 import grpc
-import task_manager_pb2
-import task_manager_pb2_grpc
+from experiment_scheduler.task_manager.grpc_task_manager import (
+    task_manager_pb2, task_manager_pb2_grpc)
 
 
 def make_route_note(message, latitude, longitude):
