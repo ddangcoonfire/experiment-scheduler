@@ -5,10 +5,9 @@ from multiprocessing import Process
 import grpc
 from concurrent import futures
 import uuid
-
-
+import multiprocessing
+import time
 class Master(MasterServicer):
-
 
     """
     Inherit GrpcServer to run Grpc Socket ( get request from submitter )
@@ -34,9 +33,11 @@ class Master(MasterServicer):
         self.process_monitor = self.create_process_monitor()
         self.submitter_socket = None  # something
         self.tasks = []
+        self.task_managers_shm = dict()
+        self.manager = multiprocessing.Manager()
 
-    def _run_process_monitor(self,task_manager_address):
-        pm = ProcessMonitor(task_manager_address)
+    def _run_process_monitor(self,task_manager_address, cmd):
+        pm = ProcessMonitor(task_manager_address, cmd)
         pm.start()
 
     def create_process_monitor(self):
@@ -44,29 +45,41 @@ class Master(MasterServicer):
         # TODO today
         process_monitor_list = []
         for task_manager in self.task_managers_address:
-            p = Process(target=self._run_process_monitor, args=(task_manager,))
+            self.task_managers_shm[task_manager] = self.manager.list()
+            p = Process(target=self._run_process_monitor, args=(task_manager, self.task_managers_shm[task_manager]))
             process_monitor_list.append(p)
         return process_monitor_list
 
     def get_task_managers(self):
         return ["localhost"]
 
+    def select_task_manager(self, selected=-1):
+        """
+        Process Monitor automatically provide task that is able to run task
+        :return:
+        """
+        # need convention later
+        return self.task_managers[0] if selected < 0 else self.task_managers[selected]
+
     def check_task_manager_health(self, task_manager):
         # Should get this message from queue
         pass
 
-    def run_submitter_command(self, command):
-        pass
-        # self.process_monitor.new_experiment(experiment)
-
     def request_experiments(self, request, context):
         experiment_id = request.name + '-' + str(uuid.uuid1())
         response_status = master_pb2.Response.ResponseStatus
+
+        #1. submitter 에서 실험 요청을 함 (tasks보냄)
+        #2. request_experiments 돈다
+        #3. 실험이 다 끝나서 응답을 주는게 아니라, task_manager 에 등록이 되었다고 얘기해주는거
+        #4. success = 실험 이제 돌릴거임
+        #5. fail = 지금 task_manager가 뭐가 잘 안됨
+
         for task in request.tasks:
             response = self.request_experiment(task, context)
             if (response.response != 0):
                 response = response_status.Fail
-                # if fail, send msg to submitter that some task failed to register
+                # if fail, send msg to submitter that some ask failed to register
                 # Or, send msg to submitter that something wrong with task_manager
                 # One task failure should not fail all tasks
             else:
@@ -75,7 +88,19 @@ class Master(MasterServicer):
         return master_pb2.Response(experiment_id=experiment_id, response=response)
 
     def request_experiment(self, request, context):
-        task_id = self.process_monitor.run_task(request.condition.gpuidx, request.command, request.name)
+        self.task_managers_shm[self.select_task_manager()].append(request.condition.gpuidx, request.command, request.name)
+        time.sleep(1)
+
+        # 작업 완료 후 response도 sharedMem으로
+        # 원래 : Class, 지금 : Process Object
+        # Run Task 를 Call 하느
+        # need change here.
+
+        # 파이프
+        # message queue
+        # shared memory
+
+        task_id = self.task_managers_shm[self.select_task_manager()].pop()
         response_status = master_pb2.Response.ResponseStatus
         response = response_status.SUCCESS if task_id < 0 else response_status.FAIL
         return master_pb2.Response(experiment_id=task_id, response=response)
