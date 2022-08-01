@@ -34,7 +34,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         self.tasks = {}
         self.log_dir = log_dir
 
-    def health_check(self):
+    def health_check(self, request, context):
         """Return current server status"""
         return task_manager_pb2.ServerStatus(alive=True)
 
@@ -42,15 +42,21 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         """Get task request and run it."""
         task_env = request.task_env
         task_env['CUDA_VISIBLE_DEVICES'] = str(request.gpuidx)
+        # add random hash to make task_id
+        task_id = request.name + '-' + uuid.uuid4().hex
+
+        log_file_path = osp.join(
+            self.log_dir, f"{task_id}_log.txt")
+        output_file = open(log_file_path, "w")
 
         task = subprocess.Popen(
             args=request.command,
             shell=True,
-            env=task_env
+            env=task_env,
+            stdout=output_file,
+            stderr=subprocess.STDOUT
         )
 
-        # add random hash to make task_id
-        task_id = request.name + '-' + uuid.uuid4().hex
         self.tasks[task_id] = task
         logger.info(f"{task_id} is now running!")
 
@@ -69,13 +75,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return task_manager_pb2.TaskStatus(logfile_path = "")
 
         log_file_path = osp.join(
-            self.log_dir, f"{self.tasks[request.task_id]}_log.txt")
-
-        with open(log_file_path, "w") as f:
-            f.write(requested_task.stdout)
+            self.log_dir, f"{request.task_id}_log.txt")
 
         if self.tasks[request.task_id].poll() is not None:
-            del requested_task
+            del self.tasks[request.task_id]
 
         return task_manager_pb2.TaskLog(logfile_path = log_file_path)
 
@@ -86,7 +89,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         if target_process is None:
             return task_manager_pb2.TaskStatus(task_id=request.task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
         sign = target_process.poll()
-        if sign is None:
+        if sign is not None:
             return task_manager_pb2.TaskStatus(
                 task_id=request.task_id,
                 status=task_manager_pb2.TaskStatus.Status.DONE
@@ -111,26 +114,30 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
     def get_all_tasks(self, request_iterator, context):
         """Get all tasks managed by task manager"""
-        all_tasks_status = []
+        all_tasks_status = task_manager_pb2.AllTasksStatus()
 
-        for task_id in self.tasks.key():
-            all_tasks_status.append(self._wrap_by_grpc_TaskStatus(task_id))
+        for task_id in self.tasks.keys():
+            all_tasks_status.task_status_array.append(
+                self._wrap_by_grpc_TaskStatus(task_id))
 
         return all_tasks_status
 
     def _wrap_by_grpc_TaskStatus(self, task_id):
         """Make task_manager_pb2.TaskStatus using return code of task."""
         target_process = self._get_task(task_id)
+
         if target_process is None:
             return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
 
-        return_code = target_process.returncode
+        return_code = target_process.poll()
         if return_code == 0:
             return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.DONE)
         elif return_code is None:
             return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.RUNNING)
-        elif return_code is (-signal.SIGTERM or -signal.SIGKILL):
+        elif return_code == -signal.SIGTERM or return_code == -signal.SIGKILL:
             return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.KILLED)
+        else:
+            return task_manager_pb2.TaskStatus(task_id=task_id, status=task_manager_pb2.TaskStatus.Status.ABNORMAL)
 
     def _get_task(self, task_id):
         """Get a task instance if exists. if not, return None"""

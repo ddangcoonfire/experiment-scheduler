@@ -42,6 +42,7 @@ message TaskStatement {
     int32 gpuidx = 1;
     string command = 2;
     string name = 3;
+    map<string, string> task_env = 4;
 }
 
 message TaskStatus {
@@ -61,7 +62,7 @@ message Task {
 }
 
 message AllTasksStatus {
-    repeated TaskStatus TaskStatus_array = 1;
+    repeated TaskStatus task_status_array = 1;
 }
 
 message TaskLog {
