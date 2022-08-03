@@ -1,4 +1,5 @@
 import argparse
+import os
 import yaml
 import grpc
 from experiment_scheduler.master.grpc_master import master_pb2
@@ -16,6 +17,7 @@ def parse_input_file(parsed_yaml):
             master_pb2.TaskStatement(
                 command = task['cmd'],
                 name = task['name'],
+                task_env = os.environ.copy(),
                 condition = master_pb2.TaskCondition(
                     gpuidx= task['condition']['gpu'])
                 ) for task in parsed_yaml['tasks']

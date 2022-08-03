@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
+import master_pb2 as master__pb2
 
 
 class MasterStub(object):
