@@ -1,11 +1,11 @@
 import grpc
-from ..task_manager.task_manager_pb2_grpc import TaskManagerStub
-from ..task_manager.task_manager_pb2 import TaskStatement, Task
+from experiment_scheduler.task_manager.task_manager_pb2_grpc import TaskManagerStub
+from experiment_scheduler.task_manager.task_manager_pb2 import TaskStatement, Task
 from multiprocessing.pool import ThreadPool
 from multiprocessing import Process, Manager
 import threading
 import time
-# how to set path in python?
+
 
 class ProcessMonitor:
     """
@@ -13,10 +13,11 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
-    def __init__(self, task_manager, shared_memory, pool_size=5):
+    def __init__(self, task_manager, master_pipe, pool_size=5):
         self.task_manager = task_manager
         self.channel = grpc.insecure_channel(self.task_manager)
         self.stub = TaskManagerStub(self.channel[self.task_manager])
+        self.master_pipe = master_pipe
         # connection initialization
 
         self.task_list = dict()
@@ -32,23 +33,22 @@ class ProcessMonitor:
         self.health_checker.start()
         # health_checking_thread_on
 
-        self.command_queue = shared_memory
         # shared with master memory
 
-    def _health_check(self, thread_queue):
+    def _health_check(self, thread_queue, time_interval=5):
         while True:
             response = self.stub.health_check()
             if response:
                 thread_queue["is_healthy"] = True
             else:
                 thread_queue["is_healthy"] = False
-            time.sleep(5)
+            time.sleep(time_interval)
     # should run this code through a thread.
 
     def is_healthy(self):
         return self.thread_queue["is_healthy"]
 
-    def _request_task_manager(self, task_manager, protobuf, request_type):
+    def _request_task_manager(self, command):
         """
         all direct request to task manager use this method
         :param protobuf:
@@ -58,13 +58,17 @@ class ProcessMonitor:
         # if request_task_manager need multithreading, use asyncio
         # multiprocessing, threading, asyncio
         # unify all task manager communication here.
-        if request_type == "run_task":
-            response = self.stub.RunTask(protobuf)
-        elif request_type == "get_task_status":
-            response = self.stub.GetTaskStatus(protobuf)
-        else:
-            response = None
-        return response
+        cmd = command[0]
+        ret = ""
+        if cmd == "kill_task":
+            ret = self.kill_task(command[1])
+        elif cmd == "get_task_status":
+            ret = self.get_task_status(command[1])
+        elif cmd == "get_all_tasks":
+            ret = self.get_all_tasks()
+        elif cmd == "run_task":
+            ret = self.run_task(command[1], command[2], command[3])
+        self.master_pipe.send(ret)
 
     def run_task(self, gpu_idx, command, name):
         protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name)
@@ -86,28 +90,14 @@ class ProcessMonitor:
 
     def run(self, command):
         cmd = command[0]
-        if cmd == "kill_task":
-            self.kill_task(command[1])
-        elif cmd == "get_task_status":
-            self.get_task_status(command[1])
-        elif cmd == "get_all_tasks":
-            self.get_all_tasks(command[1])
-        elif cmd == "run_task":
-            self.run_task(command[1],command[2],command[3])
+        self._request_task_manager(cmd)
 
-    def start(self):
+    def start(self, time_interval=1):
         # 로직 구현
-        # Master call this method using Process
-        # waiting 하면서 들어
-        # 1. while waiting, 공통 자원을 바라보면서 값이 들어오면 처리
-        # 2. 글쎄 고민해봐야
         while True:
-            if len(self.command_queue) > 0:
-                command = self.command_queue.pop()
+            # lock between sender and receiver must be set later
+            command = self.master_pipe.recv()
+            if len(command) > 0:
                 self.run(command)
-            # how to communicate?
-            # message queue? (rabbitmq + celery executor)
-            # shared_variable? (Manager Object) - 0.1 --> 0.2~3
-            # Pipe ( Uni direction... not recommended )
-            time.sleep(1)
+            time.sleep(time_interval)
 
