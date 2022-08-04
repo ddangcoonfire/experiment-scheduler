@@ -1,8 +1,7 @@
 import grpc
 from experiment_scheduler.task_manager.task_manager_pb2_grpc import TaskManagerStub
 from experiment_scheduler.task_manager.task_manager_pb2 import TaskStatement, Task
-from multiprocessing.pool import ThreadPool
-from multiprocessing import Process, Manager
+from multiprocessing import Manager
 import threading
 import time
 
