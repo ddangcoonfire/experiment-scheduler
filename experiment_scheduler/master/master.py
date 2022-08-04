@@ -19,14 +19,11 @@ class Master(MasterServicer):
         """
         Init GrpcServer.
         """
-        # something.add ... to server ( , server )
         self.task_managers_address = self.get_task_managers()
         self.process_monitor = self.create_process_monitor()
-        self.submitter_socket = None  # something
         self.queued_tasks = []
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
-        self.manager = multiprocessing.Manager()
         self.runner = threading.Thread(target=self._execute_command)
         self.runner.start()
 
