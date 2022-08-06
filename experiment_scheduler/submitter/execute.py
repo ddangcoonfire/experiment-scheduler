@@ -14,11 +14,11 @@ def parse_input_file(parsed_yaml):
     input = master_pb2.ExperiemntStatement(
         name= parsed_yaml['name'],
         tasks= [
-            master_pb2.TaskStatement(
+            master_pb2.MasterTaskStatement(
                 command = task['cmd'],
                 name = task['name'],
                 task_env = os.environ.copy(),
-                condition = master_pb2.TaskCondition(
+                condition = master_pb2.MasterTaskCondition(
                     gpuidx= task['condition']['gpu'])
                 ) for task in parsed_yaml['tasks']
         ]

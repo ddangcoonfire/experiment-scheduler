@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import master_pb2 as master__pb2
+import experiment_scheduler.master.grpc_master.master_pb2 as master__pb2
 
 
 class MasterStub(object):
@@ -18,7 +18,7 @@ class MasterStub(object):
         self.request_experiments = channel.unary_unary(
                 '/Master/request_experiments',
                 request_serializer=master__pb2.ExperimentStatement.SerializeToString,
-                response_deserializer=master__pb2.Response.FromString,
+                response_deserializer=master__pb2.MasterResponse.FromString,
                 )
 
 
@@ -38,7 +38,7 @@ def add_MasterServicer_to_server(servicer, server):
             'request_experiments': grpc.unary_unary_rpc_method_handler(
                     servicer.request_experiments,
                     request_deserializer=master__pb2.ExperimentStatement.FromString,
-                    response_serializer=master__pb2.Response.SerializeToString,
+                    response_serializer=master__pb2.MasterResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -64,6 +64,6 @@ class Master(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Master/request_experiments',
             master__pb2.ExperimentStatement.SerializeToString,
-            master__pb2.Response.FromString,
+            master__pb2.MasterResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -19,11 +19,11 @@ class Master(MasterServicer):
         """
         Init GrpcServer.
         """
-        self.task_managers_address = self.get_task_managers()
-        self.process_monitor = self.create_process_monitor()
         self.queued_tasks = []
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
+        self.task_managers_address = self.get_task_managers()
+        self.process_monitor = self.create_process_monitor()
         self.runner = threading.Thread(target=self._execute_command)
         self.runner.start()
 
@@ -76,9 +76,9 @@ class Master(MasterServicer):
         experiment_id = request.name + '-' + str(uuid.uuid1())
         for task in request.tasks:
             self.queued_tasks.append(task)
-        response_status = master_pb2.Response.ResponseStatus
+        response_status = master_pb2.MasterResponse.ResponseStatus
         response = response_status.SUCCESS if experiment_id is not None else response_status.FAIL
-        return master_pb2.Response(experiment_id=experiment_id, response=response)
+        return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
     def check_task_manager_run_task_available(self,task_manager):
         # currently only returns True
