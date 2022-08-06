@@ -4,10 +4,10 @@ sys.path.append("./")
 from experiment_scheduler.master.master import Master
 import grpc
 from concurrent import futures
-from experiment_scheduler.master.grpc.master_pb2_grpc import add_MasterServicer_to_server,MasterStub
-from experiment_scheduler.master.grpc.master_pb2 import ExperiemntStatement, TaskStatement, TaskCondition
+from experiment_scheduler.master.grpc_master.master_pb2_grpc import add_MasterServicer_to_server,MasterStub
+from experiment_scheduler.master.grpc_master.master_pb2 import ExperimentStatement, MasterTaskStatement, MasterTaskCondition
 from experiment_scheduler.task_manager.task_manager_pb2_grpc import add_TaskManagerServicer_to_server, TaskManagerStub
-from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
+from experiment_scheduler.task_manager.task_manager_pb2 import TaskManager
 
 
 def turn_master_on():
@@ -34,9 +34,9 @@ class MasterTester:
         self.master_stub = MasterStub(grpc.insecure_channel("localhost:50050"))
 
     def test_master(self):
-        protobuf = ExperiemntStatement(name="test1",
-                                       tasks=TaskStatement(command="cmd1", name="name1",
-                                                           condition=TaskCondition(gpuidx=0)))
+        protobuf = ExperimentStatement(name="test1",
+                                       tasks=MasterTaskStatement(command="cmd1", name="name1",
+                                                           condition=MasterTaskCondition(gpuidx=0)))
         response = self.master_stub.request_experiment(protobuf)
         assert type(response) is int
 
