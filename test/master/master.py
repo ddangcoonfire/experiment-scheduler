@@ -41,10 +41,22 @@ class MasterTester:
 
     def test_master(self):
         self._request_experiments_test()
+        self._script_running_test()
+
+    def _script_running_test(self):
+        master_task_statement = MasterTaskStatement()
+        master_task_statement.command = "python test.py"
+        master_task_statement.name = "run_script"
+        master_task_statement.task_env["RUNNING_SCRIPT"] = "WORKING"
+        master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))
+        protobuf = ExperimentStatement(name="test2", tasks=[master_task_statement])
+        response = self.master_stub.request_experiments(protobuf)
+        assert type(response.experiment_id) is str
+        assert response.response is MasterResponse.ResponseStatus.SUCCESS
 
     def _request_experiments_test(self):
         master_task_statement = MasterTaskStatement()
-        master_task_statement.command = "cmd1"
+        master_task_statement.command = "echo 1"
         master_task_statement.name = "name1"
         master_task_statement.task_env["a"] = "b"
         master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))
@@ -58,7 +70,7 @@ class MasterTester:
 
 
 if __name__ == "__main__":
-    # set_start_method("fork")
+    set_start_method("fork")
     tester = MasterTester()
     tester.run_unit_test()
     tester.test_master()

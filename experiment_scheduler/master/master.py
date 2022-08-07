@@ -5,7 +5,6 @@ from multiprocessing import Process, Pipe
 import grpc
 from concurrent import futures
 import uuid
-import multiprocessing
 import time
 import threading
 
@@ -19,6 +18,7 @@ class Master(MasterServicer):
         """
         Init GrpcServer.
         """
+        # [Todo] Logging required
         self.queued_tasks = []
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
@@ -39,8 +39,8 @@ class Master(MasterServicer):
             for task in self.queued_tasks:
                 if len(available_task_managers) > 0:
                     task_manager = available_task_managers.pop(0)
-                    self.set_task_manager_environment(task_manager)
                     self.execute_task(task_manager)
+            # TODO master pipe recv logic required here
             time.sleep(interval)
 
     def _run_process_monitor(self,task_manager_address, pipe):
@@ -53,8 +53,12 @@ class Master(MasterServicer):
         pm = ProcessMonitor(task_manager_address, pipe)
         pm.start()
 
+    def _process_monitor_termintion(self):
+        # [TODO] all process monitors should be halted if master stopped
+        pass
+
     def create_process_monitor(self):
-        print("create process monitor")
+        print("create process monitor")  # print should be replaced as log later
         process_monitor_list = list()
         for task_manager in self.task_managers_address:
             self.master_pipes[task_manager], self.process_monitor_pipes[task_manager] = Pipe()
@@ -71,7 +75,7 @@ class Master(MasterServicer):
         Process Monitor automatically provide task that is able to run task
         :return:
         """
-        # need convention later
+        # [TODO] need to set convention with resource monitor later
         return self.task_managers_address[0] if selected < 0 else self.task_managers_address[selected]
 
     def request_experiments(self, request, context):
@@ -95,14 +99,11 @@ class Master(MasterServicer):
         # return available_task_managers
         return [self.task_managers_address[0]]
 
-    def execute_task(self,task_manager):
+    def execute_task(self, task_manager):
         prior_task = self.queued_tasks.pop(0)
-        gpu_idx = 0
+        gpu_idx = 0  # need to get idx from Resource Monitor
         self.master_pipes[task_manager]\
-            .send(["run_task", gpu_idx, prior_task.name, prior_task.command, dict(prior_task.task_env)])
-
-    def set_task_manager_environment(self, task_manager):
-        self.master_pipes[task_manager].send(["set_env", dict(self.queued_tasks[0].task_env)])  # need to add here later
+            .send(["run_task", gpu_idx, prior_task.command, prior_task.name, dict(prior_task.task_env)])
 
 
 if __name__ == "__main__":
