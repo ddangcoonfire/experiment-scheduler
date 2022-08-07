@@ -54,15 +54,17 @@ class Master(MasterServicer):
         pm.start()
 
     def create_process_monitor(self):
+        print("create process monitor")
         process_monitor_list = list()
         for task_manager in self.task_managers_address:
             self.master_pipes[task_manager], self.process_monitor_pipes[task_manager] = Pipe()
             p = Process(target=self._run_process_monitor, args=(task_manager, self.process_monitor_pipes[task_manager]))
             process_monitor_list.append(p)
+            p.start()
         return process_monitor_list
 
     def get_task_managers(self):
-        return ["localhost"]
+        return ["localhost:50052"]
 
     def select_task_manager(self, selected=-1):
         """
@@ -95,15 +97,17 @@ class Master(MasterServicer):
 
     def execute_task(self,task_manager):
         prior_task = self.queued_tasks.pop(0)
-        self.master_pipes[task_manager].send(["execute_task", prior_task.name, prior_task.command])
+        gpu_idx = 0
+        self.master_pipes[task_manager]\
+            .send(["run_task", gpu_idx, prior_task.name, prior_task.command, dict(prior_task.task_env)])
 
     def set_task_manager_environment(self, task_manager):
-        self.master_pipes[task_manager].send(["set_env", self.queued_tasks[0].task_env])  # need to add here later
+        self.master_pipes[task_manager].send(["set_env", dict(self.queued_tasks[0].task_env)])  # need to add here later
 
 
 if __name__ == "__main__":
     master = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_MasterServicer_to_server(Master(), master)
-    master.add_insecure_port('[::]:50050')
+    master.add_insecure_port('[::]:50051')
     master.start()
     master.wait_for_termination()

@@ -1,18 +1,14 @@
-import sys
-
-sys.path.append("./")
 import time
 from experiment_scheduler.master.master import Master
 import grpc
 from concurrent import futures
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import add_MasterServicer_to_server, MasterStub
 from experiment_scheduler.master.grpc_master.master_pb2 import ExperimentStatement, MasterTaskStatement, \
-    MasterTaskCondition
+    MasterTaskCondition, MasterResponse
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import add_TaskManagerServicer_to_server, \
     TaskManagerStub
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
-from multiprocessing import Process, set_start_method
-import logging
+from multiprocessing import Process,set_start_method
 
 
 def turn_master_on():
@@ -44,23 +40,25 @@ class MasterTester:
         self.master_stub = MasterStub(grpc.insecure_channel("localhost:50051"))
 
     def test_master(self):
+        self._request_experiments_test()
+
+    def _request_experiments_test(self):
         master_task_statement = MasterTaskStatement()
-        master_task_statement.command="cmd1"
-        master_task_statement.name="name1"
+        master_task_statement.command = "cmd1"
+        master_task_statement.name = "name1"
         master_task_statement.task_env["a"] = "b"
         master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))
         protobuf = ExperimentStatement(name="test1", tasks=[master_task_statement])
         response = self.master_stub.request_experiments(protobuf)
-        print(response)
-        print(type(response))
-        assert type(response) is str
+        assert type(response.experiment_id) is str
+        assert response.response is MasterResponse.ResponseStatus.SUCCESS
 
     def run_unit_test(self):
         pass
 
 
 if __name__ == "__main__":
-    # set_start_method('spawn')
+    # set_start_method("fork")
     tester = MasterTester()
     tester.run_unit_test()
     tester.test_master()

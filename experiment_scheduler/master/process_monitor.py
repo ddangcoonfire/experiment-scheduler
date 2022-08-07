@@ -1,10 +1,11 @@
 import grpc
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import TaskManagerStub
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import TaskStatement, Task
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import TaskStatement, Task,\
+    google_dot_protobuf_dot_empty__pb2
 from multiprocessing import Manager
 import threading
 import time
-
+import logging
 
 class ProcessMonitor:
     """
@@ -12,11 +13,14 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
-    def __init__(self, task_manager, master_pipe, pool_size=5):
+    def __init__(self, task_manager, master_pipe):
+        print(f"PM Start For {task_manager}")
         self.task_manager = task_manager
         self.channel = grpc.insecure_channel(self.task_manager)
-        self.stub = TaskManagerStub(self.channel[self.task_manager])
+        self.stub = TaskManagerStub(self.channel)
         self.master_pipe = master_pipe
+        self.proto_empty = google_dot_protobuf_dot_empty__pb2.Empty()
+
         # connection initialization
 
         self.task_list = dict()
@@ -36,11 +40,12 @@ class ProcessMonitor:
 
     def _health_check(self, thread_queue, time_interval=5):
         while True:
-            response = self.stub.health_check()
+            response = self.stub.health_check(self.proto_empty)
             if response:
                 thread_queue["is_healthy"] = True
             else:
                 thread_queue["is_healthy"] = False
+            print(f"is healthy? : {thread_queue['is_healthy']}")
             time.sleep(time_interval)
     # should run this code through a thread.
 
@@ -69,23 +74,27 @@ class ProcessMonitor:
             ret = self.run_task(command[1], command[2], command[3])
         self.master_pipe.send(ret)
 
-    def run_task(self, gpu_idx, command, name):
-        protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name)
-        response = self.stub.RunTask(protobuf)
+    def run_task(self, gpu_idx, command, name, env):
+        protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name, task_env=env)
+        response = self.stub.run_task(protobuf)
         task_id = response.task_id
         return task_id
 
     def kill_task(self, task_id):
         protobuf = Task(task_id=task_id)
-        return self.stub.KillTask(protobuf)
+        return self.stub.kill_task(protobuf)
 
     def get_task_status(self,task_id):
         protobuf = Task(task_id=task_id)
-        return self.stub.GetTaskStatus(protobuf)
+        return self.stub.get_task_status(protobuf)
 
     def get_all_tasks(self):
-        protobuf = ""
-        return self.stub.GetAllTaskStatus(protobuf)
+        protobuf = self.proto_empty
+        return self.stub.get_all_tasks(protobuf)
+
+    def get_task_log(self,task_id):
+        protobuf = Task(task_id=task_id)
+        return self.stub.get_task_log(protobuf)
 
     def run(self, command):
         cmd = command[0]
@@ -96,6 +105,7 @@ class ProcessMonitor:
         while True:
             # lock between sender and receiver must be set later
             command = self.master_pipe.recv()
+            print(f"command : {command}")
             if len(command) > 0:
                 self.run(command)
             time.sleep(time_interval)
