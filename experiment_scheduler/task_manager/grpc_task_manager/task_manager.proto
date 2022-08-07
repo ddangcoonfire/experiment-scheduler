@@ -20,31 +20,41 @@ option objc_class_prefix = "RTG";
 
 // Interface exported by the server.
 service TaskManager {
-  rpc RunTask(TaskStatement) returns (Response) {}
+  rpc health_check(google.protobuf.Empty) returns (ServerStatus) {}
 
-  rpc KillTask(Task) returns (Response) {}
+  rpc run_task(TaskStatement) returns (TaskStatus) {}
 
-  rpc GetTaskStatus(Task) returns (Response) {}
+  rpc get_task_log(Task) returns (TaskLog) {}
 
-  rpc GetAllTasks(google.protobuf.Empty) returns (AllTasksStatus) {}
+  rpc kill_task(Task) returns (TaskStatus) {}
+
+  rpc get_task_status(Task) returns (TaskStatus) {}
+
+  rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
+
+}
+
+message ServerStatus {
+    bool alive = 1;
 }
 
 message TaskStatement {
     int32 gpuidx = 1;
     string command = 2;
     string name = 3;
+    map<string, string> task_env = 4;
 }
 
-message Response {
+message TaskStatus {
     string task_id = 1;
-    enum ResponseStatus {
-        READY = 0;
-        RUNNING = 1;
-        DONE = 2;
-        KILLED = 3;
-        ABNORMAL = 4;
+    enum Status {
+        RUNNING = 0;
+        DONE = 1;
+        KILLED = 2;
+        ABNORMAL = 3;
+        NOTFOUND = 4;
     }
-    ResponseStatus response = 2; // response가 의미하는 값은 Enum으로 정의
+    Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }
 
 message Task {
@@ -52,5 +62,9 @@ message Task {
 }
 
 message AllTasksStatus {
-    repeated Response response_array = 1;
+    repeated TaskStatus task_status_array = 1;
+}
+
+message TaskLog {
+    string logfile_path = 1;
 }
