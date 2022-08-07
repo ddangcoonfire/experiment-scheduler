@@ -45,7 +45,7 @@ class MasterTester:
 
     def _script_running_test(self):
         master_task_statement = MasterTaskStatement()
-        master_task_statement.command = "python test.py"
+        master_task_statement.command = "python test/master/example/test.py"
         master_task_statement.name = "run_script"
         master_task_statement.task_env["RUNNING_SCRIPT"] = "WORKING"
         master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))

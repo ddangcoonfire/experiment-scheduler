@@ -77,7 +77,6 @@ class ProcessMonitor:
         protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name, task_env=env)
         response = self.stub.run_task(protobuf)
         task_id = response.task_id
-        print(response.task_id)
         return task_id
 
     def kill_task(self, task_id):
@@ -100,9 +99,8 @@ class ProcessMonitor:
         # 로직 구현
         while True:
             # lock between sender and receiver must be set later
-            command = self.master_pipe.recv()
-            print(f"command : {command}")
-            if len(command) > 0:
+            if self.master_pipe.poll():
+                command = self.master_pipe.recv()
                 self._request_task_manager(command)
             time.sleep(time_interval)
 

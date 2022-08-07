@@ -41,6 +41,9 @@ class Master(MasterServicer):
                     task_manager = available_task_managers.pop(0)
                     self.execute_task(task_manager)
             # TODO master pipe recv logic required here
+            for task_manager, pipe in self.master_pipes.items():
+                if pipe.poll():
+                    print(pipe.recv())  # need change later
             time.sleep(interval)
 
     def _run_process_monitor(self,task_manager_address, pipe):
