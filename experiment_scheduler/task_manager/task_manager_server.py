@@ -89,6 +89,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         if target_process is None:
             return task_manager_pb2.TaskStatus(task_id=request.task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
         sign = target_process.poll()
+
         if sign is not None:
             return task_manager_pb2.TaskStatus(
                 task_id=request.task_id,
