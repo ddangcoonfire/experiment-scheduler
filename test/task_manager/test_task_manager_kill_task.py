@@ -27,7 +27,7 @@ class MockDoneTask:
 
     @staticmethod
     def poll():
-        return not None
+        return 0
 
     @staticmethod
     def terminate():
