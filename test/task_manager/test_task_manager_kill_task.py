@@ -5,8 +5,7 @@ import pytest
 from experiment_scheduler.task_manager import task_manager_server
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2, task_manager_pb2_grpc
 
-
-class MockRunTask:
+class MockTask:
     def __init__(self, task_id):
         self.task_id = task_id
 
@@ -22,8 +21,11 @@ class MockRunTask:
     def wait():
         return None
 
+class MockRunTask(MockTask):
+    def __init__(self, task_id):
+        self.task_id = task_id
 
-class MockDoneTask:
+class MockDoneTask(MockTask):
     def __init__(self, task_id):
         self.task_id = task_id
 
@@ -31,16 +33,7 @@ class MockDoneTask:
     def poll():
         return 0
 
-    @staticmethod
-    def terminate():
-        return None
-
-    @staticmethod
-    def wait():
-        return None
-
-
-class MockKilledTask:
+class MockKilledTask(MockTask):
     def __init__(self, task_id):
         self.task_id = task_id
 
@@ -48,27 +41,17 @@ class MockKilledTask:
     def poll():
         return -signal.SIGTERM
 
-    @staticmethod
-    def terminate():
-        return None
-
-    @staticmethod
-    def wait():
-        return None
-
-
 class MockRequest:
     def __init__(self, task_id):
         self.task_id = task_id
-
 
 class TestClass:
     TaskID = Enum('task_id', {'RUNNING': '1', 'DONE': '2', 'KILLED': '3', 'NOTFOUND': '4'})
 
     @pytest.fixture
     def task_manager_servicer(self):
-        task_manager_servicer = task_manager_server.TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer)
         task_id = Enum('task_id', {'RUNNING': '1', 'DONE': '2', 'KILLED': '3', 'NOTFOUND': '4'})
+        task_manager_servicer = task_manager_server.TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer)
         task_manager_servicer.tasks[task_id.RUNNING.value] = MockRunTask(task_id.RUNNING.value)
         task_manager_servicer.tasks[task_id.DONE.value] = MockDoneTask(task_id.DONE.value)
         task_manager_servicer.tasks[task_id.KILLED.value] = MockKilledTask(task_id.KILLED.value)
@@ -129,20 +112,20 @@ class TestClass:
             task_manager_pb2.TaskStatus(task_id=task_id.DONE.value, status=task_manager_pb2.TaskStatus.Status.DONE))
         expect_all_tasks_status.task_status_array.append(
             task_manager_pb2.TaskStatus(task_id=task_id.KILLED.value, status=task_manager_pb2.TaskStatus.Status.KILLED))
-        assert task_manager_servicer.get_all_tasks([], '') == expect_all_tasks_status
+        assert task_manager_servicer.get_all_tasks(None, '') == expect_all_tasks_status
 
     @pytest.mark.parametrize('request_task_id', TaskID.RUNNING.value)
-    def test_wrap_by_grpc_TaskStatus_running_task(self, request_task_id, task_manager_servicer):
+    def test_wrap_by_grpc_task_status_running_task(self, request_task_id, task_manager_servicer):
         assert task_manager_servicer._wrap_by_grpc_TaskStatus(request_task_id) == task_manager_pb2.TaskStatus(
             task_id=request_task_id, status=task_manager_pb2.TaskStatus.Status.RUNNING)
 
     @pytest.mark.parametrize('request_task_id', TaskID.DONE.value)
-    def test_wrap_by_grpc_TaskStatus_done_task(self, request_task_id, task_manager_servicer):
+    def test_wrap_by_grpc_task_status_done_task(self, request_task_id, task_manager_servicer):
         assert task_manager_servicer._wrap_by_grpc_TaskStatus(request_task_id) == task_manager_pb2.TaskStatus(
             task_id=request_task_id, status=task_manager_pb2.TaskStatus.Status.DONE)
 
     @pytest.mark.parametrize('request_task_id', TaskID.KILLED.value)
-    def test_wrap_by_grpc_TaskStatus_killed_task(self, request_task_id, task_manager_servicer):
+    def test_wrap_by_grpc_task_status_killed_task(self, request_task_id, task_manager_servicer):
         assert task_manager_servicer._wrap_by_grpc_TaskStatus(request_task_id) == task_manager_pb2.TaskStatus(
             task_id=request_task_id, status=task_manager_pb2.TaskStatus.Status.KILLED)
 

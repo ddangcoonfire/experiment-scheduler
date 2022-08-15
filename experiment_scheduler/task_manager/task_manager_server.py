@@ -113,7 +113,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
         return self._wrap_by_grpc_TaskStatus(request.task_id)
 
-    def get_all_tasks(self, request_iterator, context):
+    def get_all_tasks(self, empty_request, context):
         """Get all tasks managed by task manager"""
         all_tasks_status = task_manager_pb2.AllTasksStatus()
 
