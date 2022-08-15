@@ -31,11 +31,11 @@ def turn_task_manager_on():
 
 class MasterTester:
     def __init__(self):
-        # master_process = Process(target=turn_master_on, )
-        # master_process.start()
-        # task_manager_process = Process(target=turn_task_manager_on, )
-        # task_manager_process.start()
-        # time.sleep(1)
+        master_process = Process(target=turn_master_on, )
+        master_process.start()
+        task_manager_process = Process(target=turn_task_manager_on, )
+        task_manager_process.start()
+        time.sleep(1)
         self.task_manager_stub = TaskManagerStub(grpc.insecure_channel("localhost:50051"))
         self.master_stub = MasterStub(grpc.insecure_channel("localhost:50052"))
 
@@ -45,6 +45,9 @@ class MasterTester:
         self._submitter_request_test()
 
     def _submitter_request_test(self):
+        # from experiment_scheduler.submitter.exs import exs_init_master
+        # exs_init_master()
+        # [TODO] Set assert logic + Redefine test method
         pass
 
     def _script_running_test(self):

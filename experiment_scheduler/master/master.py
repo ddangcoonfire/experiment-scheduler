@@ -91,6 +91,24 @@ class Master(MasterServicer):
         response = response_status.SUCCESS if experiment_id is not None else response_status.FAIL
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
+    def delete_experiment(self, request, context):
+        """
+        delete all experiments registered in a group
+        :param request:
+        :param context:
+        :return:
+        """
+        pass
+
+    def delete_experiments(self, request, context):
+        """
+        delete certain experiment
+        :param request:
+        :param context:
+        :return:
+        """
+        pass
+
     def check_task_manager_run_task_available(self,task_manager):
         # currently only returns True
         return True
