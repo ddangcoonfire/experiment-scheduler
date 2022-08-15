@@ -1,6 +1,7 @@
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import MasterServicer, add_MasterServicer_to_server
 from experiment_scheduler.master.grpc_master import master_pb2
+from experiment_scheduler.common import settings
 from multiprocessing import Process, Pipe
 import grpc
 from concurrent import futures
@@ -71,7 +72,7 @@ class Master(MasterServicer):
         return process_monitor_list
 
     def get_task_managers(self):
-        return ["localhost:50052"]
+        return ["localhost:50051"]
 
     def select_task_manager(self, selected=-1):
         """
@@ -83,6 +84,7 @@ class Master(MasterServicer):
 
     def request_experiments(self, request, context):
         experiment_id = request.name + '-' + str(uuid.uuid1())
+        print(experiment_id)
         for task in request.tasks:
             self.queued_tasks.append(task)
         response_status = master_pb2.MasterResponse.ResponseStatus
@@ -109,9 +111,14 @@ class Master(MasterServicer):
             .send(["run_task", gpu_idx, prior_task.command, prior_task.name, dict(prior_task.task_env)])
 
 
-if __name__ == "__main__":
+def serve():
+    print(settings.HEADER)
     master = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_MasterServicer_to_server(Master(), master)
-    master.add_insecure_port('[::]:50051')
+    master.add_insecure_port('[::]:50052')
     master.start()
     master.wait_for_termination()
+
+
+if __name__ == "__main__":
+    serve()
