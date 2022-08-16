@@ -4,7 +4,6 @@ import grpc
 
 import experiment_scheduler.master.grpc_master.master_pb2 as master__pb2
 
-
 class MasterStub(object):
     """Interface exported by the server.
     """

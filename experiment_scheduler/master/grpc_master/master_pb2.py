@@ -14,14 +14,13 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement\"\xc2\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x12\'\n\tcondition\x18\x03 \x01(\x0b\x32\x14.MasterTaskCondition\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"%\n\x13MasterTaskCondition\x12\x0e\n\x06gpuidx\x18\x01 \x01(\x03\"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32H\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement\"\x99\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32H\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 
 
 _EXPERIMENTSTATEMENT = DESCRIPTOR.message_types_by_name['ExperimentStatement']
 _MASTERTASKSTATEMENT = DESCRIPTOR.message_types_by_name['MasterTaskStatement']
 _MASTERTASKSTATEMENT_TASKENVENTRY = _MASTERTASKSTATEMENT.nested_types_by_name['TaskEnvEntry']
-_MASTERTASKCONDITION = DESCRIPTOR.message_types_by_name['MasterTaskCondition']
 _MASTERRESPONSE = DESCRIPTOR.message_types_by_name['MasterResponse']
 _MASTERRESPONSE_RESPONSESTATUS = _MASTERRESPONSE.enum_types_by_name['ResponseStatus']
 ExperimentStatement = _reflection.GeneratedProtocolMessageType('ExperimentStatement', (_message.Message,), {
@@ -46,13 +45,6 @@ MasterTaskStatement = _reflection.GeneratedProtocolMessageType('MasterTaskStatem
 _sym_db.RegisterMessage(MasterTaskStatement)
 _sym_db.RegisterMessage(MasterTaskStatement.TaskEnvEntry)
 
-MasterTaskCondition = _reflection.GeneratedProtocolMessageType('MasterTaskCondition', (_message.Message,), {
-  'DESCRIPTOR' : _MASTERTASKCONDITION,
-  '__module__' : 'master_pb2'
-  # @@protoc_insertion_point(class_scope:MasterTaskCondition)
-  })
-_sym_db.RegisterMessage(MasterTaskCondition)
-
 MasterResponse = _reflection.GeneratedProtocolMessageType('MasterResponse', (_message.Message,), {
   'DESCRIPTOR' : _MASTERRESPONSE,
   '__module__' : 'master_pb2'
@@ -70,15 +62,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _EXPERIMENTSTATEMENT._serialized_start=16
   _EXPERIMENTSTATEMENT._serialized_end=88
   _MASTERTASKSTATEMENT._serialized_start=91
-  _MASTERTASKSTATEMENT._serialized_end=285
-  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=239
-  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=285
-  _MASTERTASKCONDITION._serialized_start=287
-  _MASTERTASKCONDITION._serialized_end=324
-  _MASTERRESPONSE._serialized_start=327
-  _MASTERRESPONSE._serialized_end=457
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=418
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=457
-  _MASTER._serialized_start=459
-  _MASTER._serialized_end=531
+  _MASTERTASKSTATEMENT._serialized_end=244
+  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=198
+  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=244
+  _MASTERRESPONSE._serialized_start=247
+  _MASTERRESPONSE._serialized_end=377
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=338
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=377
+  _MASTER._serialized_start=379
+  _MASTER._serialized_end=451
 # @@protoc_insertion_point(module_scope)

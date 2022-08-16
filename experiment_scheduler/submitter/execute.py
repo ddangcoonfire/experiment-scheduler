@@ -17,9 +17,7 @@ def parse_input_file(parsed_yaml):
             master_pb2.MasterTaskStatement(
                 command = task['cmd'],
                 name = task['name'],
-                task_env = os.environ.copy(),
-                condition = master_pb2.MasterTaskCondition(
-                    gpuidx= task['condition']['gpu'])
+                task_env = os.environ.copy()
                 ) for task in parsed_yaml['tasks']
         ]
     )
