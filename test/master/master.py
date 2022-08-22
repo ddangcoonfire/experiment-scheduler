@@ -4,7 +4,7 @@ import grpc
 from concurrent import futures
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import add_MasterServicer_to_server, MasterStub
 from experiment_scheduler.master.grpc_master.master_pb2 import ExperimentStatement, MasterTaskStatement, \
-    MasterTaskCondition, MasterResponse
+    MasterResponse
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import add_TaskManagerServicer_to_server, \
     TaskManagerStub
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
@@ -55,7 +55,6 @@ class MasterTester:
         master_task_statement.command = "python test/master/example/test.py"
         master_task_statement.name = "run_script"
         master_task_statement.task_env["RUNNING_SCRIPT"] = "WORKING"
-        master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))
         protobuf = ExperimentStatement(name="test2", tasks=[master_task_statement])
         response = self.master_stub.request_experiments(protobuf)
         print(response.experiment_id)
@@ -67,7 +66,6 @@ class MasterTester:
         master_task_statement.command = "echo $a"
         master_task_statement.name = "name1"
         master_task_statement.task_env["a"] = "b"
-        master_task_statement.condition.MergeFrom(MasterTaskCondition(gpuidx=0))
         protobuf = ExperimentStatement(name="test1", tasks=[master_task_statement])
         response = self.master_stub.request_experiments(protobuf)
         assert type(response.experiment_id) is str
