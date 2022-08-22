@@ -1,90 +1,169 @@
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
-import threading
-from multiprocessing import Process, Pipe
-
+from unittest.mock import Mock, patch
+import uuid
 from experiment_scheduler.master.master import Master
-from experiment_scheduler.master.process_monitor import ProcessMonitor
+import experiment_scheduler
 
 
 
-# @patch('multiprocessing.Process.__init__', new=lambda x: None)
-# @patch('multiprocessing.Process.start', new=lambda x: None)
-# @patch('multiprocessing.Pipe.__init__')
-# @patch('multiprocessing.Pipe.poll', new=lambda x: None)
-# @patch('multiprocessing.Pipe.recv', new=lambda x: None)
-# @patch('multiprocessing.Pipe.send', new=lambda x: None)
-class TestMaster(TestCase):
+def mockGetTaskManagers():
+    return ["test_network"]
 
-    def setUp(self):
-        threading.Thread.start = Mock()
-        Master.create_process_monitor = Mock(return_value='test pm')
-        Master.get_task_managers = Mock(return_value='test tm')
-
-        self.master = Master()
-        self.master.queued_tasks = ['task1']
-        self.master.create_process_monitor = Mock(return_value=['pm1'])
-        self.master.master_pipes = Mock()
-        self.master.master_pipes.poll = Mock()
-        self.master.master_pipes.send = Mock()
-        self.master.master_pipes.recv = Mock()
-        self.master.process_monitor_pipes = Mock()
-        self.master.process_monitor_pipes.poll = Mock()
-        self.master.process_monitor_pipes.send = Mock()
-        self.master.process_monitor_pipes.recv = Mock()
-
-
-    def tearDown(self):
+class MockPipe():
+    def __init__(self, *args, **kwargs):
+        pass
+    def send(self, *args, **kwargs):
+        pass
+    def poll(self, *args, **kwargs):
+        pass
+    def recv(self, *args, **kwargs):
         pass
 
-    ## 무한루프때문에 종료가 안됨
-    @patch("time.sleep", side_effect=InterruptedError)
-    def test__execute_command(self, mocked_sleep):
+def mockPipe():
+    return (MockPipe(), MockPipe())
+
+class TestRequest():
+    name = "test_name"
+    tasks = "test_tasks"
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+class MockProcess:
+    def __init__(self, *args, **kwargs):
+        pass
+    def start(self):
+        pass
+
+class MockProcessMonitor:
+    def __init__(self, *args, **kwargs):
+        pass
+    def start(self):
+        pass
+
+class MockThread:
+    def __init__(self, *args, **kwargs):
+        pass
+    def start(self):
+        pass
+
+class MockTask:
+    name = "test"
+    command = "task"
+    task_env = {"test":"env"}
+    def __init__(self, *args, **kwargs):
+        pass
+
+class TestMaster(TestCase):
+
+    @patch.object(experiment_scheduler.master.master, "ProcessMonitor", MockProcessMonitor)
+    @patch.object(experiment_scheduler.master.master, "Process", MockProcess)
+    @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
+    @patch("threading.Thread", MockThread)
+    def setUp(self):
+        Master.get_task_managers = Mock(return_value=mockGetTaskManagers())
+        self.master = Master()
+        self.master.queued_tasks = [MockTask()]
+
+    def tearDown(self):
+        patch.stopall()
+
+    @patch("time.sleep", side_effect=Exception)
+    def test__execute_command(self, mock_time_sleep):
         # given
+        # MockPipe = Mock()
+        # MockPipe.__setattr__('poll', True)
+        # self.master.master_pipes = {'test_network': MockPipe}
         self.master.execute_task = Mock()
-        self.master.set_task_manager_environment = Mock()
 
         # when
-        self.master._execute_command()
+        self.assertRaises(Exception, lambda : self.master._execute_command())
 
         # then
-        self.master.set_task_manager_environment.assert_called_once_with('test')
-        self.master.execute_task.assert_called_once_with('test')
-        self.assertRaise(InterruptedError)
+        self.master.execute_task.assert_called_with('test_network')
+        self.assertIsInstance(self.master.master_pipes['test_network'], MockPipe)
 
 
-    ## pipe mocking 문제가 발생
+    @patch.object(experiment_scheduler.master.master, "ProcessMonitor", MockProcessMonitor)
     def test__run_process_monitor(self):
         # given
-        ProcessMonitor = Mock()
-        ProcessMonitor.start = Mock()
+        MockProcessMonitor.start = Mock()
 
         # when
-        self.master._run_process_monitor('test tm', self.master.process_monitor_pipes)
+        self.master._run_process_monitor("test_tm_address", MockPipe())
 
         # then
-        ProcessMonitor.assert_called_once()
+        MockProcessMonitor.start.assert_called_once()
 
+    def test__process_monitor_termintion(self):
+        pass
+
+    @patch.object(experiment_scheduler.master.master, "Process", MockProcess)
+    @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
     def test_create_process_monitor(self):
-        self.fail()
+        # given
+        self.master._run_process_monitor = Mock()
+
+        # # when
+        testReturnValue = self.master.create_process_monitor()
+
+        # then
+        self.assertIsInstance(testReturnValue, list)
 
     def test_get_task_managers(self):
-        self.fail()
+        # when
+        testReturnValue = self.master.get_task_managers()
+
+        # then
+        self.assertEqual(testReturnValue, ['test_network'])
+
 
     def test_select_task_manager(self):
-        self.fail()
+        # when
+        testReturnValue = self.master.select_task_manager()
 
+        # then
+        self.assertEqual(testReturnValue, 'test_network')
+
+
+    @patch.object(uuid, "uuid1", (lambda : 123))
     def test_request_experiments(self):
-        self.fail()
+        # given
+        test_request = TestRequest()
+
+        # when
+        testReturnValue = self.master.request_experiments(test_request, "context")
+
+        # then
+        self.assertEqual(testReturnValue.experiment_id, "test_name-123")
+        self.assertEqual(testReturnValue.response, 0)
+
+
+    def test_delete_experiment(self):
+        pass
+
+    def test_delete_experiments(self):
+        pass
 
     def test_check_task_manager_run_task_available(self):
-        self.fail()
+        # when
+        testReturnValue = self.master.check_task_manager_run_task_available("test_network")
+
+        # then
+        self.assertEqual(testReturnValue, True)
 
     def test_get_available_task_managers(self):
-        self.fail()
+        # when
+        testReturnValue = self.master.get_available_task_managers()
 
+        # then
+        self.assertEqual(testReturnValue, ['test_network'])
+
+
+    @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
     def test_execute_task(self):
-        self.fail()
+        # when
+        self.master.execute_task(task_manager='test_network')
 
-    def test_set_task_manager_environment(self):
-        self.fail()
+        # then
+        self.assertIsInstance(self.master.master_pipes['test_network'], MockPipe)
