@@ -105,25 +105,25 @@ class TestMaster(TestCase):
         self.master._run_process_monitor = Mock()
 
         # # when
-        testReturnValue = self.master.create_process_monitor()
+        test_return_value = self.master.create_process_monitor()
 
         # then
-        self.assertIsInstance(testReturnValue, list)
+        self.assertIsInstance(test_return_value, list)
 
     def test_get_task_managers(self):
         # when
-        testReturnValue = self.master.get_task_managers()
+        test_return_value = self.master.get_task_managers()
 
         # then
-        self.assertEqual(testReturnValue, ['test_network'])
+        self.assertEqual(test_return_value, ['test_network'])
 
 
     def test_select_task_manager(self):
         # when
-        testReturnValue = self.master.select_task_manager()
+        test_return_value = self.master.select_task_manager()
 
         # then
-        self.assertEqual(testReturnValue, 'test_network')
+        self.assertEqual(test_return_value, 'test_network')
 
 
     @patch.object(uuid, "uuid1", (lambda : 123))
@@ -132,11 +132,11 @@ class TestMaster(TestCase):
         test_request = TestRequest()
 
         # when
-        testReturnValue = self.master.request_experiments(test_request, "context")
+        test_return_value = self.master.request_experiments(test_request, "context")
 
         # then
-        self.assertEqual(testReturnValue.experiment_id, "test_name-123")
-        self.assertEqual(testReturnValue.response, 0)
+        self.assertEqual(test_return_value.experiment_id, "test_name-123")
+        self.assertEqual(test_return_value.response, 0)
 
 
     def test_delete_experiment(self):
@@ -147,17 +147,17 @@ class TestMaster(TestCase):
 
     def test_check_task_manager_run_task_available(self):
         # when
-        testReturnValue = self.master.check_task_manager_run_task_available("test_network")
+        test_return_value = self.master.check_task_manager_run_task_available("test_network")
 
         # then
-        self.assertEqual(testReturnValue, True)
+        self.assertEqual(test_return_value, True)
 
     def test_get_available_task_managers(self):
         # when
-        testReturnValue = self.master.get_available_task_managers()
+        test_return_value = self.master.get_available_task_managers()
 
         # then
-        self.assertEqual(testReturnValue, ['test_network'])
+        self.assertEqual(test_return_value, ['test_network'])
 
 
     @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
