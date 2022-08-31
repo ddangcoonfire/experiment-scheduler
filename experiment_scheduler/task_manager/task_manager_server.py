@@ -89,6 +89,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         if target_process is None:
             return task_manager_pb2.TaskStatus(task_id=request.task_id, status=task_manager_pb2.TaskStatus.Status.NOTFOUND)
         sign = target_process.poll()
+
         if sign is not None:
             return task_manager_pb2.TaskStatus(
                 task_id=request.task_id,
@@ -112,7 +113,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
         return self._wrap_by_grpc_TaskStatus(request.task_id)
 
-    def get_all_tasks(self, request_iterator, context):
+    def get_all_tasks(self, empty_request, context):
         """Get all tasks managed by task manager"""
         all_tasks_status = task_manager_pb2.AllTasksStatus()
 
