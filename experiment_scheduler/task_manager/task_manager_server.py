@@ -1,17 +1,3 @@
-# Copyright 2015 gRPC authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""The Python implementation of the gRPC route guide server."""
 import logging
 import os
 import signal
@@ -22,7 +8,6 @@ from os import path as osp
 
 import grpc
 
-from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     ServerStatus,
@@ -48,9 +33,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
     def run_task(self, task_statement, context):
         self._validate_task_statement(task_statement)
+
         task_id = self._create_task_id(task_statement.name)
         task = self._execute_subprocess(task_statement, task_id)
-        self.tasks[task_id] = task
+        self._register_task(task_id, task)
         logger.info(f"{task_id} is now running!")
 
         return TaskStatus(
@@ -59,8 +45,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         )
 
     def _validate_task_statement(self, task_statement):
-        if not isinstance(task_statement, TaskStatement):
-            raise TypeError(f"type of request should be TaskStatement. Current argument type is {type(task_statement)}")
         if task_statement.gpuidx < 0:
             raise ValueError(f"GPU index should be positive. your value is {task_statement.gpuidx}")
         if not task_statement.command:
@@ -84,6 +68,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         )
 
         return task
+
+    def _register_task(self, task_id, task):
+        self.tasks[task_id] = task
 
     def get_task_log(self, request, context):
         """
@@ -169,7 +156,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def _get_task(self, task_id):
         """Get a task instance if exists. if not, return None"""
         if task_id not in self.tasks:
-            raise ValueError(f"There is no task whose id is {task_id}")
+            logger.warning(f"{task_id} is not found in task_manager!")
+            return None
         return self.tasks[task_id]
     
 
