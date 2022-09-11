@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 
 option objc_class_prefix = "RTG";
 
@@ -6,6 +7,7 @@ option objc_class_prefix = "RTG";
 // Interface exported by the server.
 service Master {
       rpc request_experiments(ExperimentStatement) returns (MasterResponse) {}
+      rpc delete_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 message ExperimentStatement {

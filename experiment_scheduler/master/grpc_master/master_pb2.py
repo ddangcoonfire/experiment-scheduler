@@ -12,9 +12,10 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement\"\x99\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32H\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\x1a\x1bgoogle/protobuf/empty.proto\"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement\"\x99\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32\x94\x01\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse\"\x00\x12J\n\x16\x64\x65lete_process_monitor\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 
 
@@ -59,16 +60,16 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._serialized_options = b'\242\002\003RTG'
   _MASTERTASKSTATEMENT_TASKENVENTRY._options = None
   _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_options = b'8\001'
-  _EXPERIMENTSTATEMENT._serialized_start=16
-  _EXPERIMENTSTATEMENT._serialized_end=88
-  _MASTERTASKSTATEMENT._serialized_start=91
-  _MASTERTASKSTATEMENT._serialized_end=244
-  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=198
-  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=244
-  _MASTERRESPONSE._serialized_start=247
-  _MASTERRESPONSE._serialized_end=377
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=338
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=377
-  _MASTER._serialized_start=379
-  _MASTER._serialized_end=451
+  _EXPERIMENTSTATEMENT._serialized_start=45
+  _EXPERIMENTSTATEMENT._serialized_end=117
+  _MASTERTASKSTATEMENT._serialized_start=120
+  _MASTERTASKSTATEMENT._serialized_end=273
+  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=227
+  _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=273
+  _MASTERRESPONSE._serialized_start=276
+  _MASTERRESPONSE._serialized_end=406
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=367
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=406
+  _MASTER._serialized_start=409
+  _MASTER._serialized_end=557
 # @@protoc_insertion_point(module_scope)
