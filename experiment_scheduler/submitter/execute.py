@@ -11,7 +11,7 @@ def parse_args():
     return parser.parse_args()
 
 def parse_input_file(parsed_yaml):
-    input = master_pb2.ExperiemntStatement(
+    input = master_pb2.ExperimentStatement(
         name= parsed_yaml['name'],
         tasks= [
             master_pb2.MasterTaskStatement(
@@ -29,14 +29,13 @@ def main():
 
     with open(file_path) as f:
         parsed_yaml = yaml.load(f, Loader=yaml.FullLoader)
-
-    channel = grpc.insecure_channel('localhost:50050')
+    channel = grpc.insecure_channel('localhost:50052')
     stub = master_pb2_grpc.MasterStub(channel)
 
     request = parse_input_file(parsed_yaml)
     response = stub.request_experiments(request)
 
-    if (response.response == master_pb2.Response.ResponseStatus.SUCCESS):
+    if (response.response == master_pb2.MasterResponse.ResponseStatus.SUCCESS):
         print("experiment id is", response.experiment_id)
     else:
         print("fail to request experiments")
