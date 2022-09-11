@@ -15,7 +15,7 @@ from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
-    MasterStub
+    MasterStub,
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
@@ -42,7 +42,7 @@ class Master(MasterServicer):
         self.process_monitor_pipes = dict()
         self.task_managers_address = self.get_task_managers()
         self.process_monitor = self.create_process_monitor()
-        self.runner = threading.Thread(target=self._execute_command,daemon=True)
+        self.runner = threading.Thread(target=self._execute_command, daemon=True)
         self.runner.start()
 
     def _execute_command(self, interval=1):
@@ -208,23 +208,22 @@ class Master(MasterServicer):
 
 def serve():
     """
-   [TODO] add docstring
-   :return:
-   """
-    master = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    print(settings.HEADER)
-    add_MasterServicer_to_server(Master(), master)
-    master.add_insecure_port('[::]:50052')
-    try:
-        master.start()
-        master.wait_for_termination()
-    except KeyboardInterrupt as e:
-
-        print("keyboardInterrupt occured")
-        stub = MasterStub(grpc.insecure_channel("localhost:50052"))
-        empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
-        stub.delete_process_monitor(empty)
-        return 0
+    [TODO] run master server
+    :return:
+    """
+    with futures.ThreadPoolExecutor(max_workers=10) as pool:
+        master = grpc.server(pool)
+        print(settings.HEADER)
+        add_MasterServicer_to_server(Master(), master)
+        master.add_insecure_port("[::]:50052")
+        try:
+            master.start()
+            master.wait_for_termination()
+        except KeyboardInterrupt as exception:
+            print("keyboardInterrupt occured \n %s", exception)
+            stub = MasterStub(grpc.insecure_channel("localhost:50052"))
+            empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
+            stub.delete_process_monitor(empty)
 
 
 if __name__ == "__main__":
