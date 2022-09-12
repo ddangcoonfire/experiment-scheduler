@@ -140,7 +140,7 @@ class Master(MasterServicer):
         )
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
-    def delete_process_monitor(self, request, context):
+    def halt_process_monitor(self, request, context):
         for process in self.process_monitor:
             process.terminate()
         return master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
@@ -206,10 +206,22 @@ class Master(MasterServicer):
         )
 
 
+def halt_process_monitor():
+    """
+    kill process monitor before close master server
+    process monitor can be closed through communication with master
+    :return: None
+    """
+    stub = MasterStub(grpc.insecure_channel("localhost:50052"))
+    empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
+    stub.halt_process_monitor(empty)
+
+
 def serve():
     """
-    [TODO] run master server
-    :return:
+    Run Master Server with try, catch.
+    If an anomaly action erupt, kill process monitor before close master object
+    :return: None
     """
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
@@ -220,10 +232,13 @@ def serve():
             master.start()
             master.wait_for_termination()
         except KeyboardInterrupt as exception:
-            print("keyboardInterrupt occured \n %s", exception)
-            stub = MasterStub(grpc.insecure_channel("localhost:50052"))
-            empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
-            stub.delete_process_monitor(empty)
+            print("keyboardInterrupt occurred \n %s", exception)
+            print("halting master immediately...")
+            halt_process_monitor()
+        except Exception as error_case:  # pylint: disable=broad-except
+            print("Error Occurred %s", error_case)
+            print("halting master immediately...")
+            halt_process_monitor()
 
 
 if __name__ == "__main__":

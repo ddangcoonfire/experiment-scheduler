@@ -7,8 +7,7 @@ from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
 
 
 class MasterStub(object):
-    """Interface exported by the server.
-    """
+    """Interface exported by the server."""
 
     def __init__(self, channel):
         """Constructor.
@@ -17,87 +16,110 @@ class MasterStub(object):
             channel: A grpc.Channel.
         """
         self.request_experiments = channel.unary_unary(
-                '/Master/request_experiments',
-                request_serializer=master__pb2.ExperimentStatement.SerializeToString,
-                response_deserializer=master__pb2.MasterResponse.FromString,
-                )
-        self.delete_process_monitor = channel.unary_unary(
-                '/Master/delete_process_monitor',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                )
+            "/Master/request_experiments",
+            request_serializer=master__pb2.ExperimentStatement.SerializeToString,
+            response_deserializer=master__pb2.MasterResponse.FromString,
+        )
+        self.halt_process_monitor = channel.unary_unary(
+            "/Master/halt_process_monitor",
+            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+        )
 
 
 class MasterServicer(object):
-    """Interface exported by the server.
-    """
+    """Interface exported by the server."""
 
     def request_experiments(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
-    def delete_process_monitor(self, request, context):
+    def halt_process_monitor(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'request_experiments': grpc.unary_unary_rpc_method_handler(
-                    servicer.request_experiments,
-                    request_deserializer=master__pb2.ExperimentStatement.FromString,
-                    response_serializer=master__pb2.MasterResponse.SerializeToString,
-            ),
-            'delete_process_monitor': grpc.unary_unary_rpc_method_handler(
-                    servicer.delete_process_monitor,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            ),
+        "request_experiments": grpc.unary_unary_rpc_method_handler(
+            servicer.request_experiments,
+            request_deserializer=master__pb2.ExperimentStatement.FromString,
+            response_serializer=master__pb2.MasterResponse.SerializeToString,
+        ),
+        "halt_process_monitor": grpc.unary_unary_rpc_method_handler(
+            servicer.halt_process_monitor,
+            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Master', rpc_method_handlers)
+        "Master", rpc_method_handlers
+    )
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class Master(object):
-    """Interface exported by the server.
-    """
+    """Interface exported by the server."""
 
     @staticmethod
-    def request_experiments(request,
+    def request_experiments(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Master/request_experiments',
+            "/Master/request_experiments",
             master__pb2.ExperimentStatement.SerializeToString,
             master__pb2.MasterResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
 
     @staticmethod
-    def delete_process_monitor(request,
+    def halt_process_monitor(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Master/delete_process_monitor',
+            "/Master/halt_process_monitor",
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )

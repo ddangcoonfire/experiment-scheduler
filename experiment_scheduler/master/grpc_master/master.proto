@@ -7,7 +7,7 @@ option objc_class_prefix = "RTG";
 // Interface exported by the server.
 service Master {
       rpc request_experiments(ExperimentStatement) returns (MasterResponse) {}
-      rpc delete_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+      rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 message ExperimentStatement {
