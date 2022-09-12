@@ -7,8 +7,6 @@ from multiprocessing import Process, Pipe
 import uuid
 import time
 import threading
-import configparser
-import os
 import ast
 import grpc
 from experiment_scheduler.master.process_monitor import ProcessMonitor
@@ -31,10 +29,7 @@ class Master(MasterServicer):
         Init GrpcServer.
         """
         # [Todo] Logging required
-        self.conf = configparser.ConfigParser()
-        self.conf.read(
-            os.path.join(os.getenv("EXS_HOME", ""), "experiment_scheduler.cfg")
-        )
+        self.conf = settings.USER_CONFIG
         # [TODO] need discussion about path and env vars
         self.queued_tasks = []
         self.master_pipes = dict()
