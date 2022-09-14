@@ -16,12 +16,12 @@ class responser(object):
         N.nvmlInit()
         def get_gpu_info(handle):
 
-            def get_process_info(nv_process):
+            def get_process_info(target_process):
                 process = {}
                 if nv_process.pid not in responser.global_processes:
-                    responser.global_processes[nv_process.pid] = \
-                        psutil.Process(pid=nv_process.pid)
-                process['pid'] = nv_process.pid
+                    responser.global_processes[target_process.pid] = \
+                        psutil.Process(pid=target_process.pid)
+                process['pid'] = target_process.pid
                 return process
 
             try:
@@ -52,7 +52,7 @@ class responser(object):
                     process = get_process_info(nv_process)
                     processes.append(process)
 
-            return {'index': N.nvmlDeviceGetIndex(handle), 'processes': processes}
+            return {'gpu-index': N.nvmlDeviceGetIndex(handle), 'processes': processes}
 
 
         gpu_all_stat = []
