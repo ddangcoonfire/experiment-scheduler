@@ -9,7 +9,6 @@ MB = 1024 * 1024
 
 
 def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
-    N.NVMLError.__hash__ = lambda _: 0
     assert issubclass(N.NVMLError, BaseException)
 
     when(N).nvmlInit().thenReturn()
@@ -90,7 +89,7 @@ def scenario_nonexistent_pid():
     _configure_mock(scenario_nonexistent_pid=True)
 
 
-class TestGPUStat(object):
+class TestGpuMonitor(object):
 
     def test_get_process_info(self, scenario_basic):
         assert responser.responser.get_all_gpu_info() == [
