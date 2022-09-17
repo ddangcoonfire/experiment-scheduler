@@ -4,6 +4,7 @@ import psutil as psutil
 import logging
 from experiment_scheduler.resource_monitor.setting import pynvml as N
 
+
 class responser(object):
     global_processes = {}
 
@@ -14,6 +15,7 @@ class responser(object):
     def get_all_gpu_info():
         logger = logging.getLogger()
         N.nvmlInit()
+
         def get_gpu_info(handle):
 
             def get_process_info(target_process):
@@ -52,8 +54,9 @@ class responser(object):
                     process = get_process_info(nv_process)
                     processes.append(process)
 
-            return {'gpu-index': N.nvmlDeviceGetIndex(handle), 'processes': processes}
-
+            util_info = N.nvmlDeviceGetUtilizationRates(handle)
+            return {'gpu-index': N.nvmlDeviceGetIndex(handle),
+                    'processes': processes, 'available_util': (1 - util_info.gpu)}
 
         gpu_all_stat = []
         device_count = N.nvmlDeviceGetCount()
@@ -64,3 +67,15 @@ class responser(object):
             gpu_all_stat.append(info)
 
         return gpu_all_stat
+
+    @staticmethod
+    def get_max_free_gpu():
+        gpu_all_stat = responser.get_all_gpu_info()
+        max_free_gpu = {'gpu-index': -1, 'process': None, 'available_util': -1}
+        for gpu in gpu_all_stat:
+            if gpu.get('available_util') > max_free_gpu.get('available_util') and gpu.get('available_util') > 0.2:
+                max_free_gpu = gpu
+        if max_free_gpu.get('gpu-index') >= 0:
+            return max_free_gpu.get('gpu-index')
+        else:
+            return 'waiting...all gpus are working....'
