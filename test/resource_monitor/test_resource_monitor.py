@@ -1,6 +1,6 @@
 from collections import namedtuple
 import pytest
-from experiment_scheduler.resource_monitor import responser
+from experiment_scheduler.resource_monitor import monitor
 from experiment_scheduler.resource_monitor.setting import pynvml
 import psutil
 from mockito import when, mock
@@ -9,6 +9,7 @@ MB = 1024 * 1024
 
 
 def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
+    N.NVMLError.__hash__ = lambda _: 0
     assert issubclass(N.NVMLError, BaseException)
 
     when(N).nvmlInit().thenReturn()
@@ -22,7 +23,6 @@ def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
             if isinstance(v, Exception):
                 raise v
             return v
-
         return _callable
 
     for i in range(num_gpus):
@@ -33,6 +33,7 @@ def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
             .thenReturn(i)
 
         mock_process_t = namedtuple("Process_t", ['pid'])
+        mock_utilization_t = namedtuple("Utilization_t", ['gpu', 'memory'])
 
         if scenario_nonexistent_pid:
             mock_processes_error = [
@@ -41,6 +42,7 @@ def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
             ]
         else:
             mock_processes_error = N.NVMLError_NotSupported()
+
         when(N).nvmlDeviceGetComputeRunningProcesses(handle) \
             .thenAnswer(_return_or_raise({
                                              0: [mock_process_t(11111), mock_process_t(44444)],
@@ -55,6 +57,12 @@ def _configure_mock(N = pynvml, scenario_nonexistent_pid=False):
                                              2: N.NVMLError_NotSupported(),
                                          }[i]))
 
+        when(N).nvmlDeviceGetUtilizationRates(handle) \
+            .thenAnswer(_return_or_raise({
+                                             0: mock_utilization_t(gpu=76, memory=0),
+                                             1: mock_utilization_t(gpu=32, memory=0),
+                                             2: mock_utilization_t(gpu=0, memory=0)
+                                         }[i]))
 
     mock_pid_map = {
         11111: ('user1', 'ddangko-sub-1'),
@@ -92,14 +100,14 @@ def scenario_nonexistent_pid():
 class TestGpuMonitor(object):
 
     def test_get_process_info(self, scenario_basic):
-        assert responser.responser.get_all_gpu_info() == [
-            {'gpu-index': 0, 'processes': [{'pid': 11111}, {'pid': 44444}]},
-            {'gpu-index': 1, 'processes': [{'pid': 66666}, {'pid': 55555}]}, {'gpu-index': 2, 'processes': None}]
+        assert monitor.responser.get_all_gpu_info() == [
+            {'gpu-index': 0, 'processes': [{'pid': 11111}, {'pid': 44444}], 'available_util': 24},
+            {'gpu-index': 1, 'processes': [{'pid': 66666}, {'pid': 55555}], 'available_util': 68},
+            {'gpu-index': 2, 'processes': None, 'available_util': 100}]
 
     def test_nonexistent_pid(self, scenario_nonexistent_pid):
         with pytest.raises(psutil.NoSuchProcess):
-            responser.responser.get_all_gpu_info()
+            monitor.responser.get_all_gpu_info()
 
-
-if __name__ == '__main__':
-    pytest.main()
+    def test_get_max_free_gpu(self, scenario_basic):
+        assert monitor.responser.get_max_free_gpu() == 2
