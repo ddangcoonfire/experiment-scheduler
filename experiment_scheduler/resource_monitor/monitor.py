@@ -55,8 +55,9 @@ class responser(object):
                     processes.append(process)
 
             util_info = N.nvmlDeviceGetUtilizationRates(handle)
+
             return {'gpu-index': N.nvmlDeviceGetIndex(handle),
-                    'processes': processes, 'available_util': (1 - util_info.gpu)}
+                    'processes': processes, 'available_util': (100 - util_info.gpu)}
 
         gpu_all_stat = []
         device_count = N.nvmlDeviceGetCount()
@@ -73,7 +74,7 @@ class responser(object):
         gpu_all_stat = responser.get_all_gpu_info()
         max_free_gpu = {'gpu-index': -1, 'process': None, 'available_util': -1}
         for gpu in gpu_all_stat:
-            if gpu.get('available_util') > max_free_gpu.get('available_util') and gpu.get('available_util') > 0.2:
+            if gpu.get('available_util') > max_free_gpu.get('available_util') and gpu.get('available_util') > 20:
                 max_free_gpu = gpu
         if max_free_gpu.get('gpu-index') >= 0:
             return max_free_gpu.get('gpu-index')
