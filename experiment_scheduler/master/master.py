@@ -18,6 +18,7 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
+from experiment_scheduler.resource_monitor.monitor import responser
 
 
 class Master(MasterServicer):
@@ -181,23 +182,26 @@ class Master(MasterServicer):
         # return available_task_managers
         return [self.task_managers_address[0]]
 
-    def execute_task(self, task_manager):
+    async def execute_task(self, task_manager):
         """
         [TODO] add docstring
         :param task_manager:
         :return:
         """
-        prior_task = self.queued_tasks.pop(0)
-        gpu_idx = 0  # need to get idx from Resource Monitor
-        self.master_pipes[task_manager].send(
-            [
-                "run_task",
-                gpu_idx,
-                prior_task.command,
-                prior_task.name,
-                dict(prior_task.task_env),
-            ]
-        )
+        while (True):
+            gpu_idx = responser.get_max_free_gpu()
+            if (gpu_idx != -1):
+                prior_task = self.queued_tasks.pop(0)
+                await self.master_pipes[task_manager].send(
+                    [
+                        "run_task",
+                        gpu_idx,
+                        prior_task.command,
+                        prior_task.name,
+                        dict(prior_task.task_env),
+                    ]
+                )
+                break
 
 
 def serve():
