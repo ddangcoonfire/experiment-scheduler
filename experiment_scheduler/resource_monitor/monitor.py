@@ -76,7 +76,4 @@ class responser(object):
         for gpu in gpu_all_stat:
             if gpu.get('available_util') > max_free_gpu.get('available_util') and gpu.get('available_util') > 20:
                 max_free_gpu = gpu
-        if max_free_gpu.get('gpu-index') >= 0:
-            return max_free_gpu.get('gpu-index')
-        else:
-            return 'waiting...all gpus are working....'
+        return max_free_gpu.get('gpu-index')
