@@ -7,8 +7,6 @@ from multiprocessing import Process, Pipe
 import uuid
 import time
 import threading
-import configparser
-import os
 import ast
 import grpc
 from experiment_scheduler.master.process_monitor import ProcessMonitor
@@ -19,6 +17,15 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
+from experiment_scheduler.common.settings import USER_CONFIG
+
+
+def get_task_managers():
+    """
+    [TODO] add docstring
+    :return:
+    """
+    return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
 
 
 class Master(MasterServicer):
@@ -32,15 +39,11 @@ class Master(MasterServicer):
         Init GrpcServer.
         """
         # [Todo] Logging required
-        self.conf = configparser.ConfigParser()
-        self.conf.read(
-            os.path.join(os.getenv("EXS_HOME", ""), "experiment_scheduler.cfg")
-        )
         # [TODO] need discussion about path and env vars
         self.queued_tasks = []
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
-        self.task_managers_address = self.get_task_managers()
+        self.task_managers_address = get_task_managers()
         self.process_monitor = self.create_process_monitor()
         self.runner = threading.Thread(target=self._execute_command, daemon=True)
         self.runner.start()
@@ -99,13 +102,6 @@ class Master(MasterServicer):
             process_monitor_list.append(process_monitor)
             process_monitor.start()
         return process_monitor_list
-
-    def get_task_managers(self):
-        """
-        [TODO] add docstring
-        :return:
-        """
-        return ast.literal_eval(self.conf.get("default", "task_manager_address"))
 
     def select_task_manager(self, selected=-1):
         """
@@ -223,11 +219,14 @@ def serve():
     If an anomaly action erupt, kill process monitor before close master object
     :return: None
     """
+    
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
         print(settings.HEADER)
+        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        print("set master server to %s" % master_address)
         add_MasterServicer_to_server(Master(), master)
-        master.add_insecure_port("[::]:50052")
+        master.add_insecure_port(master_address)
         try:
             master.start()
             master.wait_for_termination()
