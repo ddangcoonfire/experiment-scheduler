@@ -42,6 +42,7 @@ class Master(MasterServicer):
         self.process_monitor_pipes = dict()
         self.task_managers_address = self.get_task_managers()
         self.process_monitor = self.create_process_monitor()
+        self.resource_monitor = responser()
         self.runner = threading.Thread(target=self._execute_command)
         self.runner.start()
 
@@ -53,15 +54,18 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            available_task_managers = self.get_available_task_managers()
-            for _ in self.queued_tasks:
-                if len(available_task_managers) > 0:
-                    task_manager = available_task_managers.pop(0)
-                    self.execute_task(task_manager)
-            # [TODO] master pipe recv logic required here
-            for task_manager, pipe in self.master_pipes.items():
-                if pipe.poll():
-                    print(pipe.recv())  # need change later
+            gpu_idx = responser.get_max_free_gpu()
+            if gpu_idx != -1:
+                available_task_managers = self.get_available_task_managers()
+                self.resource_monitor.queued_gpu_idx.append(gpu_idx)
+                for _ in self.queued_tasks:
+                    if len(available_task_managers) > 0:
+                        task_manager = available_task_managers.pop(0)
+                        self.execute_task(task_manager, gpu_idx)
+                # [TODO] master pipe recv logic required here
+                for task_manager, pipe in self.master_pipes.items():
+                    if pipe.poll():
+                        print(pipe.recv())  # need change later
             time.sleep(interval)
 
     def _run_process_monitor(  # pylint: disable=no-self-use
@@ -182,26 +186,24 @@ class Master(MasterServicer):
         # return available_task_managers
         return [self.task_managers_address[0]]
 
-    async def execute_task(self, task_manager):
+    def execute_task(self, task_manager):
         """
         [TODO] add docstring
         :param task_manager:
         :return:
         """
-        while (True):
-            gpu_idx = responser.get_max_free_gpu()
-            if (gpu_idx != -1):
-                prior_task = self.queued_tasks.pop(0)
-                await self.master_pipes[task_manager].send(
-                    [
-                        "run_task",
-                        gpu_idx,
-                        prior_task.command,
-                        prior_task.name,
-                        dict(prior_task.task_env),
-                    ]
-                )
-                break
+        prior_task = self.queued_tasks.pop(0)
+        gpu_idx = self.resource_monitor.queued_gpu_idx.pop(0)
+        self.master_pipes[task_manager].send(
+            [
+                "run_task",
+                gpu_idx,
+                prior_task.command,
+                prior_task.name,
+                dict(prior_task.task_env),
+            ]
+        )
+
 
 
 def serve():

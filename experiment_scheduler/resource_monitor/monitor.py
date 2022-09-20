@@ -9,7 +9,7 @@ class responser(object):
     global_processes = {}
 
     def __init__(self):
-        self.hostname = platform.node()
+        self.queued_gpu_idx = []
 
     @staticmethod
     def get_all_gpu_info():
