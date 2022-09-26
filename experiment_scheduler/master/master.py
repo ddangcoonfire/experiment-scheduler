@@ -7,18 +7,25 @@ from multiprocessing import Process, Pipe
 import uuid
 import time
 import threading
-import configparser
-import os
 import ast
 import grpc
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
+    MasterStub,
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
 from experiment_scheduler.resource_monitor.monitor import responser
+from experiment_scheduler.common.settings import USER_CONFIG
+
+def get_task_managers():
+    """
+    [TODO] add docstring
+    :return:
+    """
+    return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
 
 
 class Master(MasterServicer):
@@ -32,18 +39,14 @@ class Master(MasterServicer):
         Init GrpcServer.
         """
         # [Todo] Logging required
-        self.conf = configparser.ConfigParser()
-        self.conf.read(
-            os.path.join(os.getenv("EXS_HOME", ""), "experiment_scheduler.cfg")
-        )
         # [TODO] need discussion about path and env vars
         self.queued_tasks = []
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
-        self.task_managers_address = self.get_task_managers()
+        self.task_managers_address = get_task_managers()
         self.process_monitor = self.create_process_monitor()
         self.resource_monitor = responser()
-        self.runner = threading.Thread(target=self._execute_command)
+        self.runner = threading.Thread(target=self._execute_command, daemon=True)
         self.runner.start()
 
     def _execute_command(self, interval=1):
@@ -104,13 +107,6 @@ class Master(MasterServicer):
             process_monitor.start()
         return process_monitor_list
 
-    def get_task_managers(self):
-        """
-        [TODO] add docstring
-        :return:
-        """
-        return ast.literal_eval(self.conf.get("default", "task_manager_address"))
-
     def select_task_manager(self, selected=-1):
         """
         Process Monitor automatically provide task that is able to run task
@@ -143,6 +139,11 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
+
+    def halt_process_monitor(self, request, context):
+        for process in self.process_monitor:
+            process.terminate()
+        return master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
 
     def delete_experiment(self, request, context):
         """
@@ -204,21 +205,42 @@ class Master(MasterServicer):
             ]
         )
 
+def halt_process_monitor():
+    """
+    kill process monitor before close master server
+    process monitor can be closed through communication with master
+    :return: None
+    """
+    stub = MasterStub(grpc.insecure_channel("localhost:50052"))
+    empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
+    stub.halt_process_monitor(empty)
 
 
 def serve():
     """
-    [TODO] add docstring
-    :return:
+    Run Master Server with try, catch.
+    If an anomaly action erupt, kill process monitor before close master object
+    :return: None
     """
-    print(settings.HEADER)
-    master = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=10)  # pylint: disable=E1129,R1732
-    )
-    add_MasterServicer_to_server(Master(), master)
-    master.add_insecure_port("[::]:50052")
-    master.start()
-    master.wait_for_termination()
+    
+    with futures.ThreadPoolExecutor(max_workers=10) as pool:
+        master = grpc.server(pool)
+        print(settings.HEADER)
+        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        print("set master server to %s" % master_address)
+        add_MasterServicer_to_server(Master(), master)
+        master.add_insecure_port(master_address)
+        try:
+            master.start()
+            master.wait_for_termination()
+        except KeyboardInterrupt as exception:
+            print("keyboardInterrupt occurred \n %s", exception)
+            print("halting master immediately...")
+            halt_process_monitor()
+        except Exception as error_case:  # pylint: disable=broad-except
+            print("Error Occurred %s", error_case)
+            print("halting master immediately...")
+            halt_process_monitor()
 
 
 if __name__ == "__main__":
