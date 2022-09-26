@@ -1,5 +1,3 @@
-import platform
-
 import psutil as psutil
 import logging
 from experiment_scheduler.resource_monitor.setting import pynvml as N
