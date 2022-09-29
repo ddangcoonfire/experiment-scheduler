@@ -45,7 +45,6 @@ class Master(MasterServicer):
         self.process_monitor_pipes = dict()
         self.task_managers_address = get_task_managers()
         self.process_monitor = self.create_process_monitor()
-        self.resource_monitor = responser()
         self.runner = threading.Thread(target=self._execute_command, daemon=True)
         self.runner.start()
 
@@ -59,7 +58,6 @@ class Master(MasterServicer):
         while True:
             (available_task_managers, gpu_idx) = self.get_available_task_managers()
             if gpu_idx != -1:
-                self.resource_monitor.queued_gpu_idx.append(gpu_idx)
                 for _ in self.queued_tasks:
                     if len(available_task_managers) > 0:
                         task_manager = available_task_managers.pop(0)
