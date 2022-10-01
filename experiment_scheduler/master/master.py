@@ -17,8 +17,8 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
+from experiment_scheduler.resource_monitor.monitor import responser
 from experiment_scheduler.common.settings import USER_CONFIG
-
 
 def get_task_managers():
     """
@@ -56,15 +56,16 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            available_task_managers = self.get_available_task_managers()
-            for _ in self.queued_tasks:
-                if len(available_task_managers) > 0:
-                    task_manager = available_task_managers.pop(0)
-                    self.execute_task(task_manager)
-            # [TODO] master pipe recv logic required here
-            for task_manager, pipe in self.master_pipes.items():
-                if pipe.poll():
-                    print(pipe.recv())  # need change later
+            (available_task_managers, gpu_idx) = self.get_available_task_managers()
+            if gpu_idx != -1:
+                for _ in self.queued_tasks:
+                    if len(available_task_managers) > 0:
+                        task_manager = available_task_managers.pop(0)
+                        self.execute_task(task_manager, gpu_idx)
+                # [TODO] master pipe recv logic required here
+                for task_manager, pipe in self.master_pipes.items():
+                    if pipe.poll():
+                        print(pipe.recv())  # need change later
             time.sleep(interval)
 
     def _run_process_monitor(  # pylint: disable=no-self-use
@@ -180,17 +181,18 @@ class Master(MasterServicer):
         for task_manager in self.task_managers_address[0]:
             if self.check_task_manager_run_task_available(task_manager):
                 available_task_managers.append(task_manager)
+        gpu_idx = responser.get_max_free_gpu()
         # return available_task_managers
-        return [self.task_managers_address[0]]
+        return tuple([self.task_managers_address[0], gpu_idx])
 
-    def execute_task(self, task_manager):
+    def execute_task(self, task_manager, gpu_idx):
         """
         [TODO] add docstring
         :param task_manager:
+        :param gpu_idx:
         :return:
         """
         prior_task = self.queued_tasks.pop(0)
-        gpu_idx = 0  # need to get idx from Resource Monitor
         self.master_pipes[task_manager].send(
             [
                 "run_task",
@@ -200,7 +202,6 @@ class Master(MasterServicer):
                 dict(prior_task.task_env),
             ]
         )
-
 
 def halt_process_monitor():
     """
