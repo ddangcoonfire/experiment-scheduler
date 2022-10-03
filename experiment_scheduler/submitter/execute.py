@@ -61,6 +61,3 @@ def main():
         print("experiment id is", response.experiment_id)
     else:
         print("fail to request experiments")
-
-if __name__ == "__main__":
-    main()
