@@ -159,7 +159,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             logger.warning(f"{task_id} is not found in task_manager!")
             return None
         return self.tasks[task_id]
-    
+
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
