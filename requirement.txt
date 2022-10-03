@@ -2,4 +2,3 @@ pre-commit
 grpcio
 pytest
 pytset-mock
-pynvml

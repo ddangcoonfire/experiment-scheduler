@@ -2,7 +2,6 @@ import psutil as psutil
 import logging
 from experiment_scheduler.resource_monitor.setting import pynvml as N
 
-
 class responser(object):
     """Provides methods to check gpu status and task manager of resource monitor."""
     global_processes = {}
@@ -15,7 +14,6 @@ class responser(object):
         """Return current status of all gpus"""
         logger = logging.getLogger()
         N.nvmlInit()
-
         def get_gpu_info(handle):
             """
             Return status of single gpu
