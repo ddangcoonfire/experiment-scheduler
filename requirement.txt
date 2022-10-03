@@ -1,5 +1,5 @@
 pre-commit
 grpcio
 pytest
-pytset-mock
+pytest-mock
 pynvml
