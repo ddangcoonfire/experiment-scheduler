@@ -1,3 +1,5 @@
+"""Imports pynvml to check gpu and check version of it"""
+
 import os
 import textwrap
 
@@ -6,6 +8,7 @@ ALLOW_LEGACY_PYNVML = os.getenv("ALLOW_LEGACY_PYNVML", "")
 ALLOW_LEGACY_PYNVML = ALLOW_LEGACY_PYNVML.lower() not in ('false', '0', '')
 
 try:
+    """Version of pynvml should be newer than 11.450.51 to avoid conflicts with other packages"""
     import pynvml
     if not (
         hasattr(pynvml, 'NVML_BRAND_NVIDIA_RTX') or

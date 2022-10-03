@@ -4,6 +4,7 @@ from experiment_scheduler.resource_monitor.setting import pynvml as N
 
 
 class responser(object):
+    """Provides methods to check gpu status and task manager of resource monitor."""
     global_processes = {}
 
     def __init__(self):
@@ -11,12 +12,21 @@ class responser(object):
 
     @staticmethod
     def get_all_gpu_info():
+        """Return current status of all gpus"""
         logger = logging.getLogger()
         N.nvmlInit()
 
         def get_gpu_info(handle):
+            """
+            Return status of single gpu
+            Info of status includes gpu-index, processes and available-utilization
+            """
 
-            def get_process_info(target_process):
+            def _get_process_info(target_process):
+                """
+                Return info of single process
+                Info of process includes pid
+                """
                 process = {}
                 if nv_process.pid not in responser.global_processes:
                     responser.global_processes[target_process.pid] = \
@@ -49,7 +59,7 @@ class responser(object):
                     if nv_process.pid in seen_pids:
                         continue
                     seen_pids.add(nv_process.pid)
-                    process = get_process_info(nv_process)
+                    process = _get_process_info(nv_process)
                     processes.append(process)
 
             util_info = N.nvmlDeviceGetUtilizationRates(handle)
@@ -69,6 +79,10 @@ class responser(object):
 
     @staticmethod
     def get_max_free_gpu():
+        """
+        Return gpu-index which has max usable utilization in gpus
+        If all gpus can't be available, return -1
+        """
         gpu_all_stat = responser.get_all_gpu_info()
         max_free_gpu = {'gpu-index': -1, 'process': None, 'available_util': -1}
         for gpu in gpu_all_stat:
