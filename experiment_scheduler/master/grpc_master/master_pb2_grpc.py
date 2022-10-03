@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
+import experiment_scheduler.master.grpc_master.master_pb2 as master__pb2
 
 
 class MasterStub(object):
@@ -25,6 +25,21 @@ class MasterStub(object):
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
         )
+        self.delete_task = channel.unary_unary(
+            "/Master/delete_task",
+            request_serializer=master__pb2.MasterTask.SerializeToString,
+            response_deserializer=master__pb2.MasterTaskStatus.FromString,
+        )
+        self.get_task_status = channel.unary_unary(
+            "/Master/get_task_status",
+            request_serializer=master__pb2.MasterTask.SerializeToString,
+            response_deserializer=master__pb2.MasterTaskStatus.FromString,
+        )
+        self.get_task_list = channel.unary_unary(
+            "/Master/get_task_list",
+            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            response_deserializer=master__pb2.MasterAllTasksStatus.FromString,
+        )
 
 
 class MasterServicer(object):
@@ -42,6 +57,24 @@ class MasterServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def delete_task(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def get_task_status(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def get_task_list(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -54,6 +87,21 @@ def add_MasterServicer_to_server(servicer, server):
             servicer.halt_process_monitor,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        ),
+        "delete_task": grpc.unary_unary_rpc_method_handler(
+            servicer.delete_task,
+            request_deserializer=master__pb2.MasterTask.FromString,
+            response_serializer=master__pb2.MasterTaskStatus.SerializeToString,
+        ),
+        "get_task_status": grpc.unary_unary_rpc_method_handler(
+            servicer.get_task_status,
+            request_deserializer=master__pb2.MasterTask.FromString,
+            response_serializer=master__pb2.MasterTaskStatus.SerializeToString,
+        ),
+        "get_task_list": grpc.unary_unary_rpc_method_handler(
+            servicer.get_task_list,
+            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            response_serializer=master__pb2.MasterAllTasksStatus.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -114,6 +162,93 @@ class Master(object):
             "/Master/halt_process_monitor",
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def delete_task(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/Master/delete_task",
+            master__pb2.MasterTask.SerializeToString,
+            master__pb2.MasterTaskStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def get_task_status(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/Master/get_task_status",
+            master__pb2.MasterTask.SerializeToString,
+            master__pb2.MasterTaskStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def get_task_list(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/Master/get_task_list",
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            master__pb2.MasterAllTasksStatus.FromString,
             options,
             channel_credentials,
             insecure,

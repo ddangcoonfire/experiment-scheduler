@@ -8,6 +8,9 @@ option objc_class_prefix = "RTG";
 service Master {
       rpc request_experiments(ExperimentStatement) returns (MasterResponse) {}
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+      rpc delete_task(MasterTask) returns (MasterTaskStatus) {}
+      rpc get_task_status(MasterTask) returns (MasterTaskStatus) {}
+      rpc get_task_list(google.protobuf.Empty) returns (MasterAllTasksStatus) {}
 }
 
 message ExperimentStatement {
@@ -28,4 +31,28 @@ message MasterResponse {
         FAIL = 1;
     }
     ResponseStatus response = 2; // response가 의미하는 값은 Enum으로 정의
+}
+
+message MasterTask {
+    string task_id = 1;
+}
+
+message MasterTaskStatus {
+    string task_id = 1;
+    enum Status {
+        RUNNING = 0;
+        DONE = 1;
+        KILLED = 2;
+        ABNORMAL = 3;
+        NOTFOUND = 4;
+        DELETE = 5;
+    }
+    Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
+}
+
+message MasterAllTasksStatus {
+    repeated MasterTaskStatus task_status_array = 1;
+}
+
+message Empty{
 }
