@@ -16,7 +16,6 @@ except (ImportError, SyntaxError, RuntimeError) as e:
     raise ImportError(textwrap.dedent(
         """\
         pynvml is missing or an outdated version is installed.
-        We require nvidia-ml-py>=11.450.129; see GH-107 for more details.
         Your pynvml installation: """ + repr(pynvml))) from e
 
 __all__ = ['pynvml']
