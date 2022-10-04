@@ -17,7 +17,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x0cmaster.proto\x1a\x1bgoogle/protobuf/empty.proto"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement"\x99\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01"\x1d\n\nMasterTask\x12\x0f\n\x07task_id\x18\x01 \x01(\t"\xa2\x01\n\x10MasterTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12(\n\x06status\x18\x02 \x01(\x0e\x32\x18.MasterTaskStatus.Status"S\n\x06Status\x12\x0b\n\x07RUNNING\x10\x00\x12\x08\n\x04\x44ONE\x10\x01\x12\n\n\x06KILLED\x10\x02\x12\x0c\n\x08\x41\x42NORMAL\x10\x03\x12\x0c\n\x08NOTFOUND\x10\x04\x12\n\n\x06\x44\x45LETE\x10\x05"D\n\x14MasterAllTasksStatus\x12,\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x11.MasterTaskStatus"\x07\n\x05\x45mpty2\xba\x02\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse"\x00\x12H\n\x14halt_process_monitor\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty"\x00\x12/\n\x0b\x64\x65lete_task\x12\x0b.MasterTask\x1a\x11.MasterTaskStatus"\x00\x12\x33\n\x0fget_task_status\x12\x0b.MasterTask\x1a\x11.MasterTaskStatus"\x00\x12@\n\rget_task_list\x12\x16.google.protobuf.Empty\x1a\x15.MasterAllTasksStatus"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3'
+    b'\n\x0cmaster.proto\x1a\x1bgoogle/protobuf/empty.proto"H\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12#\n\x05tasks\x18\x02 \x03(\x0b\x32\x14.MasterTaskStatement"\x99\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x33\n\x08task_env\x18\x04 \x03(\x0b\x32!.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"\x82\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x30\n\x08response\x18\x02 \x01(\x0e\x32\x1e.MasterResponse.ResponseStatus"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01"\x1d\n\nMasterTask\x12\x0f\n\x07task_id\x18\x01 \x01(\t"\xb0\x01\n\x10MasterTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12(\n\x06status\x18\x02 \x01(\x0e\x32\x18.MasterTaskStatus.Status"a\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\n\n\x06\x44\x45LETE\x10\x06"D\n\x14MasterAllTasksStatus\x12,\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x11.MasterTaskStatus2\xba\x02\n\x06Master\x12>\n\x13request_experiments\x12\x14.ExperimentStatement\x1a\x0f.MasterResponse"\x00\x12H\n\x14halt_process_monitor\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty"\x00\x12/\n\x0b\x64\x65lete_task\x12\x0b.MasterTask\x1a\x11.MasterTaskStatus"\x00\x12\x33\n\x0fget_task_status\x12\x0b.MasterTask\x1a\x11.MasterTaskStatus"\x00\x12@\n\rget_task_list\x12\x16.google.protobuf.Empty\x1a\x15.MasterAllTasksStatus"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3'
 )
 
 
@@ -30,7 +30,6 @@ _MASTERRESPONSE = DESCRIPTOR.message_types_by_name["MasterResponse"]
 _MASTERTASK = DESCRIPTOR.message_types_by_name["MasterTask"]
 _MASTERTASKSTATUS = DESCRIPTOR.message_types_by_name["MasterTaskStatus"]
 _MASTERALLTASKSSTATUS = DESCRIPTOR.message_types_by_name["MasterAllTasksStatus"]
-_EMPTY = DESCRIPTOR.message_types_by_name["Empty"]
 _MASTERRESPONSE_RESPONSESTATUS = _MASTERRESPONSE.enum_types_by_name["ResponseStatus"]
 _MASTERTASKSTATUS_STATUS = _MASTERTASKSTATUS.enum_types_by_name["Status"]
 ExperimentStatement = _reflection.GeneratedProtocolMessageType(
@@ -109,17 +108,6 @@ MasterAllTasksStatus = _reflection.GeneratedProtocolMessageType(
 )
 _sym_db.RegisterMessage(MasterAllTasksStatus)
 
-Empty = _reflection.GeneratedProtocolMessageType(
-    "Empty",
-    (_message.Message,),
-    {
-        "DESCRIPTOR": _EMPTY,
-        "__module__": "master_pb2"
-        # @@protoc_insertion_point(class_scope:Empty)
-    },
-)
-_sym_db.RegisterMessage(Empty)
-
 _MASTER = DESCRIPTOR.services_by_name["Master"]
 if _descriptor._USE_C_DESCRIPTORS == False:
 
@@ -140,13 +128,11 @@ if _descriptor._USE_C_DESCRIPTORS == False:
     _MASTERTASK._serialized_start = 408
     _MASTERTASK._serialized_end = 437
     _MASTERTASKSTATUS._serialized_start = 440
-    _MASTERTASKSTATUS._serialized_end = 602
+    _MASTERTASKSTATUS._serialized_end = 616
     _MASTERTASKSTATUS_STATUS._serialized_start = 519
-    _MASTERTASKSTATUS_STATUS._serialized_end = 602
-    _MASTERALLTASKSSTATUS._serialized_start = 604
-    _MASTERALLTASKSSTATUS._serialized_end = 672
-    _EMPTY._serialized_start = 674
-    _EMPTY._serialized_end = 681
-    _MASTER._serialized_start = 684
-    _MASTER._serialized_end = 998
+    _MASTERTASKSTATUS_STATUS._serialized_end = 616
+    _MASTERALLTASKSSTATUS._serialized_start = 618
+    _MASTERALLTASKSSTATUS._serialized_end = 686
+    _MASTER._serialized_start = 689
+    _MASTER._serialized_end = 1003
 # @@protoc_insertion_point(module_scope)

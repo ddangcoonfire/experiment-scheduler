@@ -1,7 +1,12 @@
 import grpc
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import TaskManagerStub
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import TaskStatement, Task,\
-    google_dot_protobuf_dot_empty__pb2
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
+    TaskManagerStub,
+)
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+    TaskStatement,
+    Task,
+    google_dot_protobuf_dot_empty__pb2,
+)
 from multiprocessing import Manager
 import threading
 import time
@@ -13,6 +18,7 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
+
     def __init__(self, task_manager, master_pipe):
         print(f"PM Start For {task_manager}")
         self.task_manager = task_manager
@@ -31,7 +37,9 @@ class ProcessMonitor:
         self.thread_queue["is_healthy"] = False
         # shared variable initialization
 
-        self.health_checker = threading.Thread(target=self._health_check, args=(self.thread_queue,))
+        self.health_checker = threading.Thread(
+            target=self._health_check, args=(self.thread_queue,)
+        )
         self.health_checker.start()
         # health_checking_thread_on
 
@@ -45,6 +53,7 @@ class ProcessMonitor:
             else:
                 thread_queue["is_healthy"] = False
             time.sleep(time_interval)
+
     # should run this code through a thread.
 
     def is_healthy(self):
@@ -74,16 +83,19 @@ class ProcessMonitor:
         self.master_pipe.send(ret)
 
     def run_task(self, gpu_idx, command, name, env):
-        protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name, task_env=env)
+        protobuf = TaskStatement(
+            gpuidx=gpu_idx, command=command, name=name, task_env=env
+        )
         response = self.stub.run_task(protobuf)
         task_id = response.task_id
         return task_id
 
+    # [TODO] need to debug more about kill, get_status and get_all
     def kill_task(self, task_id):
         protobuf = Task(task_id=task_id)
         return self.stub.kill_task(protobuf)
 
-    def get_task_status(self,task_id):
+    def get_task_status(self, task_id):
         protobuf = Task(task_id=task_id)
         return self.stub.get_task_status(protobuf)
 
@@ -91,7 +103,7 @@ class ProcessMonitor:
         protobuf = self.proto_empty
         return self.stub.get_all_tasks(protobuf)
 
-    def get_task_log(self,task_id):
+    def get_task_log(self, task_id):
         protobuf = Task(task_id=task_id)
         return self.stub.get_task_log(protobuf)
 
@@ -103,4 +115,3 @@ class ProcessMonitor:
                 command = self.master_pipe.recv()
                 self._request_task_manager(command)
             time.sleep(time_interval)
-

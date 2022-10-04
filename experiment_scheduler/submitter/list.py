@@ -17,7 +17,7 @@ def main():
         ast.literal_eval(USER_CONFIG.get("default", "master_address"))
     )
     stub = master_pb2_grpc.MasterStub(channel)
-    request = master_pb2.Empty()
+    request = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
     response = stub.get_task_list(request)
 
     for task in response:

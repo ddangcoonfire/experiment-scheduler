@@ -20,6 +20,7 @@ from experiment_scheduler.common import settings
 from experiment_scheduler.resource_monitor.monitor import responser
 from experiment_scheduler.common.settings import USER_CONFIG
 
+
 def get_task_managers():
     """
     [TODO] add docstring
@@ -137,6 +138,33 @@ class Master(MasterServicer):
         )
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
+    def delete_task(self, request, context):
+        if request.task_id in self.queued_tasks:
+            self.queued_tasks.remove(request.task_id)
+            return master_pb2.MasterTaskStatus(
+                task_id=request.task_id,
+                response=master_pb2.MasterTaskStatus.Status.DELETE,
+            )
+        else:
+            for task_manager, pipe in self.master_pipes.items():
+                self.master_pipes[task_manager].send(["kill_task", request.task_id])
+
+    def get_task_status(self, request, context):
+        if request.task_id in self.queued_tasks:
+            return master_pb2.MasterTaskStatus(
+                task_id=request.task_id,
+                response=master_pb2.MasterTaskStatus.Status.NOTSTART,
+            )
+        else:
+            for task_manager, pipe in self.master_pipes.items():
+                self.master_pipes[task_manager].send(
+                    ["get_task_status", request.task_id]
+                )
+
+    def get_task_list(self, request, context):
+        for task_manager, pipe in self.master_pipes.items():
+            self.master_pipes[task_manager].send(["get_all_tasks"])
+
     def halt_process_monitor(self, request, context):
         for process in self.process_monitor:
             process.terminate()
@@ -203,6 +231,7 @@ class Master(MasterServicer):
             ]
         )
 
+
 def halt_process_monitor():
     """
     kill process monitor before close master server
@@ -220,7 +249,7 @@ def serve():
     If an anomaly action erupt, kill process monitor before close master object
     :return: None
     """
-    
+
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
         print(settings.HEADER)
