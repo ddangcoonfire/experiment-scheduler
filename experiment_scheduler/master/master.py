@@ -17,8 +17,9 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
-from experiment_scheduler.resource_monitor.monitor import responser
+from experiment_scheduler.resource_monitor.monitor import Monitor
 from experiment_scheduler.common.settings import USER_CONFIG
+
 
 def get_task_managers():
     """
@@ -181,7 +182,7 @@ class Master(MasterServicer):
         for task_manager in self.task_managers_address[0]:
             if self.check_task_manager_run_task_available(task_manager):
                 available_task_managers.append(task_manager)
-        gpu_idx = responser.get_max_free_gpu()
+        gpu_idx = Monitor.get_max_free_gpu()
         # return available_task_managers
         return tuple([self.task_managers_address[0], gpu_idx])
 
@@ -203,6 +204,7 @@ class Master(MasterServicer):
             ]
         )
 
+
 def halt_process_monitor():
     """
     kill process monitor before close master server
@@ -220,7 +222,7 @@ def serve():
     If an anomaly action erupt, kill process monitor before close master object
     :return: None
     """
-    
+
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
         print(settings.HEADER)
