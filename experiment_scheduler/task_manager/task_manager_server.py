@@ -38,7 +38,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         """run task based on request"""
         self._validate_task_statement(request)
 
-        task_id = self._create_task_id(request.name)
+        task_id = request.task_id
         task = self._execute_subprocess(request, task_id)
         self._register_task(task_id, task)
         logger.info("%s is now running!", task_id)
@@ -53,8 +53,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         if not task_statement.command:
             raise ValueError("Command shouldn't empty!")
 
-    def _create_task_id(self, name):
-        return name + "-" + uuid.uuid4().hex  # add random hash to make task_id
+    # def _create_task_id(self, name):
+    #     return name + "-" + uuid.uuid4().hex  # add random hash to make task_id
 
     def _execute_subprocess(self, task_statement, task_id: str):
         # pylint: disable=consider-using-with
@@ -79,7 +79,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def get_task_log(self, request, context):
         """
         Save an output of the requested task and return output file path.
-        If status of the requeest task is Done, delete it from task manager.
+        If status of the request task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
         if target_process is None:

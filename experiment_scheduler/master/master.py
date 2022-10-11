@@ -2,6 +2,8 @@
 [TODO] Master Explanation
 
 """
+from collections import OrderedDict
+
 from concurrent import futures
 from multiprocessing import Process, Pipe
 import uuid
@@ -9,6 +11,8 @@ import time
 import threading
 import ast
 import grpc
+
+from experiment_scheduler.master.Task import Task
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -19,6 +23,7 @@ from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
 from experiment_scheduler.resource_monitor.monitor import responser
 from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import TaskStatus
 
 
 def get_task_managers():
@@ -41,11 +46,13 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.queued_tasks = []
+        self.queued_tasks = OrderedDict()
+        self.running_tasks = OrderedDict()
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
         self.task_managers_address = get_task_managers()
         self.process_monitor = self.create_process_monitor()
+
         self.runner = threading.Thread(target=self._execute_command, daemon=True)
         self.runner.start()
 
@@ -66,7 +73,12 @@ class Master(MasterServicer):
                 # [TODO] master pipe recv logic required here
                 for task_manager, pipe in self.master_pipes.items():
                     if pipe.poll():
-                        print(pipe.recv())  # need change later
+                        response, status = pipe.recv()
+                        if status == TaskStatus.Status.RUNNING:
+                            self.running_tasks[response.task_id] = response
+                            print(response.task_id + 'success')  # need change later
+                        else:
+                            print(response.task_id + 'error')
             time.sleep(interval)
 
     def _run_process_monitor(  # pylint: disable=no-self-use
@@ -126,8 +138,11 @@ class Master(MasterServicer):
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
         print(experiment_id)
+
         for task in request.tasks:
-            self.queued_tasks.append(task)
+            task_id = task.name + "-" + uuid.uuid4().hex
+            self.queued_tasks[task_id] = Task(task_id, task.name, task.command, task.task_env)
+
         response_status = (
             master_pb2.MasterResponse.ResponseStatus  # pylint: disable=E1101
         )
@@ -220,14 +235,13 @@ class Master(MasterServicer):
         :param gpu_idx:
         :return:
         """
-        prior_task = self.queued_tasks.pop(0)
-        self.master_pipes[task_manager].send(
+        prior_task = self.queued_tasks.popitem(last=False)
+        prior_task.gpu_idx = gpu_idx
+        prior_task.task_manager = task_manager
+        self.master_pipes[prior_task.task_manager].send(
             [
                 "run_task",
-                gpu_idx,
-                prior_task.command,
-                prior_task.name,
-                dict(prior_task.task_env),
+                prior_task
             ]
         )
 

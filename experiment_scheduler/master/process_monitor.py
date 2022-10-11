@@ -5,7 +5,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc i
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     TaskStatement,
     Task,
-    google_dot_protobuf_dot_empty__pb2,
+    google_dot_protobuf_dot_empty__pb2, TaskStatus,
 )
 from multiprocessing import Manager
 import threading
@@ -79,16 +79,22 @@ class ProcessMonitor:
         elif cmd == "get_all_tasks":
             ret = self.get_all_tasks()
         elif cmd == "run_task":
-            ret = self.run_task(command[1], command[2], command[3], command[4])
+            ret = self.run_task(command[1])
         self.master_pipe.send(ret)
 
-    def run_task(self, gpu_idx, command, name, env):
+    def run_task(self, task):
         protobuf = TaskStatement(
-            gpuidx=gpu_idx, command=command, name=name, task_env=env
+            task_id=task.task_id,
+            gpuidx=task.gpu_idx,
+            command=task.command,
+            name=task.name,
+            task_env=task.env
         )
         response = self.stub.run_task(protobuf)
-        task_id = response.task_id
-        return task_id
+        if response.status == TaskStatus.Status.RUNNING:
+            return task, response.status
+        else:
+            return response.task_id, -1
 
     # [TODO] need to debug more about kill, get_status and get_all
     def kill_task(self, task_id):
