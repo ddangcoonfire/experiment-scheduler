@@ -5,11 +5,12 @@
 import argparse
 import ast
 import os
+import subprocess
 import yaml
+
 import grpc
 from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.master.grpc_master import master_pb2
-from experiment_scheduler.master.grpc_master import master_pb2_grpc
+from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 
 def parse_args():
@@ -38,6 +39,19 @@ def parse_input_file(parsed_yaml):
     )
     return input
 
+def parse_ytt_file(file_path):
+    ytt_path = "/home/sinunu/ytt/ytt"
+    process = subprocess.run([ytt_path, "-f", file_path], capture_output=True)
+
+    if process.returncode != 0:
+        raise RuntimeError(
+            "failed to parse ytt file. please refer below log:\n"
+            + "="*79 + "\n"
+            + process.stderr.decode('utf-8')
+            + "="*79 + "\n"
+        )
+
+    return yaml.safe_load(process.stdout)
 
 def main():
     """
@@ -47,8 +61,7 @@ def main():
     args = parse_args()
     file_path = args.file
 
-    with open(file_path) as f:
-        parsed_yaml = yaml.load(f, Loader=yaml.FullLoader)
+    parsed_yaml = parse_ytt_file(file_path)
     channel = grpc.insecure_channel(
         ast.literal_eval(USER_CONFIG.get("default", "master_address"))
     )
