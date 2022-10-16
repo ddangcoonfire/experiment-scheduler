@@ -97,12 +97,12 @@ class ProcessMonitor:
             return response.task_id, -1
 
     # [TODO] need to debug more about kill, get_status and get_all
-    def kill_task(self, task_id):
-        protobuf = Task(task_id=task_id)
+    def kill_task(self, task):
+        protobuf = Task(task_id=task.task_id)
         return self.stub.kill_task(protobuf)
 
-    def get_task_status(self, task_id):
-        protobuf = Task(task_id=task_id)
+    def get_task_status(self, task):
+        protobuf = Task(task_id=task.task_id)
         return self.stub.get_task_status(protobuf)
 
     def get_all_tasks(self):
