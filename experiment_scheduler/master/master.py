@@ -49,8 +49,10 @@ class Master(MasterServicer):
         # [TODO] need discussion about path and env vars
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
+
         self.master_pipes = dict()
         self.process_monitor_pipes = dict()
+
         self.task_managers_address = get_task_managers()
         self.process_monitor = self.create_process_monitor()
 
@@ -155,18 +157,20 @@ class Master(MasterServicer):
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
     def delete_task(self, request, context):
-        target_task = self.queued_tasks[request.task_id]
-        if target_task is None:
-            running_target_task = self.running_tasks[request.task_id]
-            if running_target_task is None:
-                print(request.task_id + 'cannot be found')
-                return master_pb2.MasterTaskStatus(
-                    task_id=request.task_id,
-                    response=master_pb2.MasterTaskStatus.Status.NOTFOUND,
-                )
-            running_target_task_manager, pipe = self.master_pipes[running_target_task.task_manager]
-            self.master_pipes[running_target_task_manager].send(["kill_task", target_task])
-            if pipe.poll():
+
+        target_id = request.task_id
+        if target_id in self.queued_tasks.keys():
+            self.queued_tasks.popitem(target_id)
+            return master_pb2.MasterTaskStatus(
+                task_id=request.task_id,
+                response=master_pb2.MasterTaskStatus.Status.DELETE,
+            )
+        elif target_id in self.running_tasks.keys():
+            target_task = self.running_tasks[target_id]
+            target_task_manager = target_task.task_manager
+            pipe = self.master_pipes[target_task_manager]
+            pipe.send(["kill_task", target_task])
+            if pipe.poll(timeout=None):
                 response = pipe.recv()
                 if response.status == TaskStatus.Status.KILLED:
                     self.running_tasks.popitem(response.task_id)
@@ -174,37 +178,29 @@ class Master(MasterServicer):
                 else:
                     print(response.task_id + ' errored')
                 return self._wrap_by_task_status(response.task_id, response.status)
-
         else:
-            response = self.queued_tasks.popitem(target_task.task_id)
-            if response is not None:
-                print(response.task_id + ' task is deleted successfully')
-                return master_pb2.MasterTaskStatus(
-                    task_id=request.task_id,
-                    response=master_pb2.MasterTaskStatus.Status.DELETE,
-                )
-            else:
-                print(response.task_id + 'can not be found')
-                return master_pb2.MasterTaskStatus(
-                    task_id=request.task_id,
-                    response=master_pb2.MasterTaskStatus.Status.NOTFOUND,
-                )
+            print(target_id + 'can not be found')
+            return master_pb2.MasterTaskStatus(
+                task_id=request.task_id,
+                response=master_pb2.MasterTaskStatus.Status.NOTFOUND,
+            )
 
     def get_task_status(self, request, context):
-        target_task = self.queued_tasks[request.task_id]
-        if target_task is None:
-            running_target_task = self.running_tasks[request.task_id]
-            if running_target_task is None:
-                print(request.task_id + 'cannot be found')
-                return master_pb2.MasterTaskStatus(
-                    task_id=request.task_id,
-                    response=master_pb2.MasterTaskStatus.Status.NOTFOUND,
-                )
-            running_target_task_manager, pipe = self.master_pipes[running_target_task.task_manager]
-            self.master_pipes[running_target_task_manager].send(
+
+        target_id = request.task_id
+        if target_id in self.queued_tasks.keys():
+            return master_pb2.MasterTaskStatus(
+                task_id=request.task_id,
+                response=master_pb2.MasterTaskStatus.Status.NOTSTART,
+            )
+        elif target_id in self.running_tasks.keys():
+            target_task = self.running_tasks[request.task_id]
+            target_task_manager = target_task.task_manager
+            pipe = self.master_pipes[target_task_manager]
+            pipe.send(
                 ["get_task_status", target_task]
             )
-            if pipe.poll():
+            if pipe.poll(timeout=None):
                 response = pipe.recv()
                 if response.status == TaskStatus.Status.NOTFOUND:
                     print(response.task_id + 'cannot be found')
@@ -214,7 +210,7 @@ class Master(MasterServicer):
         else:
             return master_pb2.MasterTaskStatus(
                 task_id=request.task_id,
-                response=master_pb2.MasterTaskStatus.Status.NOTSTART,
+                response=master_pb2.MasterTaskStatus.Status.NOTFOUND,
             )
 
     def get_task_list(self, request, context):
@@ -226,11 +222,12 @@ class Master(MasterServicer):
             ))
         for task_manager, pipe in self.master_pipes.items():
             self.master_pipes[task_manager].send(["get_all_tasks"])
-            if pipe.poll():
+            if pipe.poll(timeout=None):
                 response_list = pipe.recv()
-                for response in range(response_list):
+                for response in response_list:
                     master_all_tasks_status.append(self._wrap_by_task_status(response.task_id, response.status))
         return master_all_tasks_status
+
 
     def halt_process_monitor(self, request, context):
         for process in self.process_monitor:

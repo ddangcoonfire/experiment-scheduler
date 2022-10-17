@@ -27,12 +27,10 @@ COMMAND_LIST = {
     "init_task_manager": exs_init_task_manager,
 }
 
-
 def parse_args():
     """
     Parse user's arguments.
     """
-
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("operation", choices=list(COMMAND_LIST.keys()))
 

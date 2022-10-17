@@ -2,22 +2,12 @@
 [TODO] exs delete command Explanation
 
 """
-import argparse
 import ast
 import grpc
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
-
-
-def parse_args():
-    """
-    Todo
-    :return:
-    """
-    parser = argparse.ArgumentParser(description="Execute exeperiments.")
-    parser.add_argument("-t", "--task")
-    return parser.parse_args()
+from submitter_parser import parse_args_task
 
 
 def main():
@@ -25,7 +15,7 @@ def main():
     Todo
     :return:
     """
-    args = parse_args()
+    args = parse_args_task()
     task_id = args.task
 
     channel = grpc.insecure_channel(

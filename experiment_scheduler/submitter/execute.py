@@ -2,41 +2,13 @@
 [TODO] exs execute command Explanation
 
 """
-import argparse
 import ast
-import os
 import yaml
 import grpc
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
-
-
-def parse_args():
-    """
-    Parse file name option argument.
-    - ex) if exs command includes "-f sample.yaml", return "sample.yaml"
-    """
-
-    parser = argparse.ArgumentParser(description="Execute exeperiments.")
-    parser.add_argument("-f", "--file")
-    return parser.parse_args()
-
-
-def parse_input_file(parsed_yaml):
-    """
-    Parse yaml and change yaml shape to experiment statement shape for grpc
-    """
-    parsed_input = master_pb2.ExperimentStatement(
-        name=parsed_yaml["name"],
-        tasks=[
-            master_pb2.MasterTaskStatement(
-                command=task["cmd"], name=task["name"], task_env=os.environ.copy()
-            )
-            for task in parsed_yaml["tasks"]
-        ],
-    )
-    return parsed_input
+from submitter_parser import parse_args_file, parse_input_file
 
 
 def main():
@@ -44,7 +16,7 @@ def main():
     exs execute command calls this function.
     when this func called, open yaml with '-f' option and convert yaml shape to experiment statement shape for grpc
     """
-    args = parse_args()
+    args = parse_args_file()
     file_path = args.file
 
     with open(file_path, encoding="utf-8") as file:
