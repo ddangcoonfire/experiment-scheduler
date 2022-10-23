@@ -3,12 +3,14 @@
 
 """
 from concurrent import futures
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, Manager
 import uuid
 import time
 import threading
 import ast
 import grpc
+from typing import List
+
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -17,16 +19,24 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
-from experiment_scheduler.resource_monitor.monitor import Monitor
 from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.resource_monitor.resource_monitor_listener import ResourceMonitorListener
 
 
-def get_task_managers():
+def get_task_managers() -> List[str]:
     """
     [TODO] add docstring
     :return:
     """
     return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+
+
+def get_resource_monitors() -> List[str]:
+    """
+    get address of resource_monitor
+    :return:
+    """
+    return ast.literal_eval(USER_CONFIG.get("default", "resource_monitor_address"))
 
 
 class Master(MasterServicer):
@@ -41,13 +51,15 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.queued_tasks = []
-        self.master_pipes = dict()
-        self.process_monitor_pipes = dict()
-        self.task_managers_address = get_task_managers()
-        self.process_monitor = self.create_process_monitor()
-        self.runner = threading.Thread(target=self._execute_command, daemon=True)
-        self.runner.start()
+        self.queued_tasks: list = []
+        self.master_pipes: dict = dict()
+        self.process_monitor_pipes: dict = dict()
+        self.task_managers_address: list = get_task_managers()
+        self.resource_monitor_address: List[str] = get_resource_monitors()
+        self.resource_monitor_listener: ResourceMonitorListener = ResourceMonitorListener(self.resource_monitor_address)
+        self.process_monitor: List[Process] = self.create_process_monitor()
+        self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
+        self.runner_thread.start()
 
     def _execute_command(self, interval=1):
         """
@@ -70,7 +82,7 @@ class Master(MasterServicer):
             time.sleep(interval)
 
     def _run_process_monitor(  # pylint: disable=no-self-use
-        self, task_manager_address, pipe
+            self, task_manager_address, pipe
     ):
         """
         Create Process Monitor process per task manager
@@ -162,15 +174,19 @@ class Master(MasterServicer):
         pass  # pylint: disable=unnecessary-pass
 
     def check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
-        self, task_manager
+            self, resource_monitor
     ):
         """
         [TODO] add docstring
         :param task_manager:
+        :param resource_monitor:
         :return:
         """
+        # currently only checks gpu availability.
+        gpu_idx = self.resource_monitor_listener.get_available_gpu_idx(resource_monitor)
+        available = gpu_idx != -1
         # currently only returns True
-        return True
+        return available, gpu_idx
 
     def get_available_task_managers(self):
         """
@@ -179,12 +195,13 @@ class Master(MasterServicer):
         """
         # currently only return first one
         available_task_managers = []
-        for task_manager in self.task_managers_address[0]:
-            if self.check_task_manager_run_task_available(task_manager):
-                available_task_managers.append(task_manager)
-        gpu_idx = Monitor.get_max_free_gpu()
+        for task_manager, resource_monitor in zip(self.task_managers_address, self.resource_monitor_address):
+            runnable, gpu_idx = self.check_task_manager_run_task_available(resource_monitor)
+            if runnable:
+                available_task_managers.append((task_manager,gpu_idx))
         # return available_task_managers
-        return tuple([self.task_managers_address[0], gpu_idx])
+        return tuple(available_task_managers)
+        # return tuple([self.task_managers_address[0], gpu_idx])
 
     def execute_task(self, task_manager, gpu_idx):
         """

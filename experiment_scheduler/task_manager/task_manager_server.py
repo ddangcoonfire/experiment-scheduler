@@ -156,16 +156,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         return self.tasks[task_id]
 
 
-def serve():
+def serve(address):
     """run task manager server"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
         TaskManagerServicer(), server
     )
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(address)
     server.start()
     server.wait_for_termination()
 
 
 if __name__ == "__main__":
-    serve()
+    serve("[::]:50051")

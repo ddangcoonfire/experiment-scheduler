@@ -7,7 +7,6 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
-
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -16,59 +15,58 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x16resource_monitor.proto\x1a\x1bgoogle/protobuf/empty.proto"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08"l\n\x0eResourceStatus\x12+\n\x06status\x18\x01 \x03(\x0b\x32\x1b.ResourceStatus.StatusEntry\x1a-\n\x0bStatusEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\x8c\x01\n\x0fResourceMonitor\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus"\x00\x12@\n\x13get_resource_status\x12\x16.google.protobuf.Empty\x1a\x0f.ResourceStatus"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3'
-)
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16resource_monitor.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08\"l\n\x0eResourceStatus\x12+\n\x06status\x18\x01 \x03(\x0b\x32\x1b.ResourceStatus.StatusEntry\x1a-\n\x0bStatusEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"&\n\tGPUStatus\x12\x19\n\x11\x61vailable_gpu_idx\x18\x01 \x01(\x05\x32\xcb\x01\n\x0fResourceMonitor\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus\"\x00\x12@\n\x13get_resource_status\x12\x16.google.protobuf.Empty\x1a\x0f.ResourceStatus\"\x00\x12=\n\x15get_available_gpu_idx\x12\x16.google.protobuf.Empty\x1a\n.GPUStatus\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 
-_SERVERSTATUS = DESCRIPTOR.message_types_by_name["ServerStatus"]
-_RESOURCESTATUS = DESCRIPTOR.message_types_by_name["ResourceStatus"]
-_RESOURCESTATUS_STATUSENTRY = _RESOURCESTATUS.nested_types_by_name["StatusEntry"]
-ServerStatus = _reflection.GeneratedProtocolMessageType(
-    "ServerStatus",
-    (_message.Message,),
-    {
-        "DESCRIPTOR": _SERVERSTATUS,
-        "__module__": "resource_monitor_pb2"
-        # @@protoc_insertion_point(class_scope:ServerStatus)
-    },
-)
+
+_SERVERSTATUS = DESCRIPTOR.message_types_by_name['ServerStatus']
+_RESOURCESTATUS = DESCRIPTOR.message_types_by_name['ResourceStatus']
+_RESOURCESTATUS_STATUSENTRY = _RESOURCESTATUS.nested_types_by_name['StatusEntry']
+_GPUSTATUS = DESCRIPTOR.message_types_by_name['GPUStatus']
+ServerStatus = _reflection.GeneratedProtocolMessageType('ServerStatus', (_message.Message,), {
+  'DESCRIPTOR' : _SERVERSTATUS,
+  '__module__' : 'resource_monitor_pb2'
+  # @@protoc_insertion_point(class_scope:ServerStatus)
+  })
 _sym_db.RegisterMessage(ServerStatus)
 
-ResourceStatus = _reflection.GeneratedProtocolMessageType(
-    "ResourceStatus",
-    (_message.Message,),
-    {
-        "StatusEntry": _reflection.GeneratedProtocolMessageType(
-            "StatusEntry",
-            (_message.Message,),
-            {
-                "DESCRIPTOR": _RESOURCESTATUS_STATUSENTRY,
-                "__module__": "resource_monitor_pb2"
-                # @@protoc_insertion_point(class_scope:ResourceStatus.StatusEntry)
-            },
-        ),
-        "DESCRIPTOR": _RESOURCESTATUS,
-        "__module__": "resource_monitor_pb2"
-        # @@protoc_insertion_point(class_scope:ResourceStatus)
-    },
-)
+ResourceStatus = _reflection.GeneratedProtocolMessageType('ResourceStatus', (_message.Message,), {
+
+  'StatusEntry' : _reflection.GeneratedProtocolMessageType('StatusEntry', (_message.Message,), {
+    'DESCRIPTOR' : _RESOURCESTATUS_STATUSENTRY,
+    '__module__' : 'resource_monitor_pb2'
+    # @@protoc_insertion_point(class_scope:ResourceStatus.StatusEntry)
+    })
+  ,
+  'DESCRIPTOR' : _RESOURCESTATUS,
+  '__module__' : 'resource_monitor_pb2'
+  # @@protoc_insertion_point(class_scope:ResourceStatus)
+  })
 _sym_db.RegisterMessage(ResourceStatus)
 _sym_db.RegisterMessage(ResourceStatus.StatusEntry)
 
-_RESOURCEMONITOR = DESCRIPTOR.services_by_name["ResourceMonitor"]
+GPUStatus = _reflection.GeneratedProtocolMessageType('GPUStatus', (_message.Message,), {
+  'DESCRIPTOR' : _GPUSTATUS,
+  '__module__' : 'resource_monitor_pb2'
+  # @@protoc_insertion_point(class_scope:GPUStatus)
+  })
+_sym_db.RegisterMessage(GPUStatus)
+
+_RESOURCEMONITOR = DESCRIPTOR.services_by_name['ResourceMonitor']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
-    DESCRIPTOR._options = None
-    DESCRIPTOR._serialized_options = b"\242\002\003RTG"
-    _RESOURCESTATUS_STATUSENTRY._options = None
-    _RESOURCESTATUS_STATUSENTRY._serialized_options = b"8\001"
-    _SERVERSTATUS._serialized_start = 55
-    _SERVERSTATUS._serialized_end = 84
-    _RESOURCESTATUS._serialized_start = 86
-    _RESOURCESTATUS._serialized_end = 194
-    _RESOURCESTATUS_STATUSENTRY._serialized_start = 149
-    _RESOURCESTATUS_STATUSENTRY._serialized_end = 194
-    _RESOURCEMONITOR._serialized_start = 197
-    _RESOURCEMONITOR._serialized_end = 337
+  DESCRIPTOR._options = None
+  DESCRIPTOR._serialized_options = b'\242\002\003RTG'
+  _RESOURCESTATUS_STATUSENTRY._options = None
+  _RESOURCESTATUS_STATUSENTRY._serialized_options = b'8\001'
+  _SERVERSTATUS._serialized_start=55
+  _SERVERSTATUS._serialized_end=84
+  _RESOURCESTATUS._serialized_start=86
+  _RESOURCESTATUS._serialized_end=194
+  _RESOURCESTATUS_STATUSENTRY._serialized_start=149
+  _RESOURCESTATUS_STATUSENTRY._serialized_end=194
+  _GPUSTATUS._serialized_start=196
+  _GPUSTATUS._serialized_end=234
+  _RESOURCEMONITOR._serialized_start=237
+  _RESOURCEMONITOR._serialized_end=440
 # @@protoc_insertion_point(module_scope)

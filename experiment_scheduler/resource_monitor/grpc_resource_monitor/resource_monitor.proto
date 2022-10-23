@@ -24,6 +24,7 @@ option objc_class_prefix = "RTG";
 service ResourceMonitor {
       rpc health_check(google.protobuf.Empty) returns (ServerStatus) {}
       rpc get_resource_status(google.protobuf.Empty) returns (ResourceStatus){}
+      rpc get_available_gpu_idx(google.protobuf.Empty) returns (GPUStatus){}
 }
 
 message ServerStatus {
@@ -32,4 +33,8 @@ message ServerStatus {
 
 message ResourceStatus {
     map<string, string> status = 1;
+}
+
+message GPUStatus {
+    int32 available_gpu_idx  = 1;
 }
