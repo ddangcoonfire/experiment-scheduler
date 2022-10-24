@@ -3,13 +3,13 @@
 
 """
 from concurrent import futures
-from multiprocessing import Process, Pipe, Manager
+from multiprocessing import Process, Pipe
 import uuid
 import time
 import threading
 import ast
+from typing import List, Tuple
 import grpc
-from typing import List
 
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
@@ -20,7 +20,9 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.resource_monitor.resource_monitor_listener import ResourceMonitorListener
+from experiment_scheduler.resource_monitor.resource_monitor_listener import (
+    ResourceMonitorListener,
+)
 
 
 def get_task_managers() -> List[str]:
@@ -55,8 +57,9 @@ class Master(MasterServicer):
         self.master_pipes: dict = dict()
         self.process_monitor_pipes: dict = dict()
         self.task_managers_address: list = get_task_managers()
-        self.resource_monitor_address: List[str] = get_resource_monitors()
-        self.resource_monitor_listener: ResourceMonitorListener = ResourceMonitorListener(self.resource_monitor_address)
+        self.resource_monitor_listener: ResourceMonitorListener = (
+            ResourceMonitorListener(get_resource_monitors())
+        )
         self.process_monitor: List[Process] = self.create_process_monitor()
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
@@ -69,20 +72,40 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            (available_task_managers, gpu_idx) = self.get_available_task_managers()
-            if gpu_idx != -1:
+            available_task_managers = self._get_available_task_managers()
+            if len(available_task_managers) > 0:
                 for _ in self.queued_tasks:
-                    if len(available_task_managers) > 0:
-                        task_manager = available_task_managers.pop(0)
-                        self.execute_task(task_manager, gpu_idx)
+                    task_manager, gpu_idx = available_task_managers.pop(0)
+                    self.execute_task(task_manager, gpu_idx)
                 # [TODO] master pipe recv logic required here
                 for task_manager, pipe in self.master_pipes.items():
                     if pipe.poll():
                         print(pipe.recv())  # need change later
             time.sleep(interval)
 
+    def _get_available_task_managers(self) -> List[Tuple[str, int]]:
+        """
+        Get available task manager from resource monitor.
+        Currently, it only checks if task manager has available gpu.
+        :return: list of available task manager address
+        """
+        # currently only return first one
+        available_task_managers = []
+        for task_manager, resource_monitor in zip(
+            self.task_managers_address,
+            self.resource_monitor_listener.resource_monitor_address,
+        ):
+            runnable, gpu_idx = self._check_task_manager_run_task_available(
+                resource_monitor
+            )
+            if runnable:
+                available_task_managers.append((task_manager, gpu_idx))
+        # return available_task_managers
+        return available_task_managers
+        # return tuple([self.task_managers_address[0], gpu_idx])
+
     def _run_process_monitor(  # pylint: disable=no-self-use
-            self, task_manager_address, pipe
+        self, task_manager_address, pipe
     ):
         """
         Create Process Monitor process per task manager
@@ -173,8 +196,8 @@ class Master(MasterServicer):
         """
         pass  # pylint: disable=unnecessary-pass
 
-    def check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
-            self, resource_monitor
+    def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
+        self, resource_monitor
     ):
         """
         [TODO] add docstring
@@ -187,21 +210,6 @@ class Master(MasterServicer):
         available = gpu_idx != -1
         # currently only returns True
         return available, gpu_idx
-
-    def get_available_task_managers(self):
-        """
-        [TODO] add docstring
-        :return:
-        """
-        # currently only return first one
-        available_task_managers = []
-        for task_manager, resource_monitor in zip(self.task_managers_address, self.resource_monitor_address):
-            runnable, gpu_idx = self.check_task_manager_run_task_available(resource_monitor)
-            if runnable:
-                available_task_managers.append((task_manager,gpu_idx))
-        # return available_task_managers
-        return tuple(available_task_managers)
-        # return tuple([self.task_managers_address[0], gpu_idx])
 
     def execute_task(self, task_manager, gpu_idx):
         """
