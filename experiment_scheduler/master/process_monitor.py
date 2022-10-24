@@ -5,7 +5,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 from multiprocessing import Manager
 import threading
 import time
-
+from typing import Dict
 
 class ProcessMonitor:
     """
@@ -13,11 +13,10 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
-    def __init__(self, task_manager, master_pipe):
-        print(f"PM Start For {task_manager}")
-        self.task_manager = task_manager
+    def __init__(self, task_managers, master_pipe):
+        self.task_manager_list = task_managers
         self.channel = grpc.insecure_channel(self.task_manager)
-        self.stub = TaskManagerStub(self.channel)
+        self.task_manager_stubs = self._get_stubs()
         self.master_pipe = master_pipe
         self.proto_empty = google_dot_protobuf_dot_empty__pb2.Empty()
         # connection initialization
@@ -36,6 +35,14 @@ class ProcessMonitor:
         # health_checking_thread_on
 
         # shared with master memory
+
+    def _get_stubs(self) -> Dict[str,str]:
+        stubs = {}
+        for address in self.task_manager_list:
+            channel = grpc.insecure_channel(address)
+            stubs[address] = TaskManagerStub(channel)
+        return stubs
+
 
     def _health_check(self, thread_queue, time_interval=5):
         while True:

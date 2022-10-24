@@ -63,7 +63,8 @@ class Master(MasterServicer):
         self.resource_monitor_listener: ResourceMonitorListener = (
             ResourceMonitorListener(get_resource_monitors())
         )
-        self.process_monitor: List[Process] = self.create_process_monitor()
+        self.process_monitor = ProcessMonitor(self.task_managers_address)
+        # self.process_monitor: List[Process] = self.create_process_monitor()
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
 
