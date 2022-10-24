@@ -1,6 +1,7 @@
 """
-[TODO] Master Explanation
-
+Master checks all task manager status and allocates jobs from user's yaml
+It is designed to run on localhost while task manager usually recommended to run on another work node.
+Still, running master process on remote server is possible.
 """
 from concurrent import futures
 from multiprocessing import Process, Pipe
@@ -27,24 +28,26 @@ from experiment_scheduler.resource_monitor.resource_monitor_listener import (
 
 def get_task_managers() -> List[str]:
     """
-    [TODO] add docstring
-    :return:
+    Get Task Manager's address from experiment_scheduler.cfg
+    :return: list of address
     """
     return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
 
 
 def get_resource_monitors() -> List[str]:
     """
-    get address of resource_monitor
-    :return:
+    Get Resource Monitor's address from experiment_scheduler.cfg
+    :return: list of address
     """
     return ast.literal_eval(USER_CONFIG.get("default", "resource_monitor_address"))
 
 
 class Master(MasterServicer):
     """
-    Inherit GrpcServer to run Grpc Socket ( get request from submitter )
-    Class that runs on server
+    As GRPC server, Master receives request from submitter.
+    While dealing requests, two daemon threads run on the same process.
+    one is work-queue, which used to allocate submitted job to task managers.
+    The other one is resource monitor's health checking thread defined at ResourceMonitorListener
     """
 
     def __init__(self):
@@ -64,7 +67,7 @@ class Master(MasterServicer):
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
 
-    def _execute_command(self, interval=1):
+    def _execute_command(self, interval=1) -> None:
         """
         this thread_running_function periodically checks queued_task and available task_managers.
         If a task exists and available task manager exists, toss command to Process Monitor
