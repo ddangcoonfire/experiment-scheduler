@@ -4,7 +4,6 @@ It is designed to run on localhost while task manager usually recommended to run
 Still, running master process on remote server is possible.
 """
 from concurrent import futures
-from multiprocessing import Process, Pipe
 import uuid
 import time
 import threading
@@ -57,13 +56,11 @@ class Master(MasterServicer):
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
         self.queued_tasks: list = []
-        self.master_pipes: dict = dict()
-        self.process_monitor_pipes: dict = dict()
         self.task_managers_address: list = get_task_managers()
         self.resource_monitor_listener: ResourceMonitorListener = (
             ResourceMonitorListener(get_resource_monitors())
         )
-        self.process_monitor: List[Process] = self.create_process_monitor()
+        self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
 
@@ -80,10 +77,6 @@ class Master(MasterServicer):
                 for _ in self.queued_tasks:
                     task_manager, gpu_idx = available_task_managers.pop(0)
                     self.execute_task(task_manager, gpu_idx)
-                # [TODO] master pipe recv logic required here
-                for task_manager, pipe in self.master_pipes.items():
-                    if pipe.poll():
-                        print(pipe.recv())  # need change later
             time.sleep(interval)
 
     def _get_available_task_managers(self) -> List[Tuple[str, int]]:
@@ -107,42 +100,6 @@ class Master(MasterServicer):
         return available_task_managers
         # return tuple([self.task_managers_address[0], gpu_idx])
 
-    def _run_process_monitor(  # pylint: disable=no-self-use
-        self, task_manager_address, pipe
-    ):
-        """
-        Create Process Monitor process per task manager
-        :param task_manager_address:
-        :param pipe:
-        :return:
-        """
-        process_monitor = ProcessMonitor(task_manager_address, pipe)
-        process_monitor.start()
-
-    def _process_monitor_termintion(self):
-        # [TODO] all process monitors should be halted if master stopped
-        pass
-
-    def create_process_monitor(self):
-        """
-        [TODO] add docstring
-        :return:
-        """
-        print("create process monitor")  # print should be replaced as log later
-        process_monitor_list = list()
-        for task_manager in self.task_managers_address:
-            (
-                self.master_pipes[task_manager],
-                self.process_monitor_pipes[task_manager],
-            ) = Pipe()
-            process_monitor = Process(
-                target=self._run_process_monitor,
-                args=(task_manager, self.process_monitor_pipes[task_manager]),
-            )
-            process_monitor_list.append(process_monitor)
-            process_monitor.start()
-        return process_monitor_list
-
     def select_task_manager(self, selected=-1):
         """
         Process Monitor automatically provide task that is able to run task
@@ -163,7 +120,7 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
-        print(experiment_id)
+        print(experiment_id)  # [FIXME] : set to logging pylint: disable=W0511
         for task in request.tasks:
             self.queued_tasks.append(task)
         response_status = (
@@ -175,11 +132,6 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
-
-    def halt_process_monitor(self, request, context):
-        for process in self.process_monitor:
-            process.terminate()
-        return master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
 
     def delete_experiment(self, request, context):
         """
@@ -222,14 +174,12 @@ class Master(MasterServicer):
         :return:
         """
         prior_task = self.queued_tasks.pop(0)
-        self.master_pipes[task_manager].send(
-            [
-                "run_task",
-                gpu_idx,
-                prior_task.command,
-                prior_task.name,
-                dict(prior_task.task_env),
-            ]
+        self.process_monitor.run_task(
+            task_manager,
+            gpu_idx,
+            prior_task.command,
+            prior_task.name,
+            dict(prior_task.task_env),
         )
 
 
