@@ -39,20 +39,22 @@ message ServerStatus {
 }
 
 message TaskStatement {
-    int32 gpuidx = 1;
-    string command = 2;
-    string name = 3;
-    map<string, string> task_env = 4;
+    string task_id = 1;
+    int32 gpuidx = 2;
+    string command = 3;
+    string name = 4;
+    map<string, string> task_env = 5;
 }
 
 message TaskStatus {
     string task_id = 1;
     enum Status {
-        RUNNING = 0;
-        DONE = 1;
-        KILLED = 2;
-        ABNORMAL = 3;
-        NOTFOUND = 4;
+        NOTSTART = 0;
+        RUNNING = 1;
+        DONE = 2;
+        KILLED = 3;
+        ABNORMAL = 4;
+        NOTFOUND = 5;
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }

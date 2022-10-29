@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
+import "task_manager.proto";
 
 option objc_class_prefix = "RTG";
 
@@ -7,6 +8,15 @@ option objc_class_prefix = "RTG";
 // Interface exported by the server.
 service Master {
       rpc request_experiments(ExperimentStatement) returns (MasterResponse) {}
+
+      rpc kill_task(Task) returns (TaskStatus) {}
+
+      rpc get_task_status(Task) returns (TaskStatus) {}
+
+      rpc get_task_log(Task) returns (TaskLog) {}
+
+      rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
+
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
@@ -14,13 +24,11 @@ message ExperimentStatement {
     string name = 1;
     repeated MasterTaskStatement tasks = 2;
 }
-
 message MasterTaskStatement {
     string command = 1;
     string name = 2;
     map<string, string> task_env = 4;
 }
-
 message MasterResponse {
     string experiment_id = 1;
     enum ResponseStatus {

@@ -3,6 +3,7 @@ Master checks all task manager status and allocates jobs from user's yaml
 It is designed to run on localhost while task manager usually recommended to run on another work node.
 Still, running master process on remote server is possible.
 """
+from collections import OrderedDict
 from concurrent import futures
 import uuid
 import time
@@ -22,6 +23,9 @@ from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.resource_monitor.resource_monitor_listener import (
     ResourceMonitorListener,
+)
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+    TaskStatus,
 )
 
 
@@ -55,7 +59,9 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.queued_tasks: list = []
+        self.queued_tasks = OrderedDict()
+        self.running_tasks = OrderedDict()
+
         self.task_managers_address: list = get_task_managers()
         self.resource_monitor_listener: ResourceMonitorListener = (
             ResourceMonitorListener(get_resource_monitors())
@@ -73,10 +79,9 @@ class Master(MasterServicer):
         """
         while True:
             available_task_managers = self._get_available_task_managers()
-            if len(available_task_managers) > 0:
-                for _ in self.queued_tasks:
-                    task_manager, gpu_idx = available_task_managers.pop(0)
-                    self.execute_task(task_manager, gpu_idx)
+            if len(available_task_managers) > 0 and len(self.queued_tasks):
+                task_manager, gpu_idx = available_task_managers.pop(0)
+                self.execute_task(task_manager, gpu_idx)
             time.sleep(interval)
 
     def _get_available_task_managers(self) -> List[Tuple[str, int]]:
@@ -120,9 +125,13 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
-        print(experiment_id)  # [FIXME] : set to logging pylint: disable=W0511
+        print(
+            "experiment_id", experiment_id
+        )  # [FIXME] : set to logging pylint: disable=W0511
         for task in request.tasks:
-            self.queued_tasks.append(task)
+            task_id = task.name + "-" + uuid.uuid4().hex
+            print("task_id", task_id)  # [FIXME] : set to logging pylint: disable=W0511
+            self.queued_tasks[task_id] = task
         response_status = (
             master_pb2.MasterResponse.ResponseStatus  # pylint: disable=E1101
         )
@@ -133,23 +142,104 @@ class Master(MasterServicer):
         )
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
-    def delete_experiment(self, request, context):
+    def kill_task(self, request, context):
         """
-        delete all experiments registered in a group
+        delete certain task
         :param request:
         :param context:
-        :return:
+        :return: task's status
         """
-        pass  # pylint: disable=unnecessary-pass
+        if request.task_id in self.queued_tasks.keys():
+            del self.queued_tasks[request.task_id]
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.KILLED
+            )
+        elif request.task_id in self.running_tasks.keys():
+            result = self.process_monitor.kill_task(
+                self.running_tasks[request.task_id]["task_manager"], request.task_id
+            )
+            if result.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[request.task_id]
+        else:
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTFOUND
+            )
+        return result
 
-    def delete_experiments(self, request, context):
+    def get_task_status(self, request, context):
         """
-        delete certain experiment
+        get status certain task
         :param request:
         :param context:
-        :return:
+        :return: task's status
         """
-        pass  # pylint: disable=unnecessary-pass
+        if request.task_id in self.queued_tasks.keys():
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTSTART
+            )
+        elif request.task_id in self.running_tasks.keys():
+            result = self.process_monitor.get_task_status(
+                self.running_tasks[request.task_id]["task_manager"], request.task_id
+            )
+            if result.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[request.task_id]
+        else:
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTFOUND
+            )
+        return result
+
+    def get_task_log(self, request, context):
+        """
+        get log certain task
+        :param request:
+        :param context:
+        :return: log path
+        """
+        if request.task_id in self.queued_tasks.keys():
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTSTART
+            )
+        elif request.task_id in self.running_tasks.keys():
+            result = self.process_monitor.get_task_log(
+                self.running_tasks[request.task_id]["task_manager"], request.task_id
+            )
+            if result.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[request.task_id]
+        else:
+            result = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTFOUND
+            )
+        return result
+
+    def get_all_tasks(self, request, context):
+        result = self.process_monitor.get_all_tasks()
+        if not result:
+            print("there is no task")
+        return result
+
+    def execute_task(self, task_manager, gpu_idx):
+        """
+        run certain task
+        :param task_manager:
+        :param gpu_idx:
+        :return: task's status
+        """
+        prior_task_id, prior_task = self.queued_tasks.popitem(last=False)
+        self.running_tasks[prior_task_id] = {
+            "task": prior_task,
+            "task_manager": task_manager,
+            "gpu_idx": gpu_idx,
+        }
+        result = self.process_monitor.run_task(
+            prior_task_id,
+            task_manager,
+            gpu_idx,
+            prior_task.command,
+            prior_task.name,
+            dict(prior_task.task_env),
+        )
+        return result
 
     def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
         self, resource_monitor
@@ -166,20 +256,10 @@ class Master(MasterServicer):
         # currently only returns True
         return available, gpu_idx
 
-    def execute_task(self, task_manager, gpu_idx):
-        """
-        [TODO] add docstring
-        :param task_manager:
-        :param gpu_idx:
-        :return:
-        """
-        prior_task = self.queued_tasks.pop(0)
-        self.process_monitor.run_task(
-            task_manager,
-            gpu_idx,
-            prior_task.command,
-            prior_task.name,
-            dict(prior_task.task_env),
+    def _wrap_by_task_status(self, task_id, status):
+        return master_pb2.TaskStatus(
+            task_id=task_id,
+            response=status,
         )
 
 
@@ -205,7 +285,7 @@ def serve():
         master = grpc.server(pool)
         print(settings.HEADER)
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
-        print("set master server to %s" % master_address)
+        print("set master server to %s", master_address)
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         try:
