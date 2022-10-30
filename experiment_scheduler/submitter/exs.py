@@ -5,7 +5,6 @@
 
 import argparse
 import sys
-
 from experiment_scheduler.submitter.execute import main as exs_execute
 from experiment_scheduler.submitter.delete import main as exs_delete
 from experiment_scheduler.submitter.edit import main as exs_edit
@@ -15,7 +14,9 @@ from experiment_scheduler.submitter.init_master import main as exs_init_master
 from experiment_scheduler.submitter.init_task_manager import (
     main as exs_init_task_manager,
 )
-from experiment_scheduler.submitter.init_resource_monitor import main as exs_init_resource_monitor
+from experiment_scheduler.submitter.init_resource_monitor import (
+    main as exs_init_resource_monitor,
+)
 
 COMMAND_LIST = {
     "execute": exs_execute,
