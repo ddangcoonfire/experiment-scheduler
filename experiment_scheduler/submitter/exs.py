@@ -15,7 +15,7 @@ from experiment_scheduler.submitter.init_master import main as exs_init_master
 from experiment_scheduler.submitter.init_task_manager import (
     main as exs_init_task_manager,
 )
-
+from experiment_scheduler.submitter.init_resource_monitor import main as exs_init_resource_monitor
 
 COMMAND_LIST = {
     "execute": exs_execute,
@@ -25,6 +25,7 @@ COMMAND_LIST = {
     "status": exs_status,
     "init_master": exs_init_master,
     "init_task_manager": exs_init_task_manager,
+    "init_resource_monitor": exs_init_resource_monitor,
 }
 
 

@@ -72,9 +72,9 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            available_task_managers = self._get_available_task_managers()
-            if len(available_task_managers) > 0:
-                for _ in self.queued_tasks:
+            if len(self.queued_tasks) > 0:
+                available_task_managers = self._get_available_task_managers()
+                if len(available_task_managers) > 0:
                     task_manager, gpu_idx = available_task_managers.pop(0)
                     self.execute_task(task_manager, gpu_idx)
             time.sleep(interval)

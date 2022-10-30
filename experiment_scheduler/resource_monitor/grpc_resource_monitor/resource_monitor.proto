@@ -15,6 +15,7 @@
 // for creating code, run cmd below
 //  python -m grpc_tools.protoc -I../../protos --python_out=. --grpc_python_out=. ../../protos/helloworld.proto
 syntax = "proto3";
+package experiment_scheduler.task_manager.grpc_task_manager;
 import "google/protobuf/empty.proto";
 
 option objc_class_prefix = "RTG";
