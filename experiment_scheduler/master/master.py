@@ -9,13 +9,14 @@ import time
 import threading
 import ast
 from typing import List, Tuple
+import logging
 import grpc
+
 
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
-    MasterStub,
 )
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.common import settings
@@ -23,6 +24,8 @@ from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.resource_monitor.resource_monitor_listener import (
     ResourceMonitorListener,
 )
+
+logger = logging.getLogger()
 
 
 def get_task_managers() -> List[str]:
@@ -72,6 +75,7 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
+            logging.info("dddd")
             if len(self.queued_tasks) > 0:
                 available_task_managers = self._get_available_task_managers()
                 if len(available_task_managers) > 0:
@@ -183,17 +187,6 @@ class Master(MasterServicer):
         )
 
 
-def halt_process_monitor():
-    """
-    kill process monitor before close master server
-    process monitor can be closed through communication with master
-    :return: None
-    """
-    stub = MasterStub(grpc.insecure_channel("localhost:50052"))
-    empty = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
-    stub.halt_process_monitor(empty)
-
-
 def serve():
     """
     Run Master Server with try, catch.
@@ -203,22 +196,20 @@ def serve():
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        print(settings.HEADER)
+        logger.info(settings.HEADER)
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
-        print("set master server to %s" % master_address)
+        logger.info("set master server to %s", master_address)
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         try:
             master.start()
             master.wait_for_termination()
         except KeyboardInterrupt as exception:
-            print("keyboardInterrupt occurred \n %s", exception)
-            print("halting master immediately...")
-            halt_process_monitor()
+            logger.info("keyboardInterrupt occurred \n %s", exception)
+            logger.info("halting master immediately...")
         except Exception as error_case:  # pylint: disable=broad-except
-            print("Error Occurred %s", error_case)
-            print("halting master immediately...")
-            halt_process_monitor()
+            logger.info("Error Occurred %s", error_case)
+            logger.info("halting master immediately...")
 
 
 if __name__ == "__main__":

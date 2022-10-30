@@ -88,4 +88,4 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
             # must be replaced with logging
             print(f"currently {resource_monitor_address} is not available")
             response = -1
-        return response
+        return response.available_gpu_idx
