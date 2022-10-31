@@ -3,3 +3,5 @@ grpcio
 pytest
 pytest-mock
 pynvml
+protobuf
+psutil
