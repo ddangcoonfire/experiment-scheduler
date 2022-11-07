@@ -79,10 +79,11 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(  # pylint: disable=R0913
+    def run_task(
         self, task_id, task_manager, gpu_idx, command, name, env
     ):
         """
+        :param task_id
         :param task_manager:
         :param gpu_idx:
         :param command:
