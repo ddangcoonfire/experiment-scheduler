@@ -2,6 +2,7 @@
 
 import logging
 import os
+import platform
 import signal
 import subprocess
 from concurrent import futures
@@ -140,7 +141,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.DONE)
         if return_code is None:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
-        if return_code in [-signal.SIGTERM, return_code == -signal.SIGKILL]:
+        if platform.system() == 'Windows' and return_code == -signal.SIGTERM:
+            return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
+        elif return_code == -signal.SIGKILL:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.ABNORMAL)
 
