@@ -79,10 +79,11 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(  # pylint: disable=R0913
-        self, task_manager, gpu_idx, command, name, env
+    def run_task(
+        self, task_id, task_manager, gpu_idx, command, name, env
     ):
         """
+        :param task_id
         :param task_manager:
         :param gpu_idx:
         :param command:
@@ -91,11 +92,9 @@ class ProcessMonitor:
         :return:
         """
         protobuf = TaskStatement(
-            gpuidx=gpu_idx, command=command, name=name, task_env=env
+            task_id=task_id, gpuidx=gpu_idx, command=command, name=name, task_env=env
         )
-        response = self.task_manager_stubs[task_manager].run_task(protobuf)
-        task_id = response.task_id
-        return task_id
+        return self.task_manager_stubs[task_manager].run_task(protobuf)
 
     def kill_task(self, task_manager, task_id):
         """
@@ -117,14 +116,20 @@ class ProcessMonitor:
         protobuf = Task(task_id=task_id)
         return self.task_manager_stubs[task_manager].get_task_status(protobuf)
 
-    def get_all_tasks(self, task_manager):
+    def get_all_tasks(self):
         """
         FIXME
         :param: task_manager
         :return:
         """
-        protobuf = self.proto_empty
-        return self.task_manager_stubs[task_manager].get_all_tasks(protobuf)
+
+        all_tasks_status = []
+        for address in self.task_manager_address:
+            protobuf = self.proto_empty
+            all_tasks_status.append(
+                self.task_manager_stubs[address].get_all_tasks(protobuf)
+            )
+        return all_tasks_status
 
     def get_task_log(self, task_manager, task_id):
         """

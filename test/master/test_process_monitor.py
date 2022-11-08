@@ -3,51 +3,66 @@ from unittest.mock import Mock, patch
 
 import experiment_scheduler
 from experiment_scheduler.master.process_monitor import ProcessMonitor
+from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2
 
-
-class MockPipe:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def send(self, *args, **kwargs):
-        pass
-
-    def poll(self, *args, **kwargs):
-        pass
-
-    def recv(self, *args, **kwargs):
-        pass
-
-class Response:
-    task_id = 'test_id'
-    def __init__(self, *args, **kwargs):
-        pass
 
 class MockTaskManagerStub:
     def __init__(self, *args, **kwargs):
-        pass
+        self.status = {'1': task_manager_pb2.TaskStatus.Status.RUNNING,
+                       '2': task_manager_pb2.TaskStatus.Status.DONE,
+                       '3': task_manager_pb2.TaskStatus.Status.KILLED,
+                       '4': task_manager_pb2.TaskStatus.Status.ABNORMAL}
 
     def health_check(self, protobuf):
         return True
 
     def run_task(self, protobuf):
-        return Response()
+        return task_manager_pb2.TaskStatus(task_id=str(protobuf.task_id[0]),
+                                           status=self.status[protobuf.task_id[0]])
 
     def kill_task(self, protobuf):
-        return 'kill_task'
+        return task_manager_pb2.TaskStatus(task_id=str(protobuf.task_id[0]),
+                                           status=self.status[protobuf.task_id[0]])
 
     def get_task_status(self, protobuf):
-        return 'task_status'
+        return task_manager_pb2.TaskStatus(task_id=str(protobuf.task_id[0]),
+                                           status=self.status[protobuf.task_id[0]])
 
     def get_all_tasks(self, protobuf):
-        return ['task1', 'task2']
+        all_tasks_status = task_manager_pb2.AllTasksStatus()
+        for key, value in self.status.items():
+            all_tasks_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=key,
+                                                                                  status=value))
+        return all_tasks_status
 
     def get_task_log(self, protobuf):
         return 'test_log'
 
+
+class MockTask:
+    def __init__(self):
+        self.tasks = {'RUN': {'task_id': '1', 'status': task_manager_pb2.TaskStatus.RUNNING},
+                      'DONE': {'task_id': '2', 'status': task_manager_pb2.TaskStatus.DONE},
+                      'KILL': {'task_id': '3', 'status': task_manager_pb2.TaskStatus.KILLED},
+                      'ABNORMAL': {'task_id': '4', 'status': task_manager_pb2.TaskStatus.ABNORMAL}}
+
+
+class MockRunTask(MockTask):
+    def __init__(self):
+        self.task_id = '1'
+        self.gpu_idx = 0
+        self.command = 'Test_Run_Commnad',
+        self.name = 'Test_Run_Name',
+        self.env = 'Test_Run_Env'
+
+
 class MockTaskStatement:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, task_id, gpuidx, command, name, task_env):
+        self.task_id = task_id,
+        self.gpuidx = gpuidx,
+        self.command = command,
+        self.name = name,
+        self.task_env = task_env
 
 
 class MockGoogleProtoBufEmpty:
@@ -67,12 +82,13 @@ class MockThread:
         pass
 
 
-class MockTask:
-    def __init__(self, *args, **kwargs):
-        pass
+class MockTaskManager:
+    def __init__(self):
+        self.task_manager_address = ['1', '2']
 
 
 class TestProcessMonitor(TestCase):
+    run_task = MockRunTask()
 
     @patch("grpc.insecure_channel", lambda x: x + "test_channel")
     @patch("threading.Thread", MockThread)
@@ -80,8 +96,12 @@ class TestProcessMonitor(TestCase):
     @patch.object(experiment_scheduler.master.process_monitor, 'google_dot_protobuf_dot_empty__pb2',
                   MockGoogleProtoBufEmpty)
     def setUp(self):
-        self.process_monitor = ProcessMonitor('test_network', MockPipe())
-        self.mock_thread_queue = {'is_healthy': False}
+        self.task_managers = MockTaskManager().task_manager_address
+        self.process_monitor = ProcessMonitor(self.task_managers)
+        self.task_manager = self.task_managers[0]
+        self.mock_thread_queue = {'is_healthy': True}
+        self.mock_task = MockTask()
+        # self.mock_task_with_status = MockTaskWithStatus()
 
     def tearDown(self):
         pass
@@ -94,103 +114,67 @@ class TestProcessMonitor(TestCase):
         # then
         self.assertEqual(self.mock_thread_queue['is_healthy'], True)
 
-    def test_is_healthy(self):
+    def test_are_task_manager_healthy(self):
         # when
-        test_return_value = self.process_monitor.is_healthy()
+        test_return_value = self.process_monitor._are_task_manager_healthy()
 
         # then
         self.assertIsInstance(test_return_value, bool)
 
-    def test__request_task_manager(self):
-        # given
-        command_list = \
-            [("kill_task", 'test', 'test', 'test', 'test', 'test')
-                , ("get_task_status", 'test', 'test', 'test', 'test', 'test')
-                , ("get_all_tasks", 'test', 'test', 'test', 'test', 'test')
-                , ("run_task", 'test', 'test', 'test', 'test', 'test')]
-        self.process_monitor.kill_task = Mock()
-        self.process_monitor.get_task_status = Mock()
-        self.process_monitor.get_all_tasks = Mock()
-        self.process_monitor.run_task = Mock()
-
-        # when
-        for cmd in command_list:
-            self.process_monitor._request_task_manager(cmd)
-
-        # then
-        self.process_monitor.kill_task.assert_called_once()
-        self.process_monitor.get_task_status.assert_called_once()
-        self.process_monitor.get_all_tasks.assert_called_once()
-        self.process_monitor.run_task.assert_called_once()
-
     @patch.object(experiment_scheduler.master.process_monitor, 'TaskStatement', MockTaskStatement)
     def test_run_task(self):
         # given
-        gpu_idx = 0
-        command = 'cmd'
-        name = 'test'
-        env = 'test_env'
+        run_task = MockRunTask()
 
         # when
-        test_return_value = self.process_monitor.run_task(gpu_idx, command, name, env)
+        test_return_value = self.process_monitor.run_task(run_task.task_id, '1', run_task.gpu_idx, run_task.command,
+                                                          run_task.name, run_task.env)
 
         # then
-        self.assertEqual(test_return_value, 'test_id')
-
+        self.assertEqual(task_manager_pb2.TaskStatus(task_id=str(run_task.task_id),
+                                                     status=task_manager_pb2.TaskStatus.Status.RUNNING),
+                         test_return_value)
 
     def test_kill_task(self):
         # given
-        task_id = 'test_id'
+        task = self.mock_task.tasks['KILL']
 
         # when
-        test_return_value = self.process_monitor.kill_task(task_id)
+        test_return_value = self.process_monitor.kill_task(self.task_manager, str(task['task_id']))
 
         # then
-        self.assertEqual(test_return_value, 'kill_task')
+        self.assertEqual(task_manager_pb2.TaskStatus(task_id=str(task['task_id']),
+                                                     status=task['status']),
+                         test_return_value)
 
     def test_get_task_status(self):
         # given
-        task_id = 'test_id'
+        for task in self.mock_task.tasks.values():
+            # when
+            test_return_value = self.process_monitor.get_task_status(self.task_manager, str(task['task_id']))
 
-        # when
-        test_return_value = self.process_monitor.get_task_status(task_id)
-
-        # then
-        self.assertEqual(test_return_value, 'task_status')
+            # then
+            self.assertEqual(task_manager_pb2.TaskStatus(task_id=str(task['task_id']),
+                                                         status=task['status']),
+                             test_return_value)
 
     def test_get_all_tasks(self):
         # when
         test_return_value = self.process_monitor.get_all_tasks()
 
         # then
-        self.assertEqual(test_return_value, ['task1', 'task2'])
-
-
+        task_status_list = []
+        for address in self.process_monitor.task_manager_address:
+            all_task_status = task_manager_pb2.AllTasksStatus()
+            for task in self.mock_task.tasks.values():
+                all_task_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=task['task_id'],                                                                                     status=task['status']))
+            task_status_list.append(all_task_status)
+        self.assertEqual(test_return_value, task_status_list)
 
     def test_get_task_log(self):
         # given
-        task_id = 'test_id'
-
-        # when
-        test_return_value = self.process_monitor.get_task_log(task_id)
-
-        # then
-        self.assertEqual(test_return_value, 'test_log')
-
-    @patch("time.sleep", side_effect=Exception)
-    def test_start(self, mock_time_sleep):
-        # given
-        MockPipe.poll = Mock(return_value= True)
-        MockPipe.recv = Mock(return_value= 'cmd')
-        self.process_monitor._request_task_manager = Mock()
-
-        # when
-        self.assertRaises(Exception, lambda : self.process_monitor.start())
-
-        # then
-        self.process_monitor.master_pipe.poll.assert_called_once()
-        self.process_monitor.master_pipe.recv.assert_called_once()
-        self.process_monitor._request_task_manager.assert_called_once()
-
-
-
+        for task in self.mock_task.tasks.values():
+            # when
+            test_return_value = self.process_monitor.get_task_log(self.task_manager, task['task_id'])
+            # then
+            self.assertEqual(test_return_value, 'test_log')
