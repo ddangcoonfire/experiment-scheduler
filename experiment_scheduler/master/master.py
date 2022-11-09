@@ -128,11 +128,11 @@ class Master(MasterServicer):
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
         print(
-            "experiment_id", experiment_id
+            "experiment_id:", experiment_id
         )  # [FIXME] : set to logging pylint: disable=W0511
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
-            print("task_id", task_id)  # [FIXME] : set to logging pylint: disable=W0511
+            print("task_id:", task_id)  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
         response_status = (
             master_pb2.MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -142,6 +142,8 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
+        print("waitted tasks keys:", self.queued_tasks.keys())
+        print("running tasks keys:", self.running_tasks.keys())
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
     def kill_task(self, request, context):
@@ -151,22 +153,22 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        if request.task_id in self.queued_tasks.keys():
+        if request.task_id in dict(self.queued_tasks).keys():
             del self.queued_tasks[request.task_id]
-            result = self._wrap_by_task_status(
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.KILLED
             )
-        elif request.task_id in self.running_tasks.keys():
-            result = self.process_monitor.kill_task(
+        elif request.task_id in dict(self.running_tasks).keys():
+            response = self.process_monitor.kill_task(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
-            if result.status == TaskStatus.Status.KILLED:
+            if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[request.task_id]
         else:
-            result = self._wrap_by_task_status(
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-        return result
+        return response
 
     def get_task_status(self, request, context):
         """
@@ -175,21 +177,21 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        if request.task_id in self.queued_tasks.keys():
-            result = self._wrap_by_task_status(
+        if request.task_id in dict(self.queued_tasks).keys():
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTSTART
             )
-        elif request.task_id in self.running_tasks.keys():
-            result = self.process_monitor.get_task_status(
+        elif request.task_id in dict(self.running_tasks).keys():
+            response = self.process_monitor.get_task_status(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
-            if result.status == TaskStatus.Status.KILLED:
+            if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[request.task_id]
         else:
-            result = self._wrap_by_task_status(
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-        return result
+        return response
 
     def get_task_log(self, request, context):
         """
@@ -198,27 +200,27 @@ class Master(MasterServicer):
         :param context:
         :return: log path
         """
-        if request.task_id in self.queued_tasks.keys():
-            result = self._wrap_by_task_status(
+        if request.task_id in dict(self.queued_tasks).keys():
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTSTART
             )
-        elif request.task_id in self.running_tasks.keys():
-            result = self.process_monitor.get_task_log(
+        elif request.task_id in dict(self.running_tasks).keys():
+            response = self.process_monitor.get_task_log(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
-            if result.status == TaskStatus.Status.KILLED:
+            if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[request.task_id]
         else:
-            result = self._wrap_by_task_status(
+            response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-        return result
+        return response
 
     def get_all_tasks(self, request, context):
-        result = self.process_monitor.get_all_tasks()
-        if not result:
+        response = self.process_monitor.get_all_tasks()
+        if not response:
             print("there is no task")
-        return result
+        return response
 
     def execute_task(self, task_manager, gpu_idx):
         """
@@ -233,7 +235,7 @@ class Master(MasterServicer):
             "task_manager": task_manager,
             "gpu_idx": gpu_idx,
         }
-        result = self.process_monitor.run_task(
+        response = self.process_monitor.run_task(
             prior_task_id,
             task_manager,
             gpu_idx,
@@ -241,7 +243,7 @@ class Master(MasterServicer):
             prior_task.name,
             dict(prior_task.task_env),
         )
-        return result
+        return response
 
     def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
         self, resource_monitor

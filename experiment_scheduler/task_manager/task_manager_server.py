@@ -38,7 +38,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         """run task based on request"""
         self._validate_task_statement(request)
 
-        task_id = self.request.task_id
+        task_id = request.task_id
         task = self._execute_subprocess(request, task_id)
         self._register_task(task_id, task)
         logger.info("%s is now running!", task_id)
@@ -143,8 +143,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
         if platform.system() == 'Windows' and return_code == -signal.SIGTERM:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
-        elif return_code == -signal.SIGKILL:
-            return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
+        # elif return_code == -signal.SIGKILL:
+        #     return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.ABNORMAL)
 
     def _get_task(self, task_id):
