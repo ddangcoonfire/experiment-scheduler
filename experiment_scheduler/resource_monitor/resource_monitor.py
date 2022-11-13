@@ -12,7 +12,6 @@ from concurrent import futures
 from experiment_scheduler.resource_monitor.setting import pynvml as N
 from experiment_scheduler.resource_monitor.grpc_resource_monitor import resource_monitor_pb2, resource_monitor_pb2_grpc
 
-
 class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
     """
     Resource Monitor.
@@ -29,15 +28,15 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
 
     def get_resource_status(self, request, context):
         """return current resource status"""
-        status = self.get_all_gpu_info()
+        status = self._get_all_gpu_info()
         return resource_monitor_pb2.ResourceStatus(status)
 
     def get_available_gpu_idx(self, request, context):
         """return available gpu index"""
-        idx = self.get_max_free_gpu()
-        return resource_monitor_pb2.GPUStatus(available_gpu_idx = idx)
+        idx = self._get_max_free_gpu()
+        return resource_monitor_pb2.GPUStatus(available_gpu_idx=idx)
 
-    def get_process_info(self, target_process):
+    def _get_process_info(self, target_process):
         """
         get process information through Subprocess
         :param target_process:
@@ -81,7 +80,7 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
                 if nv_process.pid in seen_pids:
                     continue
                 seen_pids.add(nv_process.pid)
-                process = self.get_process_info(nv_process)
+                process = self._get_process_info(nv_process)
                 processes.append(process)
 
         util_info = N.nvmlDeviceGetUtilizationRates(handle)
@@ -92,12 +91,15 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
             "available_util": (100 - util_info.gpu),
         }
 
-    def get_all_gpu_info(self):
+    def _get_all_gpu_info(self):
         """
         get all gpu information
         :return:
         """
+        # ADD Try Except for Non-GPU Env
+        # ADD google.status at grpc
         N.nvmlInit()
+
         gpu_all_stat = []
         device_count = N.nvmlDeviceGetCount()
 
@@ -108,12 +110,12 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
 
         return gpu_all_stat
 
-    def get_max_free_gpu(self):
+    def _get_max_free_gpu(self):
         """
         get gpu index gpu has biggest remainder memory among gpus
         :return:
         """
-        gpu_all_stat = self.get_all_gpu_info()
+        gpu_all_stat = self._get_all_gpu_info()
         max_free_gpu = {"gpu-index": -1, "process": None, "available_util": -1}
         for gpu in gpu_all_stat:
             if (

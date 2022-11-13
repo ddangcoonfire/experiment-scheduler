@@ -3,19 +3,14 @@ test resource monitor
 
 """
 
-import pytest
 from experiment_scheduler.resource_monitor.resource_monitor import ResourceMonitor
-from experiment_scheduler.resource_monitor.grpc_resource_monitor import resource_monitor_pb2,resource_monitor_pb2_grpc
-# get_available_gpu_idx
-# get_resource_status
-# health_check
-import grpc_testing
+from experiment_scheduler.resource_monitor.grpc_resource_monitor import resource_monitor_pb2_grpc
 import grpc
 import unittest
 from unittest import TestCase
 from concurrent import futures
-from unittest.mock import patch
 from unittest.mock import Mock
+
 
 class ResourceMonitorTest(TestCase):
     def setUp(self) -> None:
@@ -31,10 +26,36 @@ class ResourceMonitorTest(TestCase):
         self._rm = ResourceMonitor()
 
     def test_health_check(self):
+        # Case 1. return true to alive RM
         request = resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
-        response = self._rm.health_check(request,self._context)
-        # response = self._stub.health_check(request, self._context)
-        assert(response.alive == True)
+        # response = self._rm.health_check(request, self._context)
+        response = self._stub.health_check(request, self._context)
+        # Case 2. return false to dead RM
+
+        assert(response.alive is True)
+
+    def test_get_available_gpu_idx(self):
+        request = resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
+        response = self._rm.get_available_gpu_idx(request, self._context)
+        """
+        CURRENTLY, In no gpu environment, an error pops up: 
+        pynvml.nvml.NVMLError_LibraryNotFound: NVML Shared Library Not Found
+        It has to throw decent exception when there's no gpu setting,
+        return integer value as gpu index.
+        """
+        assert(response.available_gpu_idx == 1)
+
+    def test_get_resource_status(self):
+        request = resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
+        response = self._rm.get_resource_status(request, self._context)
+        """
+        CURRENTLY, In no gpu environment, an error pops up: 
+        pynvml.nvml.NVMLError_LibraryNotFound: NVML Shared Library Not Found
+        It has to throw decent exception when there's no gpu setting,
+        return integer value as gpu index.
+        """
+        assert (response.status is dict())
+
 
 if __name__ == "__main__":
     unittest.main()
