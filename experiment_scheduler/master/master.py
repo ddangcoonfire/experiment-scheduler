@@ -219,32 +219,23 @@ class Master(MasterServicer):
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-        print('mst kill:', response)
-
         return response
 
 
 
     def get_all_tasks(self, request, context):
-        all_task_response = AllTasksStatus()
-        for tasks in self.queued_tasks:
-            all_task_response.task_status_array.append(
-                self._wrap_by_task_status(
-                    task_id = tasks.task_id,
-                    response = TaskStatus.status.NOTSTART
-                )
-            )
-
-        print('all_task_response0:', all_task_response)
 
         response = self.process_monitor.get_all_tasks()
-        all_task_response.task_status_array.append(response)
-
-        print('all_task_response1:', all_task_response)
-
-        if len(all_task_response) == 0:
+        for tasks in self.queued_tasks:
+            response.task_status_array.append(
+                self._wrap_by_task_status(
+                    task_id = tasks.task_id,
+                    status = TaskStatus.status.NOTSTART
+                )
+            )
+        if len(response) == 0:
             print("there is no task")
-        return all_task_response
+        return response[0]
 
     def execute_task(self, task_manager, gpu_idx):
         """
@@ -290,7 +281,7 @@ class Master(MasterServicer):
     def _wrap_by_task_status(self, task_id, status):
         return master_pb2.TaskStatus(
             task_id=task_id,
-            response=status,
+            status=status,
         )
 
 

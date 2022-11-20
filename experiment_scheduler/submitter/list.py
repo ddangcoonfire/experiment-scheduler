@@ -19,5 +19,4 @@ def main():
     request = master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
     response = stub.get_all_tasks(request)
 
-    for task in response:
-        print(task)
+    print(response)
