@@ -12,6 +12,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc i
 )
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     TaskStatement,
+    AllTasksStatus,
     Task,
     google_dot_protobuf_dot_empty__pb2,
 )
@@ -94,7 +95,8 @@ class ProcessMonitor:
         protobuf = TaskStatement(
             task_id=task_id, gpuidx=gpu_idx, command=command, name=name, task_env=env
         )
-        return self.task_manager_stubs[task_manager].run_task(protobuf)
+        response = self.task_manager_stubs[task_manager].run_task(protobuf)
+        return response
 
     def kill_task(self, task_manager, task_id):
         """
@@ -104,7 +106,8 @@ class ProcessMonitor:
         :return:
         """
         protobuf = Task(task_id=task_id)
-        return self.task_manager_stubs[task_manager].kill_task(protobuf)
+        response = self.task_manager_stubs[task_manager].kill_task(protobuf)
+        return response
 
     def get_task_status(self, task_manager, task_id):
         """
@@ -123,10 +126,10 @@ class ProcessMonitor:
         :return:
         """
 
-        all_tasks_status = []
+        all_tasks_status = AllTasksStatus()
         for address in self.task_manager_address:
             protobuf = self.proto_empty
-            all_tasks_status.append(
+            all_tasks_status.task_status_array.append(
                 self.task_manager_stubs[address].get_all_tasks(protobuf)
             )
         return all_tasks_status
