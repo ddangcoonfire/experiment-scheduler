@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 import uuid
+from collections import OrderedDict
 from experiment_scheduler.master.master import Master
 import experiment_scheduler
 
@@ -26,24 +27,28 @@ class MockPipe:
 def mockPipe():
     return (MockPipe(), MockPipe())
 
+class Task:
+
+    def __init__(self, name):
+        self.name = name
+
 
 class TestRequest:
-    name = "test_name"
-    tasks = "test_tasks"
 
     def __init__(self, *args, **kwargs):
-        pass
+        self.name = "test_name"
+        self.tasks = [Task("task_name")]
 
 
-class MockResponser:
+class MockResourceMonitor:
     def __init__(self, *args, **kwargs):
-        pass
+        self.resource_monitor_address = "address"
 
-    def get_all_gpu_info(*args, **kwargs):
-        return [1, 2, 3]
+    def get_available_gpu_idx(*args, **kwargs):
+        return 1, 1
 
-    def get_max_free_gpu(*args, **kwargs):
-        return 1
+    # def get_max_free_gpu(*args, **kwargs):
+    #     return 1
 
 
 class MockProcess:
@@ -83,8 +88,6 @@ class TestMaster(TestCase):
     @patch.object(
         experiment_scheduler.master.master, "ProcessMonitor", MockProcessMonitor
     )
-    @patch.object(experiment_scheduler.master.master, "Process", MockProcess)
-    @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
     @patch.object(
         experiment_scheduler.master.master, "get_task_managers", mockGetTaskManagers
     )
@@ -92,20 +95,21 @@ class TestMaster(TestCase):
     def setUp(self):
         Master.get_task_managers = Mock(return_value=mockGetTaskManagers())
         self.master = Master()
-        self.master.queued_tasks = [MockTask()]
+        self.master.queued_tasks = OrderedDict([("test_task_id", MockTask())])
 
     def tearDown(self):
         patch.stopall()
 
     @patch("time.sleep", side_effect=Exception)
     @patch.object(
-        experiment_scheduler.resource_monitor.monitor, "responser", MockResponser
+        experiment_scheduler.resource_monitor.resource_monitor_listener, "ResourceMonitorListener",
+        MockResourceMonitor
     )
     def test__execute_command(self, mock_time_sleep):
         # given
         self.master.execute_task = Mock()
-        self.master.get_available_task_managers = Mock(
-            return_value=(["test_network"], 1)
+        self.master._get_available_task_managers = Mock(
+            return_value=([("test_network", 1)])
         )
 
         # when
@@ -113,42 +117,22 @@ class TestMaster(TestCase):
 
         # then
         self.master.execute_task.assert_called_with("test_network", 1)
-        self.assertIsInstance(self.master.master_pipes["test_network"], MockPipe)
 
     @patch.object(
-        experiment_scheduler.master.master, "ProcessMonitor", MockProcessMonitor
+        experiment_scheduler.resource_monitor.resource_monitor_listener, "ResourceMonitorListener",
+        MockResourceMonitor
     )
-    def test__run_process_monitor(self):
+    def test_get_available_task_managers(self):
         # given
-        MockProcessMonitor.start = Mock()
+        self.master._check_task_manager_run_task_available = Mock(
+            return_value=(1, 1)
+        )
 
         # when
-        self.master._run_process_monitor("test_tm_address", MockPipe())
+        test_return_value = self.master._get_available_task_managers()
 
         # then
-        MockProcessMonitor.start.assert_called_once()
-
-    def test__process_monitor_termintion(self):
-        pass
-
-    @patch.object(experiment_scheduler.master.master, "Process", MockProcess)
-    @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
-    def test_create_process_monitor(self):
-        # given
-        self.master._run_process_monitor = Mock()
-
-        # # when
-        test_return_value = self.master.create_process_monitor()
-
-        # then
-        self.assertIsInstance(test_return_value, list)
-
-    def test_get_task_managers(self):
-        # when
-        test_return_value = self.master.get_task_managers()
-
-        # then
-        self.assertEqual(test_return_value, ["test_network"])
+        self.assertEqual(test_return_value, [("test_network", 1)])
 
     def test_select_task_manager(self):
         # when
@@ -169,6 +153,14 @@ class TestMaster(TestCase):
         self.assertEqual(test_return_value.experiment_id, "test_name-123")
         self.assertEqual(test_return_value.response, 0)
 
+
+    def test_get_task_managers(self):
+        # when
+        test_return_value = self.master.get_task_managers()
+
+        # then
+        self.assertEqual(test_return_value, ["test_network"])
+
     def test_delete_experiment(self):
         pass
 
@@ -183,14 +175,6 @@ class TestMaster(TestCase):
 
         # then
         self.assertEqual(test_return_value, True)
-
-    @patch.object(experiment_scheduler.master.master, "responser", MockResponser)
-    def test_get_available_task_managers(self):
-        # when
-        test_return_value = self.master.get_available_task_managers()
-
-        # then
-        self.assertEqual(test_return_value, ("test_network", 1))
 
     @patch.object(experiment_scheduler.master.master, "Pipe", mockPipe)
     def test_execute_task(self):
