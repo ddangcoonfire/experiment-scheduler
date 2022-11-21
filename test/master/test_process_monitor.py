@@ -167,8 +167,10 @@ class TestProcessMonitor(TestCase):
         for address in self.process_monitor.task_manager_address:
             all_task_status = task_manager_pb2.AllTasksStatus()
             for task in self.mock_task.tasks.values():
-                all_task_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=task['task_id'],                                                                                     status=task['status']))
+                all_task_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=task['task_id'],
+                                                                                     status=task['status']))
             task_status_list.append(all_task_status)
+            print(all_task_status)
         self.assertEqual(test_return_value, task_status_list)
 
     def test_get_task_log(self):
