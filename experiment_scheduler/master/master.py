@@ -263,7 +263,7 @@ class Master(MasterServicer):
     def _wrap_by_task_status(self, task_id, status):
         return master_pb2.TaskStatus(
             task_id=task_id,
-            response=status,
+            status=status,
         )
 
 
