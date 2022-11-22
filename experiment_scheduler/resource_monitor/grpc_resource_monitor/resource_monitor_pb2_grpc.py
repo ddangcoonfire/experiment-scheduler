@@ -22,11 +22,6 @@ class ResourceMonitorStub(object):
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             response_deserializer=experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ServerStatus.FromString,
         )
-        self.get_resource_status = channel.unary_unary(
-            "/experiment_scheduler.task_manager.grpc_task_manager.ResourceMonitor/get_resource_status",
-            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            response_deserializer=experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ResourceStatus.FromString,
-        )
         self.get_available_gpu_idx = channel.unary_unary(
             "/experiment_scheduler.task_manager.grpc_task_manager.ResourceMonitor/get_available_gpu_idx",
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -38,12 +33,6 @@ class ResourceMonitorServicer(object):
     """Interface exported by the server."""
 
     def health_check(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
-
-    def get_resource_status(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -62,11 +51,6 @@ def add_ResourceMonitorServicer_to_server(servicer, server):
             servicer.health_check,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             response_serializer=experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ServerStatus.SerializeToString,
-        ),
-        "get_resource_status": grpc.unary_unary_rpc_method_handler(
-            servicer.get_resource_status,
-            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            response_serializer=experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ResourceStatus.SerializeToString,
         ),
         "get_available_gpu_idx": grpc.unary_unary_rpc_method_handler(
             servicer.get_available_gpu_idx,
@@ -104,35 +88,6 @@ class ResourceMonitor(object):
             "/experiment_scheduler.task_manager.grpc_task_manager.ResourceMonitor/health_check",
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ServerStatus.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
-
-    @staticmethod
-    def get_resource_status(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            "/experiment_scheduler.task_manager.grpc_task_manager.ResourceMonitor/get_resource_status",
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            experiment__scheduler_dot_resource__monitor_dot_grpc__resource__monitor_dot_resource__monitor__pb2.ResourceStatus.FromString,
             options,
             channel_credentials,
             insecure,

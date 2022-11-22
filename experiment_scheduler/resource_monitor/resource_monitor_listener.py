@@ -4,11 +4,11 @@ ResourceMonitorListener periodically check task manager side's resource monitor.
 Get TM side's status from RM
 """
 
-from multiprocessing import Manager
 from typing import List
 import threading
 import time
 import grpc
+from grpc import RpcError
 from experiment_scheduler.resource_monitor.grpc_resource_monitor import (
     resource_monitor_pb2_grpc,
 )
@@ -27,10 +27,7 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
             resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
         )
         self.resource_monitor_address: List[str] = resource_monitor_address
-        self.resource_monitor_health_checker_manager = Manager()
-        self.resource_monitor_health_queue = (
-            self.resource_monitor_health_checker_manager.dict()
-        )
+        self.resource_monitor_health_queue = dict()
         self.resource_monitor_stubs: dict = self._get_resource_monitor_stubs()
         self.resource_monitor_health_check_thread = threading.Thread(
             target=self._health_check_resource_monitor, daemon=True
@@ -56,12 +53,12 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
         """
         while True:
             for address, stub in self.resource_monitor_stubs.items():
-                response = stub.health_check(self.proto_empty)
-                if response:
+                try:
+                    stub.health_check(self.proto_empty)
                     self.resource_monitor_health_queue[f"is_{address}_healthy"] = True
-                else:
-                    self.resource_monitor_health_queue[f"is_{address}_health"] = False
-                time.sleep(time_interval)
+                except RpcError:
+                    self.resource_monitor_health_queue[f"is_{address}_healthy"] = False
+            time.sleep(time_interval)
 
     def _get_resource_monitor_stubs(self) -> dict:
         """
@@ -81,11 +78,18 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
         :return:
         """
         if self.resource_monitor_health_queue[f"is_{resource_monitor_address}_healthy"]:
-            response = self.resource_monitor_stubs[
-                resource_monitor_address
-            ].get_available_gpu_idx(self.proto_empty)
+            try:
+                resource_monitor_response = self.resource_monitor_stubs[
+                    resource_monitor_address
+                ].get_available_gpu_idx(self.proto_empty)
+                response = resource_monitor_response.available_gpu_idx
+            except RpcError as error:
+                print(
+                    f"GRPC Error Occured: {error} \nMaybe you should install NVML Library"
+                )
+                response = -1
         else:
             # must be replaced with logging
             print(f"currently {resource_monitor_address} is not available")
             response = -1
-        return response.available_gpu_idx
+        return response
