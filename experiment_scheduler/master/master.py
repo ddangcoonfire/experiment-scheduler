@@ -85,8 +85,6 @@ class Master(MasterServicer):
             if len(available_task_managers) > 0 and len(self.queued_tasks):
                 task_manager, gpu_idx = available_task_managers.pop(0)
                 self.execute_task(task_manager, gpu_idx)
-                print("waitted tasks:", self.queued_tasks)
-                print("running tasks:", self.running_tasks)
             time.sleep(interval)
 
     def _get_available_task_managers(self) -> List[Tuple[str, int]]:
@@ -145,8 +143,8 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
-        print("waitted tasks keys:", self.queued_tasks.keys())
-        print("running tasks keys:", self.running_tasks.keys())
+        print("waitted tasks keys:", dict(self.queued_tasks).keys())
+        print("running tasks keys:", dict(self.running_tasks).keys())
         return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
 
     def get_task_status(self, request, context):
@@ -161,7 +159,6 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.NOTSTART
             )
         elif request.task_id in dict(self.running_tasks).keys():
-            print('running task!')
             response = self.process_monitor.get_task_status(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
@@ -224,15 +221,15 @@ class Master(MasterServicer):
 
 
     def get_all_tasks(self, request, context):
-
         response = self.process_monitor.get_all_tasks()
         for tasks in self.queued_tasks:
-            response.task_status_array.append(
+            response.append(
                 self._wrap_by_task_status(
-                    task_id = tasks.task_id,
-                    status = TaskStatus.status.NOTSTART
+                    task_id=tasks.task_id,
+                    status=TaskStatus.status.NOTSTART
                 )
             )
+
         if len(response) == 0:
             print("there is no task")
         return response[0]
