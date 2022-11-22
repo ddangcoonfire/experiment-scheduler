@@ -20,10 +20,13 @@ class ResourceMonitorTest(TestCase):
     """
     test class for resource monitor.
     """
-
-    def setUp(self) -> None:
+    def turnLocalServerOn(self):
+        """
+        turn grpc local server
+        :return:
+        """
         self._server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=10)  # pylint:disable=R1732
+            futures.ThreadPoolExecutor(max_workers=10), options=(('grpc.so_reuseport', 5),)  # pylint:disable=R1732
         )
         resource_monitor_pb2_grpc.add_ResourceMonitorServicer_to_server(
             ResourceMonitor(), self._server
@@ -31,6 +34,16 @@ class ResourceMonitorTest(TestCase):
         self._server.add_insecure_port("[::]:50051")
         self._server.start()
         sleep(5)
+
+    def turnLocalServerOff(self):
+        """
+        turn grpc local server off
+        :return:
+        """
+        self._server.stop(grace=None)
+
+    def setUp(self) -> None:
+        self._server = None
         self._channel = grpc.insecure_channel("localhost:50051")
         self._wrong_channel = grpc.insecure_channel("wrong_channel:50052")
         self._stub = resource_monitor_pb2_grpc.ResourceMonitorStub(self._channel)
@@ -46,6 +59,7 @@ class ResourceMonitorTest(TestCase):
         test health_check method
         :return:
         """
+        self.turnLocalServerOn()
         # Case 1. return true to alive RM
         request = resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
         response = self._stub.health_check(request)
@@ -57,7 +71,7 @@ class ResourceMonitorTest(TestCase):
             assert False
         except RpcError:
             print("return RpcError to wrong address")
-
+        self.turnLocalServerOff()
         # Case 3. [Later] Return False to situation where RM is alive but has it's another problem.
 
     def test_get_available_gpu_idx(self):
@@ -65,9 +79,13 @@ class ResourceMonitorTest(TestCase):
         test get_available_gpu_idx method
         :return:
         """
+        self.turnLocalServerOn()
+
         request = resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
         response = self._stub.get_available_gpu_idx(request)
-        assert response.available_gpu_idx == -1
+        assert isinstance(response.available_gpu_idx, int)
+
+        self.turnLocalServerOff()
 
 
 if __name__ == "__main__":

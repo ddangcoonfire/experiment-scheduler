@@ -42,9 +42,11 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
         """
         process = {}
         if target_process.pid not in self.global_processes:
-            self.global_processes[target_process.pid] = psutil.Process(
-                pid=target_process.pid
-            )
+            pass
+            # [TODO] ask sangmin
+            # self.global_processes[target_process.pid] = psutil.Process(
+            #     pid=target_process.pid
+            # )
         process["pid"] = target_process.pid
         return process
 
@@ -65,7 +67,6 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
 
         if nv_comp_processes is None and nv_graphics_processes is None:
             processes = None
-
         else:
             processes = []
             nv_comp_processes = nv_comp_processes or []
@@ -77,7 +78,6 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
                 seen_pids.add(nv_process.pid)
                 process = self._get_process_info(nv_process)
                 processes.append(process)
-
         util_info = N.nvmlDeviceGetUtilizationRates(handle)
 
         return {

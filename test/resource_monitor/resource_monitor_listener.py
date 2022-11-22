@@ -34,7 +34,7 @@ class ResourceMonitorListenerTest(TestCase):
         )
         self._server.add_insecure_port("[::]:50051")
         self._server.start()
-        sleep(10)  # give time for server initialization.
+        sleep(5)  # give time for server initialization.
 
     def test_get_available_gpu_idx(self):
         """
