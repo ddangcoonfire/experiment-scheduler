@@ -42,7 +42,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         task = self._execute_subprocess(request, task_id)
         self._register_task(task_id, task)
         logger.info("%s is now running!", task_id)
-        print(task_id, "is now running!")
 
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
 
@@ -80,7 +79,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         If status of the requeest task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
-        print('get_task_log :', target_process)
         if target_process is None:
             return TaskStatus(logfile_path="")
 
@@ -94,7 +92,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self._get_task(request.task_id)
-        print('kill_task :', target_process)
+
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
@@ -112,7 +110,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def get_task_status(self, request, context):
         """Get single requested task status"""
         target_process = self._get_task(request.task_id)
-        print('get_task_status :', target_process)
 
         if target_process is None:
             return TaskStatus(
@@ -124,11 +121,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def get_all_tasks(self, request, context):
         """Get all tasks managed by task manager"""
         all_tasks_status = AllTasksStatus()
+
         for task_id in self.tasks:
             all_tasks_status.task_status_array.append(
                 self._wrap_by_grpc_task_status(task_id)
             )
-        print('get_all_task_status :', all_tasks_status)
 
         return all_tasks_status
 

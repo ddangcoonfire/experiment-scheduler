@@ -26,7 +26,6 @@ from experiment_scheduler.resource_monitor.resource_monitor_listener import (
 )
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     TaskStatus,
-    AllTasksStatus
 )
 
 logger = logging.getLogger()
@@ -85,8 +84,6 @@ class Master(MasterServicer):
             if len(available_task_managers) > 0 and len(self.queued_tasks):
                 task_manager, gpu_idx = available_task_managers.pop(0)
                 self.execute_task(task_manager, gpu_idx)
-                print("waitted tasks:", self.queued_tasks)
-                print("running tasks:", self.running_tasks)
             time.sleep(interval)
 
     def _get_available_task_managers(self) -> List[Tuple[str, int]]:

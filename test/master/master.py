@@ -8,7 +8,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import ExperimentStateme
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import add_TaskManagerServicer_to_server, \
     TaskManagerStub
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
-from multiprocessing import Process,set_start_method
+from experiment_scheduler.resource_monitor.grpc_resource_monitor.resource_monitor_pb2_grpc import add_ResourceMonitorServicer_to_server
+from multiprocessing import Process, set_start_method
 
 
 def turn_master_on():
@@ -19,6 +20,13 @@ def turn_master_on():
     master.start()
     master.wait_for_termination()
 
+def turn_resource_mornitor_on():
+    resource_mornitor = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
+    add_ResourceMonitorServicer_to_server(Master(), resource_mornitor)
+    resource_mornitor.add_insecure_port('[::]:50053')
+    print("Turn resource_mornitor on for testing")
+    resource_mornitor.start()
+    resource_mornitor.wait_for_termination()
 
 def turn_task_manager_on():
     task_manager = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
@@ -76,7 +84,7 @@ class MasterTester:
 
 
 if __name__ == "__main__":
-    set_start_method("fork")
+    # set_start_method("fork")
     tester = MasterTester()
     tester.run_unit_test()
     tester.test_master()
