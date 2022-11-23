@@ -227,7 +227,7 @@ class Master(MasterServicer):
 
         response = self.process_monitor.get_all_tasks()
         for tasks in self.queued_tasks:
-            response.task_status_array.append(
+            response.append(
                 self._wrap_by_task_status(
                     task_id = tasks.task_id,
                     status = TaskStatus.status.NOTSTART
