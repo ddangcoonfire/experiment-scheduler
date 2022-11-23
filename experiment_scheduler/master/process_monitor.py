@@ -126,10 +126,10 @@ class ProcessMonitor:
         :return:
         """
 
-        all_tasks_status = AllTasksStatus()
+        all_tasks_status = []
         for address in self.task_manager_address:
             protobuf = self.proto_empty
-            all_tasks_status.task_status_array.append(
+            all_tasks_status.append(
                 self.task_manager_stubs[address].get_all_tasks(protobuf)
             )
         return all_tasks_status
