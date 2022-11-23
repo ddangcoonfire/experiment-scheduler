@@ -225,17 +225,23 @@ class Master(MasterServicer):
 
     def get_all_tasks(self, request, context):
 
+        """
+        get all tasks status
+        :param request:
+        :param context:
+        :return: task's status
+        """
         response = self.process_monitor.get_all_tasks()
         for tasks in self.queued_tasks:
-            response.append(
+            response.task_status_array.append(
                 self._wrap_by_task_status(
                     task_id = tasks.task_id,
-                    status = TaskStatus.status.NOTSTART
+                    status = TaskStatus.Status.NOTSTART
                 )
             )
-        if len(response) == 0:
+        if response is None:
             print("there is no task")
-        return response[0]
+        return response
 
     def execute_task(self, task_manager, gpu_idx):
         """
