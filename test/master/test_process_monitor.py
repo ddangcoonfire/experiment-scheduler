@@ -29,11 +29,14 @@ class MockTaskManagerStub:
                                            status=self.status[protobuf.task_id[0]])
 
     def get_all_tasks(self, protobuf):
-        all_tasks_status = task_manager_pb2.AllTasksStatus()
+        response = None
         for key, value in self.status.items():
-            all_tasks_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=key,
-                                                                                  status=value))
-        return all_tasks_status
+            if response is not None:
+                response.append(task_manager_pb2.TaskStatus(task_id=key,
+                                                            status=value))
+            else:
+                response = task_manager_pb2.TaskStatus(task_id=key, status=value)
+        return response
 
     def get_task_log(self, protobuf):
         return 'test_log'

@@ -96,8 +96,8 @@ class Master(MasterServicer):
         # currently only return first one
         available_task_managers = []
         for task_manager, resource_monitor in zip(
-            self.task_managers_address,
-            self.resource_monitor_listener.resource_monitor_address,
+                self.task_managers_address,
+                self.resource_monitor_listener.resource_monitor_address,
         ):
             runnable, gpu_idx = self._check_task_manager_run_task_available(
                 resource_monitor
@@ -171,7 +171,6 @@ class Master(MasterServicer):
             )
         return response
 
-
     def get_task_log(self, request, context):
         """
         get log certain task
@@ -219,8 +218,6 @@ class Master(MasterServicer):
             )
         return response
 
-
-
     def get_all_tasks(self, request, context):
 
         """
@@ -233,8 +230,8 @@ class Master(MasterServicer):
         for tasks in self.queued_tasks:
             response.task_status_array.append(
                 self._wrap_by_task_status(
-                    task_id = tasks.task_id,
-                    status = TaskStatus.Status.NOTSTART
+                    task_id=tasks.task_id,
+                    status=TaskStatus.Status.NOTSTART
                 )
             )
         if response is None:
@@ -263,12 +260,11 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager':task_manager}
+            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager': task_manager}
         return response
 
-
     def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
-        self, resource_monitor
+            self, resource_monitor
     ):
         """
         [TODO] add docstring
