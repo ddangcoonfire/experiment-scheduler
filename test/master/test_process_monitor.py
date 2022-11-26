@@ -170,7 +170,6 @@ class TestProcessMonitor(TestCase):
                 all_task_status.task_status_array.append(task_manager_pb2.TaskStatus(task_id=task['task_id'],
                                                                                      status=task['status']))
             task_status_list.append(all_task_status)
-            print(all_task_status)
         self.assertEqual(test_return_value, task_status_list)
 
     def test_get_task_log(self):
