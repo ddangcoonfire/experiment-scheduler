@@ -42,11 +42,9 @@ class ResourceMonitor(resource_monitor_pb2_grpc.ResourceMonitorServicer):
         """
         process = {}
         if target_process.pid not in self.global_processes:
-            pass
-            # [TODO] ask sangmin
-            # self.global_processes[target_process.pid] = psutil.Process(
-            #     pid=target_process.pid
-            # )
+            self.global_processes[target_process.pid] = psutil.Process(
+                pid=target_process.pid
+            )
         process["pid"] = target_process.pid
         return process
 

@@ -2,9 +2,9 @@
 
 import logging
 import os
+import platform
 import signal
 import subprocess
-import uuid
 from concurrent import futures
 from os import path as osp
 
@@ -38,10 +38,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         """run task based on request"""
         self._validate_task_statement(request)
 
-        task_id = self._create_task_id(request.name)
+        task_id = request.task_id
         task = self._execute_subprocess(request, task_id)
         self._register_task(task_id, task)
         logger.info("%s is now running!", task_id)
+        print(task_id, "is now running!")
 
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
 
@@ -52,9 +53,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             )
         if not task_statement.command:
             raise ValueError("Command shouldn't empty!")
-
-    def _create_task_id(self, name):
-        return name + "-" + uuid.uuid4().hex  # add random hash to make task_id
 
     def _execute_subprocess(self, task_statement, task_id: str):
         # pylint: disable=consider-using-with
@@ -82,6 +80,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         If status of the requeest task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
+        print('get_task_log :', target_process)
         if target_process is None:
             return TaskStatus(logfile_path="")
 
@@ -95,7 +94,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self._get_task(request.task_id)
-
+        print('kill_task :', target_process)
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
@@ -113,6 +112,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def get_task_status(self, request, context):
         """Get single requested task status"""
         target_process = self._get_task(request.task_id)
+        print('get_task_status :', target_process)
 
         if target_process is None:
             return TaskStatus(
@@ -124,11 +124,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
     def get_all_tasks(self, request, context):
         """Get all tasks managed by task manager"""
         all_tasks_status = AllTasksStatus()
-
         for task_id in self.tasks:
             all_tasks_status.task_status_array.append(
                 self._wrap_by_grpc_task_status(task_id)
             )
+        print('get_all_task_status :', all_tasks_status)
 
         return all_tasks_status
 
@@ -144,8 +144,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.DONE)
         if return_code is None:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
-        if return_code in [-signal.SIGTERM, return_code == -signal.SIGKILL]:
+        if platform.system() == 'Windows' and return_code == -signal.SIGTERM:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
+        # elif return_code == -signal.SIGKILL:
+        #     return TaskStatus(task_id=task_id, status=TaskStatus.Status.KILLED)
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.ABNORMAL)
 
     def _get_task(self, task_id):
