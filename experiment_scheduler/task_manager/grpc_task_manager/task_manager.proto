@@ -32,18 +32,22 @@ service TaskManager {
 
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
+  rpc get_idle_resources(google.protobuf.Empty) returns (IdleResources) {}
 }
 
 message ServerStatus {
     bool alive = 1;
 }
 
+message IdleResources {
+    bool exists = 1;
+}
+
 message TaskStatement {
     string task_id = 1;
-    int32 gpuidx = 2;
-    string command = 3;
-    string name = 4;
-    map<string, string> task_env = 5;
+    string command = 2;
+    string name = 3;
+    map<string, string> task_env = 4;
 }
 
 message TaskStatus {

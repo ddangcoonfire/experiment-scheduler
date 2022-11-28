@@ -82,18 +82,19 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(self, task_id, task_manager, gpu_idx, command, name, env):
+    def run_task(
+        self, task_id, task_manager, command, name, env
+    ):
         """
         :param task_id
         :param task_manager:
-        :param gpu_idx:
         :param command:
         :param name:
         :param env:
         :return:
         """
         protobuf = TaskStatement(
-            task_id=task_id, gpuidx=gpu_idx, command=command, name=name, task_env=env
+            task_id=task_id, command=command, name=name, task_env=env
         )
         response = self.task_manager_stubs[task_manager].run_task(protobuf)
         return response
@@ -146,3 +147,11 @@ class ProcessMonitor:
         """
         protobuf = Task(task_id=task_id)
         return self.task_manager_stubs[task_manager].get_task_log(protobuf)
+
+    def get_available_task_managers(self):
+        available_task_managers = []
+        for tm_address, tm_stub in self.task_manager_stubs.values():
+            if tm_stub.has_idle_resource():
+                available_task_managers.append(tm_address)
+
+        return available_task_managers
