@@ -78,8 +78,6 @@ class Master(MasterServicer):
             if len(available_task_managers) > 0 and len(self.queued_tasks):
                 task_manager, gpu_idx = available_task_managers.pop(0)
                 self.execute_task(task_manager, gpu_idx)
-                print("waitted tasks:", self.queued_tasks)
-                print("running tasks:", self.running_tasks)
             time.sleep(interval)
 
     def _get_available_task_managers(self) -> List[Tuple[str, int]]:
@@ -91,8 +89,8 @@ class Master(MasterServicer):
         # currently only return first one
         available_task_managers = []
         for task_manager, resource_monitor in zip(
-            self.task_managers_address,
-            self.resource_monitor_listener.resource_monitor_address,
+                self.task_managers_address,
+                self.resource_monitor_listener.resource_monitor_address,
         ):
             runnable, gpu_idx = self._check_task_manager_run_task_available(
                 resource_monitor
@@ -225,8 +223,8 @@ class Master(MasterServicer):
         for tasks in self.queued_tasks:
             response.task_status_array.append(
                 self._wrap_by_task_status(
-                    task_id = tasks.task_id,
-                    status = TaskStatus.Status.NOTSTART
+                    task_id=tasks.task_id,
+                    status=TaskStatus.Status.NOTSTART
                 )
             )
         if response is None:
@@ -255,12 +253,11 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager':task_manager}
+            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager': task_manager}
         return response
 
-
     def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
-        self, resource_monitor
+            self, resource_monitor
     ):
         """
         [TODO] add docstring
