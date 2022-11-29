@@ -7,6 +7,7 @@ import threading
 import time
 from typing import Dict, List, Any
 import grpc
+from grpc import RpcError
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
 )
@@ -59,13 +60,14 @@ class ProcessMonitor:
         # move to decorator later
         while True:
             for task_manager in self.task_manager_address:
-                response = self.task_manager_stubs[task_manager].health_check(
-                    self.proto_empty
-                )
-                if response:
+                try:
+                    self.task_manager_stubs[task_manager].health_check(
+                        self.proto_empty
+                    )
                     thread_queue[f"is_{task_manager}_healthy"] = True
-                else:
+                except RpcError:
                     thread_queue[f"is_{task_manager}_healthy"] = False
+                    print(f"currently task manager {task_manager} is not available")
             time.sleep(time_interval)
 
     # should run this code through a thread.
@@ -80,9 +82,7 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(
-        self, task_id, task_manager, gpu_idx, command, name, env
-    ):
+    def run_task(self, task_id, task_manager, gpu_idx, command, name, env):
         """
         :param task_id
         :param task_manager:
@@ -129,7 +129,9 @@ class ProcessMonitor:
         for address in self.task_manager_address:
             protobuf = self.proto_empty
             if response is not None:
-                response.task_status_array.append(self.task_manager_stubs[address].get_all_tasks(protobuf))
+                response.task_status_array.append(
+                    self.task_manager_stubs[address].get_all_tasks(protobuf)
+                )
             else:
                 response = self.task_manager_stubs[address].get_all_tasks(protobuf)
 

@@ -25,7 +25,7 @@ from experiment_scheduler.resource_monitor.resource_monitor_listener import (
 )
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     TaskStatus,
-    AllTasksStatus
+    AllTasksStatus,
 )
 
 logger = logging.getLogger()
@@ -39,6 +39,14 @@ def get_task_managers() -> List[str]:
     :return: list of address
     """
     return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+
+
+def get_resource_monitors() -> List[str]:
+    """
+    Get Resource Monitor's address from experiment_scheduler.cfg
+    :return: list of address
+    """
+    return ast.literal_eval(USER_CONFIG.get("default", "resource_monitor_address"))
 
 
 class Master(MasterServicer):
@@ -89,8 +97,8 @@ class Master(MasterServicer):
         # currently only return first one
         available_task_managers = []
         for task_manager, resource_monitor in zip(
-                self.task_managers_address,
-                self.resource_monitor_listener.resource_monitor_address,
+            self.task_managers_address,
+            self.resource_monitor_listener.resource_monitor_address,
         ):
             runnable, gpu_idx = self._check_task_manager_run_task_available(
                 resource_monitor
@@ -152,7 +160,7 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.NOTSTART
             )
         elif request.task_id in dict(self.running_tasks).keys():
-            print('running task!')
+            print("running task!")
             response = self.process_monitor.get_task_status(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
@@ -223,8 +231,7 @@ class Master(MasterServicer):
         for tasks in self.queued_tasks:
             response.task_status_array.append(
                 self._wrap_by_task_status(
-                    task_id=tasks.task_id,
-                    status=TaskStatus.Status.NOTSTART
+                    task_id=tasks.task_id, status=TaskStatus.Status.NOTSTART
                 )
             )
         if response is None:
@@ -253,11 +260,14 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager': task_manager}
+            self.running_tasks[prior_task_id] = {
+                "task": prior_task,
+                "task_manager": task_manager,
+            }
         return response
 
     def _check_task_manager_run_task_available(  # pylint: disable=unused-argument,no-self-use
-            self, resource_monitor
+        self, resource_monitor
     ):
         """
         [TODO] add docstring
