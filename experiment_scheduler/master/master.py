@@ -12,7 +12,6 @@ import ast
 from typing import List, Tuple
 import logging
 import grpc
-
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -31,6 +30,8 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 
 logger = logging.getLogger()
 
+logger = logging.getLogger()
+
 
 def get_task_managers() -> List[str]:
     """
@@ -38,14 +39,6 @@ def get_task_managers() -> List[str]:
     :return: list of address
     """
     return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
-
-
-def get_resource_monitors() -> List[str]:
-    """
-    Get Resource Monitor's address from experiment_scheduler.cfg
-    :return: list of address
-    """
-    return ast.literal_eval(USER_CONFIG.get("default", "resource_monitor_address"))
 
 
 class Master(MasterServicer):
@@ -173,7 +166,6 @@ class Master(MasterServicer):
             )
         return response
 
-
     def get_task_log(self, request, context):
         """
         get log certain task
@@ -220,8 +212,6 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
         return response
-
-
 
     def get_all_tasks(self, request, context):
 
