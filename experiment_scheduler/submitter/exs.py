@@ -37,7 +37,7 @@ def parse_args():
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("operation", choices=list(COMMAND_LIST.keys()))
-
+    parser.add_argument("-d", "--daemon", action="store_true")
     return parser.parse_known_args()[0]
 
 
