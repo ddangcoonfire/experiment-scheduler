@@ -61,7 +61,7 @@ class ResourceManager:
         return False
 
     def get_tasks_using_resource(self):
-        return self._resource_rental_history.keys()
+        return list(self._resource_rental_history.keys())
 
 
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
@@ -87,7 +87,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         self._release_unused_resource()
 
         task_id = request.task_id
-        gpu_idx = self._resource_manager.get_resource(task_id, gpu_idx)
+        gpu_idx = self._resource_manager.get_resource(task_id)
+        if gpu_idx is None:
+            return TaskStatus(task_id=task_id, status=TaskStatus.Status.NO_RESOURCE)
         request.task_env["CUDA_VISIBLE_DEVICES"] = str(gpu_idx)
 
         task = subprocess.Popen(
@@ -105,10 +107,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
 
     def _validate_task_statement(self, task_statement):
-        if task_statement.gpuidx < 0:
-            raise ValueError(
-                f"GPU index should be positive. your value is {task_statement.gpuidx}"
-            )
         if not task_statement.command:
             raise ValueError("Command shouldn't empty!")
 
@@ -205,7 +203,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return None
         return self.tasks[task_id]
 
-    def has_idle_resource(self):
+    def has_idle_resource(self, request, context):
         self._release_unused_resource()
         return IdleResources(exists=self._resource_manager.has_available_resource())
 

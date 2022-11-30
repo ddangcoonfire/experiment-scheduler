@@ -214,10 +214,6 @@ class Master(MasterServicer):
         :return: task's status
         """
         prior_task_id, prior_task = self.queued_tasks.popitem(last=False)
-        self.running_tasks[prior_task_id] = {
-            "task": prior_task,
-            "task_manager": task_manager,
-        }
         response = self.process_monitor.run_task(
             prior_task_id,
             task_manager,
@@ -226,10 +222,10 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {
-                "task": prior_task,
-                "task_manager": task_manager,
-            }
+            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager':task_manager}
+        else:
+            self.queued_tasks[prior_task_id] = prior_task
+            self.queued_tasks.move_to_end(prior_task_id, False)
         return response
 
     def _wrap_by_task_status(self, task_id, status):

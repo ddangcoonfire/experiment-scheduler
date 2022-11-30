@@ -32,7 +32,7 @@ service TaskManager {
 
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
-  rpc get_idle_resources(google.protobuf.Empty) returns (IdleResources) {}
+  rpc has_idle_resource(google.protobuf.Empty) returns (IdleResources) {}
 }
 
 message ServerStatus {
@@ -59,6 +59,7 @@ message TaskStatus {
         KILLED = 3;
         ABNORMAL = 4;
         NOTFOUND = 5;
+        NO_RESOURCE = 6;
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }

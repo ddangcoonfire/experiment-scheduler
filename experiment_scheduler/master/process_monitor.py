@@ -18,6 +18,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     google_dot_protobuf_dot_empty__pb2,
 )
 
+PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
 class ProcessMonitor:
     """
@@ -29,7 +30,6 @@ class ProcessMonitor:
     def __init__(self, task_managers: List[str]):
         self.task_manager_address = task_managers
         self.task_manager_stubs = self._get_stubs()
-        self.proto_empty = google_dot_protobuf_dot_empty__pb2.Empty()
         # connection initialization
 
         self.shared_var_manager = Manager()
@@ -61,9 +61,7 @@ class ProcessMonitor:
         while True:
             for task_manager in self.task_manager_address:
                 try:
-                    self.task_manager_stubs[task_manager].health_check(
-                        self.proto_empty
-                    )
+                    self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError:
                     thread_queue[f"is_{task_manager}_healthy"] = False
@@ -128,7 +126,7 @@ class ProcessMonitor:
         """
         response = None
         for address in self.task_manager_address:
-            protobuf = self.proto_empty
+            protobuf = PROTO_EMPTY
             if response is not None:
                 response.task_status_array.append(
                     self.task_manager_stubs[address].get_all_tasks(protobuf)
@@ -150,8 +148,8 @@ class ProcessMonitor:
 
     def get_available_task_managers(self):
         available_task_managers = []
-        for tm_address, tm_stub in self.task_manager_stubs.values():
-            if tm_stub.has_idle_resource():
+        for tm_address, tm_stub in self.task_manager_stubs.items():
+            if tm_stub.has_idle_resource(PROTO_EMPTY):
                 available_task_managers.append(tm_address)
 
         return available_task_managers
