@@ -27,12 +27,18 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
             resource_monitor_pb2_grpc.google_dot_protobuf_dot_empty__pb2.Empty()
         )
         self.resource_monitor_address: List[str] = resource_monitor_address
-        self.resource_monitor_health_queue = dict()
+        self.resource_monitor_health_queue = self._init_resource_monitor_health_queue()
         self.resource_monitor_stubs: dict = self._get_resource_monitor_stubs()
         self.resource_monitor_health_check_thread = threading.Thread(
             target=self._health_check_resource_monitor, daemon=True
         )
         self.resource_monitor_health_check_thread.start()
+
+    def _init_resource_monitor_health_queue(self):
+        queue = dict()
+        for address in self.resource_monitor_address:
+            queue[f"is_{address}_healthy"] = False
+        return queue
 
     def _are_resource_monitors_healthy(self) -> bool:
         """
@@ -90,6 +96,8 @@ class ResourceMonitorListener:  # pylint: disable=too-few-public-methods
                 response = -1
         else:
             # must be replaced with logging
-            print(f"currently {resource_monitor_address} is not available")
+            print(
+                f"currently resource monitor {resource_monitor_address} is not available"
+            )
             response = -1
         return response
