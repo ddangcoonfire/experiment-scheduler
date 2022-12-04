@@ -124,17 +124,12 @@ class ProcessMonitor:
         :param: task_manager
         :return:
         """
-        response = None
+        all_task_status = AllTasksStatus()
         for address in self.task_manager_address:
-            protobuf = PROTO_EMPTY
-            if response is not None:
-                response.task_status_array.append(
-                    self.task_manager_stubs[address].get_all_tasks(protobuf)
-                )
-            else:
-                response = self.task_manager_stubs[address].get_all_tasks(protobuf)
+            response = self.task_manager_stubs[address].get_all_tasks(PROTO_EMPTY)
+            all_task_status.task_status_array.extend(response.task_status_array)
 
-        return response
+        return all_task_status
 
     def get_task_log(self, task_manager, task_id):
         """

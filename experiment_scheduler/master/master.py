@@ -9,7 +9,7 @@ import uuid
 import time
 import threading
 import ast
-from typing import List, Tuple
+from typing import List
 import logging
 import grpc
 from experiment_scheduler.master.process_monitor import ProcessMonitor
@@ -17,13 +17,13 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
 )
-from experiment_scheduler.master.grpc_master import master_pb2
-from experiment_scheduler.common import settings
-from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskStatus,
     AllTasksStatus,
+    MasterResponse
 )
+from experiment_scheduler.common import settings
+from experiment_scheduler.common.settings import USER_CONFIG
 
 logger = logging.getLogger()
 
@@ -104,9 +104,7 @@ class Master(MasterServicer):
             task_id = task.name + "-" + uuid.uuid4().hex
             print("task_id:", task_id)  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
-        response_status = (
-            master_pb2.MasterResponse.ResponseStatus  # pylint: disable=E1101
-        )
+        response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
         response = (
             response_status.SUCCESS
             if experiment_id is not None
@@ -114,7 +112,7 @@ class Master(MasterServicer):
         )
         print("waitted tasks keys:", self.queued_tasks.keys())
         print("running tasks keys:", self.running_tasks.keys())
-        return master_pb2.MasterResponse(experiment_id=experiment_id, response=response)
+        return MasterResponse(experiment_id=experiment_id, response=response)
 
     def get_task_status(self, request, context):
         """
@@ -196,15 +194,17 @@ class Master(MasterServicer):
         :return: task's status
         """
         response = self.process_monitor.get_all_tasks()
-        for tasks in self.queued_tasks:
-            response.task_status_array.append(
-                self._wrap_by_task_status(
-                    task_id=tasks.task_id, status=TaskStatus.Status.NOTSTART
-                )
+        all_tasks_status = AllTasksStatus()
+        for task_status in response.task_status_array:
+            all_tasks_status.task_status_array.append(
+                self._wrap_by_task_status(task_status.task_id, task_status.status)
             )
-        if response is None:
-            print("there is no task")
-        return response
+
+        for task_id in self.queued_tasks:
+            all_tasks_status.task_status_array.append(
+                self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+            )
+        return all_tasks_status
 
     def execute_task(self, task_manager):
         """
@@ -229,7 +229,7 @@ class Master(MasterServicer):
         return response
 
     def _wrap_by_task_status(self, task_id, status):
-        return master_pb2.TaskStatus(
+        return TaskStatus(
             task_id=task_id,
             status=status,
         )
