@@ -18,6 +18,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     google_dot_protobuf_dot_empty__pb2,
 )
 
+PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
 class ProcessMonitor:
     """
@@ -29,7 +30,6 @@ class ProcessMonitor:
     def __init__(self, task_managers: List[str]):
         self.task_manager_address = task_managers
         self.task_manager_stubs = self._get_stubs()
-        self.proto_empty = google_dot_protobuf_dot_empty__pb2.Empty()
         # connection initialization
 
         self.shared_var_manager = Manager()
@@ -61,9 +61,7 @@ class ProcessMonitor:
         while True:
             for task_manager in self.task_manager_address:
                 try:
-                    self.task_manager_stubs[task_manager].health_check(
-                        self.proto_empty
-                    )
+                    self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError:
                     thread_queue[f"is_{task_manager}_healthy"] = False
@@ -82,18 +80,19 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(self, task_id, task_manager, gpu_idx, command, name, env):
+    def run_task(
+        self, task_id, task_manager, command, name, env
+    ):
         """
         :param task_id
         :param task_manager:
-        :param gpu_idx:
         :param command:
         :param name:
         :param env:
         :return:
         """
         protobuf = TaskStatement(
-            task_id=task_id, gpuidx=gpu_idx, command=command, name=name, task_env=env
+            task_id=task_id, command=command, name=name, task_env=env
         )
         response = self.task_manager_stubs[task_manager].run_task(protobuf)
         return response
@@ -125,17 +124,12 @@ class ProcessMonitor:
         :param: task_manager
         :return:
         """
-        response = None
+        all_task_status = AllTasksStatus()
         for address in self.task_manager_address:
-            protobuf = self.proto_empty
-            if response is not None:
-                response.task_status_array.append(
-                    self.task_manager_stubs[address].get_all_tasks(protobuf)
-                )
-            else:
-                response = self.task_manager_stubs[address].get_all_tasks(protobuf)
+            response = self.task_manager_stubs[address].get_all_tasks(PROTO_EMPTY)
+            all_task_status.task_status_array.extend(response.task_status_array)
 
-        return response
+        return all_task_status
 
     def get_task_log(self, task_manager, task_id):
         """
@@ -146,3 +140,11 @@ class ProcessMonitor:
         """
         protobuf = Task(task_id=task_id)
         return self.task_manager_stubs[task_manager].get_task_log(protobuf)
+
+    def get_available_task_managers(self):
+        available_task_managers = []
+        for tm_address, tm_stub in self.task_manager_stubs.items():
+            if tm_stub.has_idle_resource(PROTO_EMPTY):
+                available_task_managers.append(tm_address)
+
+        return available_task_managers
