@@ -18,6 +18,7 @@ from experiment_scheduler.submitter.init_resource_monitor import (
     main as exs_init_resource_monitor,
 )
 
+
 COMMAND_LIST = {
     "execute": exs_execute,
     "delete": exs_delete,
@@ -29,15 +30,40 @@ COMMAND_LIST = {
     "init_resource_monitor": exs_init_resource_monitor,
 }
 
+HELP_MESSAGE = {
+    "execute": "execute python task",
+    "delete": "delete running (or queued) task",
+    "edit": "edit task",
+    "list": "list all registered tasks",
+    "status": "get status of running tasks",
+    "init_master": "init master server",
+    "init_task_manager": "init task manager server",
+    "init_resource_monitor": "init resource monitor server",
+}
+
 
 def parse_args():
     """
     Parse user's arguments.
     """
 
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("operation", choices=list(COMMAND_LIST.keys()))
-    parser.add_argument("-d", "--daemon", action="store_true")
+    parser = argparse.ArgumentParser(
+        add_help=True, formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        "operation",
+        choices=COMMAND_LIST,
+        metavar="OPERATION",
+        help="\n".join(
+            "{}: {}".format(key, value) for key, value in HELP_MESSAGE.items()
+        ),
+    )
+    parser.add_argument(
+        "-d",
+        "--daemon",
+        action="store_true",
+        help="Run servers as daemon state. Only valid at init_* commands",
+    )
     return parser.parse_known_args()[0]
 
 
