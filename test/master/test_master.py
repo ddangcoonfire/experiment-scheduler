@@ -50,6 +50,7 @@ class MockProcess:
     def __init__(self, *args, **kwargs):
         pass
 
+
 class MockProcessMonitor:
     def __init__(self, *args, **kwargs):
         pass
@@ -60,6 +61,7 @@ class MockProcessMonitor:
     @staticmethod
     def run_task(task_id, task_manager, gpu_idx, command, name, env):
         return master_pb2.TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
+
 
 class MockThread:
     def __init__(self, *args, **kwargs):
@@ -77,6 +79,7 @@ class MockTask:
     def __init__(self, task_id=mockTaskId(), run=True):
         self.task_id = task_id if run else mockTaskId(False)
 
+
 class MockTaskWithStatus:
 
     def __init__(self, task_id, status):
@@ -84,11 +87,16 @@ class MockTaskWithStatus:
         self.status = status
 
 
+class MockTaskManagerAddress:
+
+    def __init__(self, task_managers_address):
+        self.address_list = task_managers_address
+
+    def get_address_list(self):
+        return self.address_list;
+
 
 class TestMaster(TestCase):
-    @patch.object(
-        experiment_scheduler.master.master, "ProcessMonitor", MockProcessMonitor
-    )
     @patch.object(
         experiment_scheduler.master.master, "get_task_managers", mockGetTaskManagers
     )
@@ -105,38 +113,19 @@ class TestMaster(TestCase):
         patch.stopall()
 
     @patch("time.sleep", side_effect=Exception)
-    @patch.object(
-        experiment_scheduler.resource_monitor.resource_monitor_listener, "ResourceMonitorListener",
-        MockResourceMonitor
-    )
     def test__execute_command(self, mock_time_sleep):
         # given
         self.master.execute_task = Mock()
-        self.master._get_available_task_managers = Mock(
-            return_value=([("test_network", 1)])
+        mock_available_task_managers_address = MockTaskManagerAddress([1, 2, 3]);
+        self.master.process_monitor.get_available_task_managers = Mock(
+            return_value=(mock_available_task_managers_address.get_address_list())
         )
 
         # when
         self.assertRaises(Exception, lambda: self.master._execute_command())
 
         # then
-        self.master.execute_task.assert_called_with("test_network", 1)
-
-    @patch.object(
-        experiment_scheduler.resource_monitor.resource_monitor_listener, "ResourceMonitorListener",
-        MockResourceMonitor
-    )
-    def test_get_available_task_managers(self):
-        # given
-        self.master._check_task_manager_run_task_available = Mock(
-            return_value=(1, 1)
-        )
-
-        # when
-        test_return_value = self.master._get_available_task_managers()
-
-        # then
-        self.assertEqual(test_return_value, [("test_network", 1)])
+        self.master.execute_task.assert_called_with(mock_available_task_managers_address.get_address_list()[0])
 
     def test_select_task_manager(self):
         # when
@@ -278,36 +267,18 @@ class TestMaster(TestCase):
         self.assertEqual(test_return_value.task_id, test_request.task_id)
         self.assertEqual(TaskStatus.Status.NOTFOUND, test_return_value.status)
 
-    @patch.object(
-        experiment_scheduler.resource_monitor.resource_monitor_listener, "ResourceMonitorListener",
-        MockResourceMonitor
-    )
-    def test_check_task_manager_run_task_available_result_available(self):
-        self.master.resource_monitor_listener.get_available_gpu_idx = Mock(
-            return_value=1
-        )
-
-        # when
-        test_return_value = self.master._check_task_manager_run_task_available(1)
-
-        # then
-        self.assertEqual((True, 1), test_return_value)
-
-    def test_check_task_manager_run_task_available_result_available(self):
-        self.master.resource_monitor_listener.get_available_gpu_idx = Mock(
-            return_value=-1
-        )
-
-        # when
-        test_return_value = self.master._check_task_manager_run_task_available(-1)
-
-        # then
-        self.assertEqual((False, -1), test_return_value)
-
     def test_execute_task(self):
+        # given
+        self.master.process_monitor.run_task = Mock(
+            return_value=TaskStatus(
+                task_id=mockTaskId(False),
+                status=TaskStatus.Status.RUNNING
+            )
+        )
         # when
-        test_return_value = self.master.execute_task(task_manager="test_task_manager", gpu_idx=1)
+        test_return_value = self.master.execute_task(task_manager="test_task_manager")
 
         # then
         self.assertEqual(mockTaskId(False), test_return_value.task_id)
         self.assertEqual(TaskStatus.Status.RUNNING, test_return_value.status)
+        self.assertEqual(self.master.running_tasks[test_return_value.task_id]['task_manager'], "test_task_manager")
