@@ -77,7 +77,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         pynvml.nvmlInit()
         num_gpu = pynvml.nvmlDeviceGetCount()
         pynvml.nvmlShutdown()
-        num_gpu = 1
         self._resource_manager = ResourceManager(num_gpu)
         self.logger = get_logger(name="task_manager")
 
