@@ -17,8 +17,10 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     Task,
     google_dot_protobuf_dot_empty__pb2,
 )
+from experiment_scheduler.common.logging import get_logger
 
 PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
+
 
 class ProcessMonitor:
     """
@@ -41,6 +43,7 @@ class ProcessMonitor:
             target=self._health_check, args=(self.thread_queue,)
         )
         self.health_checker.start()
+        self.logger = get_logger("process_monitor")
         # health_checking_thread_on
 
         # shared with master memory
@@ -65,7 +68,9 @@ class ProcessMonitor:
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError:
                     thread_queue[f"is_{task_manager}_healthy"] = False
-                    print(f"currently task manager {task_manager} is not available")
+                    self.logger.error(
+                        f"currently task manager {task_manager} is not available"
+                    )
             time.sleep(time_interval)
 
     # should run this code through a thread.
@@ -80,9 +85,7 @@ class ProcessMonitor:
                 return False
         return True
 
-    def run_task(
-        self, task_id, task_manager, command, name, env
-    ):
+    def run_task(self, task_id, task_manager, command, name, env):
         """
         :param task_id
         :param task_manager:
