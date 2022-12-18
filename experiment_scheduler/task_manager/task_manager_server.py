@@ -1,5 +1,7 @@
 """This file is in charge of server code run as daemon process."""
 
+import psutil
+import logging
 import os
 import subprocess
 from typing import Dict
@@ -20,7 +22,70 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 logger = get_logger(name="task_manager")
+from experiment_scheduler.task_manager.return_code import return_code
 
+KILL_CHILD_MAX_DEPTH = 2
+
+
+class ProcessUtil:
+    """Wrapper class for psutil.
+
+        Args:
+            pid (int): process id.
+    """
+    def __init__(self, pid: int):
+        self._pid = pid
+        try:
+            self._process = psutil.Process(self._pid)
+        except psutil.NoSuchProcess:
+            self._process = None
+        except psutil.AccessDenied:
+            logger.warning("Access to process(%d) is denied.", pid)
+            self._process = None
+
+    @property
+    def pid(self):
+        return self._pid
+
+    def kill_itself_with_child_process(self, max_depth: int) -> bool:
+        """kill self recursively up to max depth.
+
+            Args:
+                max_depth (int): max depth of child processes to find and kill.
+            
+            Returns:
+                bool:
+                    Whether success to kill process recursively.
+        """
+        if self._process is None:
+            logger.warning("Fail to get process(%d).", self._pid)
+            return False
+        return self.kill_process_recursively(self._process, max_depth, 0)
+
+    @staticmethod
+    def kill_process_recursively(process: psutil.Process, max_depth: int, cur_depth: int = 0) -> bool:
+        """kill process recursively up to max depth.
+
+            Args:
+                max_depth (int): max depth of child processes to find and kill.
+                cur_depth (int): current depth.
+            
+            Returns:
+                bool:
+                    Whether success to kill process recursively.
+        """
+        if not process.is_running():
+            return True
+
+        if cur_depth < max_depth:
+            for child_process in process.children():
+                ProcessUtil.kill_process_recursively(child_process, max_depth, cur_depth+1)
+
+        if process.is_running():
+            process.terminate()
+            process.wait()
+
+        return True
 
 class ResourceManager:
     def __init__(self, num_resource: int):
@@ -66,12 +131,13 @@ class ResourceManager:
         return list(self._resource_rental_history.keys())
 
 
-class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
+class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code):
     """Provides methods that implement functionality of task manager server."""
 
     # pylint: disable=no-member
 
     def __init__(self, log_dir=os.getcwd()):
+        super(return_code).__init__()
         self.tasks: Dict[str, subprocess.Popen] = {}
         self.log_dir = log_dir
         pynvml.nvmlInit()
@@ -161,11 +227,13 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
-
-        target_process.terminate()
-        target_process.wait()
-        self.logger.info("%s is killed!", request.task_id)
-        return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
+        p_util = ProcessUtil(target_process.pid)
+        if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
+            self.logger.info("%s is killed!", request.task_id)
+            return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
+        else:
+            self.logger.info("Fail to kill %s", request.task_id)
+            return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.ABNORMAL)
 
     @start_end_logger
     def get_task_status(self, request, context):
@@ -188,18 +256,19 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
         if target_process is None:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.NOTFOUND)
 
-        return_code = self._get_process_return_code(task_id)
+        result_return_code = self._get_process_return_code(task_id)
         return TaskStatus(
-            task_id=task_id, status=self._convert_to_task_status(return_code)
+            task_id=task_id,
+            status=self._convert_to_task_status(result_return_code)
         )
 
     def _convert_to_task_status(self, return_code):
         """Make task_manager_pb2.TaskStatus using return code of task."""
-        if return_code is None:
+        if return_code is self.get_return_code('RUNNING'):
             return TaskStatus.Status.RUNNING
-        if return_code == 0:
+        if return_code == self.get_return_code('DONE'):
             return TaskStatus.Status.DONE
-        if return_code < 0:
+        if return_code == self.get_return_code('KILLED'):
             return TaskStatus.Status.KILLED
         return TaskStatus.Status.ABNORMAL
 
