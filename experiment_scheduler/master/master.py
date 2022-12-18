@@ -20,13 +20,14 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskStatus,
     AllTasksStatus,
-    MasterResponse
+    MasterResponse,
+    ExperimentsStatus,
+    AllExperimentsStatus
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
 
 logger = logging.getLogger()
-
 logger = logging.getLogger()
 
 
@@ -52,6 +53,7 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
+        self.experiments = dict()
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
 
@@ -73,8 +75,6 @@ class Master(MasterServicer):
                 if available_task_managers:
                     task_manager = available_task_managers[0]
                     self.execute_task(task_manager)
-                    print("waitted tasks:", self.queued_tasks)
-                    print("running tasks:", self.running_tasks)
             time.sleep(interval)
 
     def select_task_manager(self, selected=-1):
@@ -100,18 +100,19 @@ class Master(MasterServicer):
         print(
             "experiment_id:", experiment_id
         )  # [FIXME] : set to logging pylint: disable=W0511
+
+        self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
             print("task_id:", task_id)  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
+            self.experiments[experiment_id].append(task_id)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
         response = (
             response_status.SUCCESS
             if experiment_id is not None
             else response_status.FAIL
         )
-        print("waitted tasks keys:", self.queued_tasks.keys())
-        print("running tasks keys:", self.running_tasks.keys())
         return MasterResponse(experiment_id=experiment_id, response=response)
 
     def get_task_status(self, request, context):
@@ -193,18 +194,55 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        response = self.process_monitor.get_all_tasks()
-        all_tasks_status = AllTasksStatus()
-        for task_status in response.task_status_array:
-            all_tasks_status.task_status_array.append(
-                self._wrap_by_task_status(task_status.task_id, task_status.status)
-            )
+        print('request in list:', request.experiment_id)
+        all_experiments_status = AllExperimentsStatus()
 
-        for task_id in self.queued_tasks:
-            all_tasks_status.task_status_array.append(
-                self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+        if request.experiment_id:
+            all_tasks_status = AllTasksStatus()
+            response = self.process_monitor.get_all_tasks()
+            for task_status in response.task_status_array:
+                if task_status.task_id in self.experiments[request.experiment_id]:
+                    all_tasks_status.task_status_array.append(
+                        self._wrap_by_task_status(task_status.task_id, task_status.status)
+                    )
+            all_experiments_status.experiment_status_array.append(
+                ExperimentsStatus(
+                    experiment_id=request.experiment_id,
+                    task_status_array=all_tasks_status
+                )
             )
-        return all_tasks_status
+        else:
+            response = self.process_monitor.get_all_tasks()
+            response_dict = dict()
+            for exp_id in self.experiments.keys():
+                response_dict[exp_id] = AllTasksStatus()
+
+            for task_status in response.task_status_array:
+                for exp_id in self.experiments.keys():
+                    if task_status.task_id in self.experiments[exp_id]:
+                        response_dict[exp_id].task_status_array.append(
+                            self._wrap_by_task_status(task_status.task_id, task_status.status)
+                        )
+
+            for task_id in self.queued_tasks:
+                for exp_id in self.experiments.keys():
+                    if task_id in self.experiments[exp_id]:
+                        response_dict[exp_id].task_status_array.append(
+                            self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+                        )
+
+            for exp_id in response_dict.keys():
+                print(response_dict[exp_id])
+                all_experiments_status.experiment_status_array.append(
+                    ExperimentsStatus(
+                        experiment_id=exp_id,
+                        task_status_array=response_dict[exp_id]
+                    )
+                )
+
+        print('all complete:', all_experiments_status)
+
+        return all_experiments_status
 
     def execute_task(self, task_manager):
         """
@@ -222,7 +260,7 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager':task_manager}
+            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager': task_manager}
         else:
             self.queued_tasks[prior_task_id] = prior_task
             self.queued_tasks.move_to_end(prior_task_id, False)

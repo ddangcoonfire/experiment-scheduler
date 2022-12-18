@@ -38,8 +38,8 @@ class MasterStub(object):
                 )
         self.get_all_tasks = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-                response_deserializer=master__pb2.AllTasksStatus.FromString,
+                request_serializer=master__pb2.Experiment.SerializeToString,
+                response_deserializer=master__pb2.AllExperimentsStatus.FromString,
                 )
         self.halt_process_monitor = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/halt_process_monitor',
@@ -113,8 +113,8 @@ def add_MasterServicer_to_server(servicer, server):
             ),
             'get_all_tasks': grpc.unary_unary_rpc_method_handler(
                     servicer.get_all_tasks,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                    response_serializer=master__pb2.AllTasksStatus.SerializeToString,
+                    request_deserializer=master__pb2.Experiment.FromString,
+                    response_serializer=master__pb2.AllExperimentsStatus.SerializeToString,
             ),
             'halt_process_monitor': grpc.unary_unary_rpc_method_handler(
                     servicer.halt_process_monitor,
@@ -212,8 +212,8 @@ class Master(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks',
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            master__pb2.AllTasksStatus.FromString,
+            master__pb2.Experiment.SerializeToString,
+            master__pb2.AllExperimentsStatus.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
