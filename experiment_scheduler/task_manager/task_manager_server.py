@@ -20,6 +20,8 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     IdleResources
 )
 
+KILL_CHILD_MAX_DEPTH = 2
+
 logger = logging.getLogger(__name__)
 
 class ProcessUtil:
@@ -214,7 +216,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
 
         p_util = ProcessUtil(target_process.pid)
-        if p_util.kill_itself_with_child_process(2):
+        if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
             logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
         else:
