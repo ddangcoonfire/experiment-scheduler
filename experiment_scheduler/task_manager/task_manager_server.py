@@ -18,6 +18,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     TaskLog,
     IdleResources
 )
+from experiment_scheduler.task_manager.return_code import return_code
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +65,13 @@ class ResourceManager:
         return list(self._resource_rental_history.keys())
 
 
-class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
+class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code):
     """Provides methods that implement functionality of task manager server."""
 
     # pylint: disable=no-member
 
     def __init__(self, log_dir=os.getcwd()):
+        super(return_code).__init__()
         self.tasks: Dict[str, subprocess.Popen] = {}
         self.log_dir = log_dir
         pynvml.nvmlInit()
@@ -168,8 +170,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
             all_tasks_status.task_status_array.append(
                 self._get_task_status_by_task_id(task_id)
             )
-        print('get_all_task_status :', all_tasks_status)
-
         return all_tasks_status
 
     def _get_task_status_by_task_id(self, task_id):
@@ -180,19 +180,19 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer):
                 task_id=task_id, status=TaskStatus.Status.NOTFOUND
             )
 
-        return_code = self._get_process_return_code(task_id)
+        result_return_code = self._get_process_return_code(task_id)
         return TaskStatus(
             task_id=task_id,
-            status=self._convert_to_task_status(return_code)
+            status=self._convert_to_task_status(result_return_code)
         )
 
     def _convert_to_task_status(self, return_code):
         """Make task_manager_pb2.TaskStatus using return code of task."""
-        if return_code is None:
+        if return_code is self.get_return_code('RUNNING'):
             return TaskStatus.Status.RUNNING
-        if return_code == 0:
+        if return_code == self.get_return_code('DONE'):
             return TaskStatus.Status.DONE
-        if return_code < 0:
+        if return_code == self.get_return_code('KILLED'):
             return TaskStatus.Status.KILLED
         return TaskStatus.Status.ABNORMAL
 
