@@ -20,6 +20,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskStatus,
     AllTasksStatus,
     MasterResponse,
+    ExperimentsStatus,
+    AllExperimentsStatus
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
@@ -50,6 +52,7 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
+        self.experiments = dict()
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
         self.task_managers_address: list = self.get_task_managers()
@@ -107,12 +110,15 @@ class Master(MasterServicer):
         self.logger.info(
             f"create new experiment_id: {experiment_id}"
         )  # [FIXME] : set to logging pylint: disable=W0511
+
+        self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
             self.logger.info(
                 f"├─task_id: {task_id}"
             )  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
+            self.experiments[experiment_id].append(task_id)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
         response = (
             response_status.SUCCESS
@@ -207,20 +213,52 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        response = self.process_monitor.get_all_tasks()
-        all_tasks_status = AllTasksStatus()
-        for task_status in response.task_status_array:
-            all_tasks_status.task_status_array.append(
-                self._wrap_by_task_status(task_status.task_id, task_status.status)
-            )
+        all_experiments_status = AllExperimentsStatus()
 
-        for task_id in self.queued_tasks:
-            all_tasks_status.task_status_array.append(
-                self._wrap_by_task_status(
-                    task_id=task_id, status=TaskStatus.Status.NOTSTART
+        if request.experiment_id:
+            all_tasks_status = AllTasksStatus()
+            response = self.process_monitor.get_all_tasks()
+            for task_status in response.task_status_array:
+                if task_status.task_id in self.experiments[request.experiment_id]:
+                    all_tasks_status.task_status_array.append(
+                        self._wrap_by_task_status(task_status.task_id, task_status.status)
+                    )
+            all_experiments_status.experiment_status_array.append(
+                ExperimentsStatus(
+                    experiment_id=request.experiment_id,
+                    task_status_array=all_tasks_status
                 )
             )
-        return all_tasks_status
+        else:
+            response = self.process_monitor.get_all_tasks()
+            response_dict = dict()
+            for exp_id in self.experiments.keys():
+                response_dict[exp_id] = AllTasksStatus()
+
+            for task_status in response.task_status_array:
+                for exp_id in self.experiments.keys():
+                    if task_status.task_id in self.experiments[exp_id]:
+                        response_dict[exp_id].task_status_array.append(
+                            self._wrap_by_task_status(task_status.task_id, task_status.status)
+                        )
+
+            for task_id in self.queued_tasks:
+                for exp_id in self.experiments.keys():
+                    if task_id in self.experiments[exp_id]:
+                        response_dict[exp_id].task_status_array.append(
+                            self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+                        )
+
+            for exp_id in response_dict.keys():
+                print(response_dict[exp_id])
+                all_experiments_status.experiment_status_array.append(
+                    ExperimentsStatus(
+                        experiment_id=exp_id,
+                        task_status_array=response_dict[exp_id]
+                    )
+                )
+
+        return all_experiments_status
 
     @start_end_logger
     def execute_task(self, task_manager):
