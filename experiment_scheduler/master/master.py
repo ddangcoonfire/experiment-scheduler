@@ -10,7 +10,6 @@ import time
 import threading
 import ast
 from typing import List
-import logging
 import grpc
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
@@ -26,17 +25,17 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
-
-logger = logging.getLogger()
-logger = logging.getLogger()
+from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 
-def get_task_managers() -> List[str]:
-    """
-    Get Task Manager's address from experiment_scheduler.cfg
-    :return: list of address
-    """
-    return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+def io_logger(func):
+    def wrapper(self, *args, **kwargs):
+        self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
+        result = func(self, *args, **kwargs)
+        self.logger.debug(f"response.status : {result.status}")
+        return result
+
+    return wrapper
 
 
 class Master(MasterServicer):
@@ -56,11 +55,19 @@ class Master(MasterServicer):
         self.experiments = dict()
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
-
-        self.task_managers_address: list = get_task_managers()
+        self.task_managers_address: list = self.get_task_managers()
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
+        self.logger = get_logger(name="master class")
+
+    @staticmethod
+    def get_task_managers() -> List[str]:
+        """
+        Get Task Manager's address from experiment_scheduler.cfg
+        :return: list of address
+        """
+        return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
 
     def _execute_command(self, interval=1) -> None:
         """
@@ -71,7 +78,9 @@ class Master(MasterServicer):
         """
         while True:
             if len(self.queued_tasks) > 0:
-                available_task_managers = self.process_monitor.get_available_task_managers()
+                available_task_managers = (
+                    self.process_monitor.get_available_task_managers()
+                )
                 if available_task_managers:
                     task_manager = available_task_managers[0]
                     self.execute_task(task_manager)
@@ -89,6 +98,7 @@ class Master(MasterServicer):
             else self.task_managers_address[selected]
         )
 
+    @start_end_logger
     def request_experiments(self, request, context):
         """
         [TODO] add docstring
@@ -97,14 +107,16 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
-        print(
-            "experiment_id:", experiment_id
+        self.logger.info(
+            f"create new experiment_id: {experiment_id}"
         )  # [FIXME] : set to logging pylint: disable=W0511
 
         self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
-            print("task_id:", task_id)  # [FIXME] : set to logging pylint: disable=W0511
+            self.logger.info(
+                f"├─task_id: {task_id}"
+            )  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
             self.experiments[experiment_id].append(task_id)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -113,8 +125,11 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
+        # [todo] add task_id
         return MasterResponse(experiment_id=experiment_id, response=response)
 
+    @start_end_logger
+    @io_logger
     def get_task_status(self, request, context):
         """
         get status certain task
@@ -127,7 +142,6 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.NOTSTART
             )
         elif request.task_id in dict(self.running_tasks).keys():
-            print("running task!")
             response = self.process_monitor.get_task_status(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
@@ -139,6 +153,8 @@ class Master(MasterServicer):
             )
         return response
 
+    @start_end_logger
+    @io_logger
     def get_task_log(self, request, context):
         """
         get log certain task
@@ -162,6 +178,8 @@ class Master(MasterServicer):
             )
         return response
 
+    @start_end_logger
+    @io_logger
     def kill_task(self, request, context):
         """
         delete certain task
@@ -186,6 +204,7 @@ class Master(MasterServicer):
             )
         return response
 
+    @start_end_logger
     def get_all_tasks(self, request, context):
 
         """
@@ -194,7 +213,6 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        print('request in list:', request.experiment_id)
         all_experiments_status = AllExperimentsStatus()
 
         if request.experiment_id:
@@ -240,10 +258,9 @@ class Master(MasterServicer):
                     )
                 )
 
-        print('all complete:', all_experiments_status)
-
         return all_experiments_status
 
+    @start_end_logger
     def execute_task(self, task_manager):
         """
         run certain task
@@ -260,7 +277,10 @@ class Master(MasterServicer):
             dict(prior_task.task_env),
         )
         if response.status == TaskStatus.Status.RUNNING:
-            self.running_tasks[prior_task_id] = {'task': prior_task, 'task_manager': task_manager}
+            self.running_tasks[prior_task_id] = {
+                "task": prior_task,
+                "task_manager": task_manager,
+            }
         else:
             self.queued_tasks[prior_task_id] = prior_task
             self.queued_tasks.move_to_end(prior_task_id, False)
@@ -282,20 +302,20 @@ def serve():
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        logger.info(settings.HEADER)
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
-        logger.info("set master server to %s", master_address)
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         try:
             master.start()
             master.wait_for_termination()
         except KeyboardInterrupt as exception:
-            logger.info("keyboardInterrupt occurred \n %s", exception)
-            logger.info("halting master immediately...")
+            print("closing...")
+            # logger.info("keyboardInterrupt occurred \n %s", exception)
+            # logger.info("halting master immediately...")
         except Exception as error_case:  # pylint: disable=broad-except
-            logger.info("Error Occurred %s", error_case)
-            logger.info("halting master immediately...")
+            print("closing...")
+            # logger.info("Error Occurred %s", error_case)
+            # logger.info("halting master immediately...")
 
 
 if __name__ == "__main__":
