@@ -17,13 +17,15 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     TaskStatus,
     AllTasksStatus,
     TaskLog,
-    IdleResources
+    IdleResources,
 )
+from experiment_scheduler.common.logging import get_logger, start_end_logger
+
+logger = get_logger(name="task_manager")
 from experiment_scheduler.task_manager.return_code import return_code
 
 KILL_CHILD_MAX_DEPTH = 2
 
-logger = logging.getLogger(__name__)
 
 class ProcessUtil:
     """Wrapper class for psutil.
@@ -89,6 +91,7 @@ class ResourceManager:
     def __init__(self, num_resource: int):
         self._resource_rental_history = {}
         self._available_resources = [True for _ in range(num_resource)]
+        self.logger = get_logger(name="resource_manager")
 
     def set_resource_as_idle(self, resource_idx: int):
         self._available_resources[resource_idx] = True
@@ -110,7 +113,7 @@ class ResourceManager:
                 resource_idx = idx
                 break
         if resource_idx is None:
-            logger.info("There isn't any available resource.")
+            self.logger.info("There isn't any available resource.")
             return None
 
         self._resource_rental_history[task_id] = resource_idx
@@ -141,13 +144,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         num_gpu = pynvml.nvmlDeviceGetCount()
         pynvml.nvmlShutdown()
         self._resource_manager = ResourceManager(num_gpu)
+        self.logger = get_logger(name="task_manager")
 
     def health_check(self, request, context):
         """Return current server status"""
         return ServerStatus(alive=True)
 
+    @start_end_logger
     def run_task(self, request, context):
         """run task based on request"""
+        self.logger.info("task_manager_running")
         self._validate_task_statement(request)
         self._release_unused_resource()
 
@@ -161,13 +167,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
             args=request.command,
             shell=True,
             env=request.task_env,
-            stdout=open(osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"),
+            stdout=open(
+                osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
+            ),
             stderr=subprocess.STDOUT,
         )
 
         self.tasks[task_id] = task
 
-        logger.info("%s is now running!", task_id)
+        self.logger.info("%s is now running!", task_id)
 
         return TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
 
@@ -181,19 +189,21 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
     def _get_process_return_code(self, task_id: str):
         if task_id not in self.tasks:
-            return False # to be distinguished from None which means process is running.
+            return (
+                False  # to be distinguished from None which means process is running.
+            )
         return_code = self.tasks[task_id].poll()
         if return_code is not None:
             self._resource_manager.release_resource(task_id)
         return return_code
 
+    @start_end_logger
     def get_task_log(self, request, context):
         """
         Save an output of the requested task and return output file path.
         If status of the requeest task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
-        print('get_task_log :', target_process)
         if target_process is None:
             return TaskStatus(logfile_path="")
 
@@ -204,10 +214,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
         return TaskLog(logfile_path=log_file_path)
 
+    @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self._get_task(request.task_id)
-        print('kill_task :', target_process)
+        self.logger.info("kill task with id : {}".format(request.task_id))
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
@@ -216,19 +227,20 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
-
         p_util = ProcessUtil(target_process.pid)
         if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
-            logger.info("%s is killed!", request.task_id)
+            self.logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
         else:
-            logger.info("Fail to kill %s", request.task_id)
+            self.logger.info("Fail to kill %s", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.ABNORMAL)
 
+    @start_end_logger
     def get_task_status(self, request, context):
         """Get single requested task status"""
         return self._get_task_status_by_task_id(request.task_id)
 
+    @start_end_logger
     def get_all_tasks(self, request, context):
         """Get all tasks managed by task manager"""
         all_tasks_status = AllTasksStatus()
@@ -242,9 +254,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         target_process = self._get_task(task_id)
 
         if target_process is None:
-            return TaskStatus(
-                task_id=task_id, status=TaskStatus.Status.NOTFOUND
-            )
+            return TaskStatus(task_id=task_id, status=TaskStatus.Status.NOTFOUND)
 
         result_return_code = self._get_process_return_code(task_id)
         return TaskStatus(
@@ -265,13 +275,14 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
     def _get_task(self, task_id):
         """Get a task instance if exists. if not, return None"""
         if task_id not in self.tasks:
-            logger.warning("%s is not found in task_manager!", task_id)
+            self.logger.warning("%s is not found in task_manager!", task_id)
             return None
         return self.tasks[task_id]
 
     def has_idle_resource(self, request, context):
         self._release_unused_resource()
         return IdleResources(exists=self._resource_manager.has_available_resource())
+
 
 def serve(address):
     """run task manager server"""
