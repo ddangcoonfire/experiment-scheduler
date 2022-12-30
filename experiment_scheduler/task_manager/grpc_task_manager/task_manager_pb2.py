@@ -15,11 +15,12 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12task_manager.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08\"\x9d\x01\n\rTaskStatement\x12\x0e\n\x06gpuidx\x18\x01 \x01(\x05\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12-\n\x08task_env\x18\x04 \x03(\x0b\x32\x1b.TaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x8a\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.TaskStatus.Status\"G\n\x06Status\x12\x0b\n\x07RUNNING\x10\x00\x12\x08\n\x04\x44ONE\x10\x01\x12\n\n\x06KILLED\x10\x02\x12\x0c\n\x08\x41\x42NORMAL\x10\x03\x12\x0c\n\x08NOTFOUND\x10\x04\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"8\n\x0e\x41llTasksStatus\x12&\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x0b.TaskStatus\"\x1f\n\x07TaskLog\x12\x14\n\x0clogfile_path\x18\x01 \x01(\t2\x9c\x02\n\x0bTaskManager\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus\"\x00\x12)\n\x08run_task\x12\x0e.TaskStatement\x1a\x0b.TaskStatus\"\x00\x12!\n\x0cget_task_log\x12\x05.Task\x1a\x08.TaskLog\"\x00\x12!\n\tkill_task\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12\'\n\x0fget_task_status\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12:\n\rget_all_tasks\x12\x16.google.protobuf.Empty\x1a\x0f.AllTasksStatus\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12task_manager.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08\"\x1f\n\rIdleResources\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\"\x9e\x01\n\rTaskStatement\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12-\n\x08task_env\x18\x04 \x03(\x0b\x32\x1b.TaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xa9\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.TaskStatus.Status\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"8\n\x0e\x41llTasksStatus\x12&\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x0b.TaskStatus\"\x1f\n\x07TaskLog\x12\x14\n\x0clogfile_path\x18\x01 \x01(\t2\xdb\x02\n\x0bTaskManager\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus\"\x00\x12)\n\x08run_task\x12\x0e.TaskStatement\x1a\x0b.TaskStatus\"\x00\x12!\n\x0cget_task_log\x12\x05.Task\x1a\x08.TaskLog\"\x00\x12!\n\tkill_task\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12\'\n\x0fget_task_status\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12:\n\rget_all_tasks\x12\x16.google.protobuf.Empty\x1a\x0f.AllTasksStatus\"\x00\x12=\n\x11has_idle_resource\x12\x16.google.protobuf.Empty\x1a\x0e.IdleResources\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 
 
 _SERVERSTATUS = DESCRIPTOR.message_types_by_name['ServerStatus']
+_IDLERESOURCES = DESCRIPTOR.message_types_by_name['IdleResources']
 _TASKSTATEMENT = DESCRIPTOR.message_types_by_name['TaskStatement']
 _TASKSTATEMENT_TASKENVENTRY = _TASKSTATEMENT.nested_types_by_name['TaskEnvEntry']
 _TASKSTATUS = DESCRIPTOR.message_types_by_name['TaskStatus']
@@ -33,6 +34,13 @@ ServerStatus = _reflection.GeneratedProtocolMessageType('ServerStatus', (_messag
   # @@protoc_insertion_point(class_scope:ServerStatus)
   })
 _sym_db.RegisterMessage(ServerStatus)
+
+IdleResources = _reflection.GeneratedProtocolMessageType('IdleResources', (_message.Message,), {
+  'DESCRIPTOR' : _IDLERESOURCES,
+  '__module__' : 'task_manager_pb2'
+  # @@protoc_insertion_point(class_scope:IdleResources)
+  })
+_sym_db.RegisterMessage(IdleResources)
 
 TaskStatement = _reflection.GeneratedProtocolMessageType('TaskStatement', (_message.Message,), {
 
@@ -86,20 +94,22 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _TASKSTATEMENT_TASKENVENTRY._serialized_options = b'8\001'
   _SERVERSTATUS._serialized_start=51
   _SERVERSTATUS._serialized_end=80
-  _TASKSTATEMENT._serialized_start=83
-  _TASKSTATEMENT._serialized_end=240
-  _TASKSTATEMENT_TASKENVENTRY._serialized_start=194
-  _TASKSTATEMENT_TASKENVENTRY._serialized_end=240
-  _TASKSTATUS._serialized_start=243
-  _TASKSTATUS._serialized_end=381
-  _TASKSTATUS_STATUS._serialized_start=310
-  _TASKSTATUS_STATUS._serialized_end=381
-  _TASK._serialized_start=383
-  _TASK._serialized_end=406
-  _ALLTASKSSTATUS._serialized_start=408
-  _ALLTASKSSTATUS._serialized_end=464
-  _TASKLOG._serialized_start=466
-  _TASKLOG._serialized_end=497
-  _TASKMANAGER._serialized_start=500
-  _TASKMANAGER._serialized_end=784
+  _IDLERESOURCES._serialized_start=82
+  _IDLERESOURCES._serialized_end=113
+  _TASKSTATEMENT._serialized_start=116
+  _TASKSTATEMENT._serialized_end=274
+  _TASKSTATEMENT_TASKENVENTRY._serialized_start=228
+  _TASKSTATEMENT_TASKENVENTRY._serialized_end=274
+  _TASKSTATUS._serialized_start=277
+  _TASKSTATUS._serialized_end=446
+  _TASKSTATUS_STATUS._serialized_start=344
+  _TASKSTATUS_STATUS._serialized_end=446
+  _TASK._serialized_start=448
+  _TASK._serialized_end=471
+  _ALLTASKSSTATUS._serialized_start=473
+  _ALLTASKSSTATUS._serialized_end=529
+  _TASKLOG._serialized_start=531
+  _TASKLOG._serialized_end=562
+  _TASKMANAGER._serialized_start=565
+  _TASKMANAGER._serialized_end=912
 # @@protoc_insertion_point(module_scope)

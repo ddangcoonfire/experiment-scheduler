@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2 as task__manager__pb2
+import experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 as task__manager__pb2
 
 
 class TaskManagerStub(object):
@@ -45,6 +45,11 @@ class TaskManagerStub(object):
                 '/TaskManager/get_all_tasks',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=task__manager__pb2.AllTasksStatus.FromString,
+                )
+        self.has_idle_resource = channel.unary_unary(
+                '/TaskManager/has_idle_resource',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=task__manager__pb2.IdleResources.FromString,
                 )
 
 
@@ -88,6 +93,12 @@ class TaskManagerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def has_idle_resource(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TaskManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -120,6 +131,11 @@ def add_TaskManagerServicer_to_server(servicer, server):
                     servicer.get_all_tasks,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=task__manager__pb2.AllTasksStatus.SerializeToString,
+            ),
+            'has_idle_resource': grpc.unary_unary_rpc_method_handler(
+                    servicer.has_idle_resource,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=task__manager__pb2.IdleResources.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -231,5 +247,22 @@ class TaskManager(object):
         return grpc.experimental.unary_unary(request, target, '/TaskManager/get_all_tasks',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             task__manager__pb2.AllTasksStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def has_idle_resource(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/has_idle_resource',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            task__manager__pb2.IdleResources.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

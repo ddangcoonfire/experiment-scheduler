@@ -32,14 +32,19 @@ service TaskManager {
 
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
+  rpc has_idle_resource(google.protobuf.Empty) returns (IdleResources) {}
 }
 
 message ServerStatus {
     bool alive = 1;
 }
 
+message IdleResources {
+    bool exists = 1;
+}
+
 message TaskStatement {
-    int32 gpuidx = 1;
+    string task_id = 1;
     string command = 2;
     string name = 3;
     map<string, string> task_env = 4;
@@ -48,11 +53,13 @@ message TaskStatement {
 message TaskStatus {
     string task_id = 1;
     enum Status {
-        RUNNING = 0;
-        DONE = 1;
-        KILLED = 2;
-        ABNORMAL = 3;
-        NOTFOUND = 4;
+        NOTSTART = 0;
+        RUNNING = 1;
+        DONE = 2;
+        KILLED = 3;
+        ABNORMAL = 4;
+        NOTFOUND = 5;
+        NO_RESOURCE = 6;
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }

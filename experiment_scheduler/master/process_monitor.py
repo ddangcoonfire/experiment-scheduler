@@ -1,10 +1,25 @@
-import grpc
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import TaskManagerStub
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import TaskStatement, Task,\
-    google_dot_protobuf_dot_empty__pb2
+"""
+Communication with Task Manager through Process Monitor
+"""
+
 from multiprocessing import Manager
 import threading
 import time
+from typing import Dict, List, Any
+import grpc
+from grpc import RpcError
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
+    TaskManagerStub,
+)
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+    TaskStatement,
+    AllTasksStatus,
+    Task,
+    google_dot_protobuf_dot_empty__pb2,
+)
+from experiment_scheduler.common.logging import get_logger
+
+PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
 
 class ProcessMonitor:
@@ -13,94 +28,126 @@ class ProcessMonitor:
     Select decent TaskManager for new task.
     All commands to TaskManager from Master must use ProcessMonitor
     """
-    def __init__(self, task_manager, master_pipe):
-        print(f"PM Start For {task_manager}")
-        self.task_manager = task_manager
-        self.channel = grpc.insecure_channel(self.task_manager)
-        self.stub = TaskManagerStub(self.channel)
-        self.master_pipe = master_pipe
-        self.proto_empty = google_dot_protobuf_dot_empty__pb2.Empty()
-        # connection initialization
 
-        self.task_list = dict()
-        self.completed_task_list = dict()
-        # task list initializaiton
+    def __init__(self, task_managers: List[str]):
+        self.task_manager_address = task_managers
+        self.task_manager_stubs = self._get_stubs()
+        # connection initialization
 
         self.shared_var_manager = Manager()
         self.thread_queue = self.shared_var_manager.dict()
-        self.thread_queue["is_healthy"] = False
+        self._init_thread_queue()
         # shared variable initialization
 
-        self.health_checker = threading.Thread(target=self._health_check, args=(self.thread_queue,))
+        self.health_checker = threading.Thread(
+            target=self._health_check, args=(self.thread_queue,)
+        )
         self.health_checker.start()
+        self.logger = get_logger("process_monitor")
         # health_checking_thread_on
 
         # shared with master memory
 
+    def _init_thread_queue(self) -> None:
+        for task_manager in self.task_manager_address:
+            self.thread_queue[f"is_{task_manager}_healthy"] = False
+
+    def _get_stubs(self) -> Dict[str, Any]:
+        stubs = {}
+        for address in self.task_manager_address:
+            channel = grpc.insecure_channel(address)
+            stubs[address] = TaskManagerStub(channel)
+        return stubs
+
     def _health_check(self, thread_queue, time_interval=5):
+        # move to decorator later
         while True:
-            response = self.stub.health_check(self.proto_empty)
-            if response:
-                thread_queue["is_healthy"] = True
-            else:
-                thread_queue["is_healthy"] = False
+            for task_manager in self.task_manager_address:
+                try:
+                    self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    thread_queue[f"is_{task_manager}_healthy"] = True
+                except RpcError:
+                    thread_queue[f"is_{task_manager}_healthy"] = False
+                    self.logger.error(
+                        f"currently task manager {task_manager} is not available"
+                    )
             time.sleep(time_interval)
+
     # should run this code through a thread.
 
-    def is_healthy(self):
-        return self.thread_queue["is_healthy"]
-
-    def _request_task_manager(self, command):
+    def _are_task_manager_healthy(self) -> bool:
         """
-        all direct request to task manager use this method
-        :param protobuf:
-        :param request_type:
-            :return:
+
+        :return:
         """
-        # if request_task_manager need multithreading, use asyncio
-        # multiprocessing, threading, asyncio
-        # unify all task manager communication here.
-        # [TODO] need refactoring later
-        cmd = command[0]
-        ret = ""
-        if cmd == "kill_task":
-            ret = self.kill_task(command[1])
-        elif cmd == "get_task_status":
-            ret = self.get_task_status(command[1])
-        elif cmd == "get_all_tasks":
-            ret = self.get_all_tasks()
-        elif cmd == "run_task":
-            ret = self.run_task(command[1], command[2], command[3], command[4])
-        self.master_pipe.send(ret)
+        for address in self.task_manager_address:
+            if not self.thread_queue[f"is_{address}_healthy"]:
+                return False
+        return True
 
-    def run_task(self, gpu_idx, command, name, env):
-        protobuf = TaskStatement(gpuidx=gpu_idx, command=command, name=name, task_env=env)
-        response = self.stub.run_task(protobuf)
-        task_id = response.task_id
-        return task_id
+    def run_task(self, task_id, task_manager, command, name, env):
+        """
+        :param task_id
+        :param task_manager:
+        :param command:
+        :param name:
+        :param env:
+        :return:
+        """
+        protobuf = TaskStatement(
+            task_id=task_id, command=command, name=name, task_env=env
+        )
+        response = self.task_manager_stubs[task_manager].run_task(protobuf)
+        return response
 
-    def kill_task(self, task_id):
+    def kill_task(self, task_manager, task_id):
+        """
+        FIXME
+        :param task_manager:
+        :param task_id:
+        :return:
+        """
         protobuf = Task(task_id=task_id)
-        return self.stub.kill_task(protobuf)
+        response = self.task_manager_stubs[task_manager].kill_task(protobuf)
+        return response
 
-    def get_task_status(self,task_id):
+    def get_task_status(self, task_manager, task_id):
+        """
+        FIXME
+        :param task_manager:
+        :param task_id:
+        :return:
+        """
         protobuf = Task(task_id=task_id)
-        return self.stub.get_task_status(protobuf)
+        return self.task_manager_stubs[task_manager].get_task_status(protobuf)
 
     def get_all_tasks(self):
-        protobuf = self.proto_empty
-        return self.stub.get_all_tasks(protobuf)
+        """
+        FIXME
+        :param: task_manager
+        :return:
+        """
+        all_task_status = AllTasksStatus()
+        for address in self.task_manager_address:
+            response = self.task_manager_stubs[address].get_all_tasks(PROTO_EMPTY)
+            all_task_status.task_status_array.extend(response.task_status_array)
 
-    def get_task_log(self,task_id):
+        return all_task_status
+
+    def get_task_log(self, task_manager, task_id):
+        """
+        FIXME
+        :param task_manager:
+        :param task_id:
+        :return:
+        """
         protobuf = Task(task_id=task_id)
-        return self.stub.get_task_log(protobuf)
+        return self.task_manager_stubs[task_manager].get_task_log(protobuf)
 
-    def start(self, time_interval=1):
-        # 로직 구현
-        while True:
-            # lock between sender and receiver must be set later
-            if self.master_pipe.poll():
-                command = self.master_pipe.recv()
-                self._request_task_manager(command)
-            time.sleep(time_interval)
+    def get_available_task_managers(self):
+        available_task_managers = []
+        for tm_address, tm_stub in self.task_manager_stubs.items():
+            if tm_stub.has_idle_resource(PROTO_EMPTY):
+                available_task_managers.append(tm_address)
 
+        return available_task_managers
