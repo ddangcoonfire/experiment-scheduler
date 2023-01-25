@@ -16,19 +16,27 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
 )
+
+# pylint: disable=E0611
 from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskStatus,
     AllTasksStatus,
     MasterResponse,
     ExperimentsStatus,
-    AllExperimentsStatus
+    AllExperimentsStatus,
 )
-from experiment_scheduler.common import settings
+
+# pylint: enable=E0611
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 
 def io_logger(func):
+    """
+    decorator for logging
+    logs task_id from input and response status from output
+    """
+
     def wrapper(self, *args, **kwargs):
         self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
         result = func(self, *args, **kwargs)
@@ -101,22 +109,19 @@ class Master(MasterServicer):
     @start_end_logger
     def request_experiments(self, request, context):
         """
-        [TODO] add docstring
+        Register all experiments from request.
+        add all tasks to task queue.
         :param request:
         :param context:
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
-        self.logger.info(
-            f"create new experiment_id: {experiment_id}"
-        )  # [FIXME] : set to logging pylint: disable=W0511
+        self.logger.info("create new experiment_id %s", experiment_id)
 
         self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
-            self.logger.info(
-                f"├─task_id: {task_id}"
-            )  # [FIXME] : set to logging pylint: disable=W0511
+            self.logger.info("├─task_id: %s", task_id)
             self.queued_tasks[task_id] = task
             self.experiments[experiment_id].append(task_id)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -132,8 +137,8 @@ class Master(MasterServicer):
     @io_logger
     def get_task_status(self, request, context):
         """
-        get status certain task
-        :param request:
+        get status of a task
+        :param request: request must cotains task_id
         :param context:
         :return: task's status
         """
@@ -206,9 +211,8 @@ class Master(MasterServicer):
 
     @start_end_logger
     def get_all_tasks(self, request, context):
-
         """
-        get all tasks status
+        list all status of tasks
         :param request:
         :param context:
         :return: task's status
@@ -218,43 +222,47 @@ class Master(MasterServicer):
         if request.experiment_id:
             all_tasks_status = AllTasksStatus()
             response = self.process_monitor.get_all_tasks()
-            for task_status in response.task_status_array:
+            for task_status in response.task_status_array:  # pylint: disable=E1101
                 if task_status.task_id in self.experiments[request.experiment_id]:
                     all_tasks_status.task_status_array.append(
-                        self._wrap_by_task_status(task_status.task_id, task_status.status)
+                        self._wrap_by_task_status(
+                            task_status.task_id, task_status.status
+                        )
                     )
             all_experiments_status.experiment_status_array.append(
                 ExperimentsStatus(
                     experiment_id=request.experiment_id,
-                    task_status_array=all_tasks_status
+                    task_status_array=all_tasks_status,
                 )
             )
         else:
             response = self.process_monitor.get_all_tasks()
             response_dict = dict()
-            for exp_id in self.experiments.keys():
+            for exp_id, _ in self.experiments.items():
                 response_dict[exp_id] = AllTasksStatus()
 
-            for task_status in response.task_status_array:
-                for exp_id in self.experiments.keys():
-                    if task_status.task_id in self.experiments[exp_id]:
+            for task_status in response.task_status_array:  # pylint: disable=E1101
+                for exp_id, task_list in self.experiments.items():
+                    if task_status.task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
-                            self._wrap_by_task_status(task_status.task_id, task_status.status)
+                            self._wrap_by_task_status(
+                                task_status.task_id, task_status.status
+                            )
                         )
 
             for task_id in self.queued_tasks:
-                for exp_id in self.experiments.keys():
-                    if task_id in self.experiments[exp_id]:
+                for exp_id, task_list in self.experiments.items():
+                    if task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
-                            self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+                            self._wrap_by_task_status(
+                                task_id=task_id, status=TaskStatus.Status.NOTSTART
+                            )
                         )
 
-            for exp_id in response_dict.keys():
-                print(response_dict[exp_id])
+            for exp_id, task_status_list in response_dict.items():
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=exp_id,
-                        task_status_array=response_dict[exp_id]
+                        experiment_id=exp_id, task_status_array=task_status_list
                     )
                 )
 
@@ -263,7 +271,7 @@ class Master(MasterServicer):
     @start_end_logger
     def execute_task(self, task_manager):
         """
-        run certain task
+        run certain task. send task to task manager
         :param task_manager:
         :param gpu_idx:
         :return: task's status
@@ -286,7 +294,8 @@ class Master(MasterServicer):
             self.queued_tasks.move_to_end(prior_task_id, False)
         return response
 
-    def _wrap_by_task_status(self, task_id, status):
+    @staticmethod
+    def _wrap_by_task_status(task_id, status):
         return TaskStatus(
             task_id=task_id,
             status=status,
@@ -308,11 +317,11 @@ def serve():
         try:
             master.start()
             master.wait_for_termination()
-        except KeyboardInterrupt as exception:
+        except KeyboardInterrupt:
             print("closing...")
             # logger.info("keyboardInterrupt occurred \n %s", exception)
             # logger.info("halting master immediately...")
-        except Exception as error_case:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             print("closing...")
             # logger.info("Error Occurred %s", error_case)
             # logger.info("halting master immediately...")

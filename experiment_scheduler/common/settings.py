@@ -19,12 +19,5 @@ def _set_user_config():
     return parser
 
 
-HEADER = "\n".join(
-    [
-        "┌────────────────────────────────────┐",
-        "│ Welcome to Experiment-Scheduler !! │",
-        "└────────────────────────────────────┘",
-    ]
-)
 DEFAULT_EXS_HOME = os.getenv("EXS_HOME", experiment_scheduler.__path__[0])
 USER_CONFIG = _set_user_config()
