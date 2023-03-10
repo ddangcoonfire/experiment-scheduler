@@ -1,7 +1,6 @@
 """This file is in charge of server code run as daemon process."""
 
 import psutil
-import logging
 import os
 import subprocess
 from typing import Dict
@@ -9,6 +8,7 @@ from concurrent import futures
 from os import path as osp
 
 import grpc
+
 import pynvml
 
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
@@ -30,9 +30,10 @@ KILL_CHILD_MAX_DEPTH = 2
 class ProcessUtil:
     """Wrapper class for psutil.
 
-        Args:
-            pid (int): process id.
+    Args:
+        pid (int): process id.
     """
+
     def __init__(self, pid: int):
         self._pid = pid
         try:
@@ -50,12 +51,12 @@ class ProcessUtil:
     def kill_itself_with_child_process(self, max_depth: int) -> bool:
         """kill self recursively up to max depth.
 
-            Args:
-                max_depth (int): max depth of child processes to find and kill.
-            
-            Returns:
-                bool:
-                    Whether success to kill process recursively.
+        Args:
+            max_depth (int): max depth of child processes to find and kill.
+
+        Returns:
+            bool:
+                Whether success to kill process recursively.
         """
         if self._process is None:
             logger.warning("Fail to get process(%d).", self._pid)
@@ -63,29 +64,34 @@ class ProcessUtil:
         return self.kill_process_recursively(self._process, max_depth, 0)
 
     @staticmethod
-    def kill_process_recursively(process: psutil.Process, max_depth: int, cur_depth: int = 0) -> bool:
+    def kill_process_recursively(
+        process: psutil.Process, max_depth: int, cur_depth: int = 0
+    ) -> bool:
         """kill process recursively up to max depth.
 
-            Args:
-                max_depth (int): max depth of child processes to find and kill.
-                cur_depth (int): current depth.
-            
-            Returns:
-                bool:
-                    Whether success to kill process recursively.
+        Args:
+            max_depth (int): max depth of child processes to find and kill.
+            cur_depth (int): current depth.
+
+        Returns:
+            bool:
+                Whether success to kill process recursively.
         """
         if not process.is_running():
             return True
 
         if cur_depth < max_depth:
             for child_process in process.children():
-                ProcessUtil.kill_process_recursively(child_process, max_depth, cur_depth+1)
+                ProcessUtil.kill_process_recursively(
+                    child_process, max_depth, cur_depth + 1
+                )
 
         if process.is_running():
             process.terminate()
             process.wait()
 
         return True
+
 
 class ResourceManager:
     def __init__(self, num_resource: int):
@@ -140,11 +146,21 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         super(return_code).__init__()
         self.tasks: Dict[str, subprocess.Popen] = {}
         self.log_dir = log_dir
-        pynvml.nvmlInit()
-        num_gpu = pynvml.nvmlDeviceGetCount()
-        pynvml.nvmlShutdown()
-        self._resource_manager = ResourceManager(num_gpu)
+        self._use_gpu = True
+        try:
+            pynvml.nvmlInit()
+            num_resource = pynvml.nvmlDeviceGetCount()
+            pynvml.nvmlShutdown()
+        except pynvml.nvml.NVMLError_LibraryNotFound:
+            logger.warning("GPU can't be found. Task will be executed without GPU.")
+            num_resource = 10
+            self._use_gpu = False
+        self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
+
+    @property
+    def use_gpu(self):
+        return self._use_gpu
 
     def health_check(self, request, context):
         """Return current server status"""
@@ -158,10 +174,12 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         self._release_unused_resource()
 
         task_id = request.task_id
-        gpu_idx = self._resource_manager.get_resource(task_id)
-        if gpu_idx is None:
+        resource_idx = self._resource_manager.get_resource(task_id)
+        if resource_idx is None:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.NO_RESOURCE)
-        request.task_env["CUDA_VISIBLE_DEVICES"] = str(gpu_idx)
+
+        if self.use_gpu:
+            request.task_env["CUDA_VISIBLE_DEVICES"] = str(resource_idx)
 
         task = subprocess.Popen(
             args=request.command,
@@ -233,7 +251,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
         else:
             self.logger.info("Fail to kill %s", request.task_id)
-            return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.ABNORMAL)
+            return TaskStatus(
+                task_id=request.task_id, status=TaskStatus.Status.ABNORMAL
+            )
 
     @start_end_logger
     def get_task_status(self, request, context):
@@ -258,17 +278,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
         result_return_code = self._get_process_return_code(task_id)
         return TaskStatus(
-            task_id=task_id,
-            status=self._convert_to_task_status(result_return_code)
+            task_id=task_id, status=self._convert_to_task_status(result_return_code)
         )
 
     def _convert_to_task_status(self, return_code):
         """Make task_manager_pb2.TaskStatus using return code of task."""
-        if return_code is self.get_return_code('RUNNING'):
+        if return_code is self.get_return_code("RUNNING"):
             return TaskStatus.Status.RUNNING
-        if return_code == self.get_return_code('DONE'):
+        if return_code == self.get_return_code("DONE"):
             return TaskStatus.Status.DONE
-        if return_code == self.get_return_code('KILLED'):
+        if return_code == self.get_return_code("KILLED"):
             return TaskStatus.Status.KILLED
         return TaskStatus.Status.ABNORMAL
 
