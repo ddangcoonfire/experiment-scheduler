@@ -3,6 +3,7 @@
 import psutil
 import os
 import subprocess
+import ast
 from typing import Dict
 from concurrent import futures
 from os import path as osp
@@ -23,6 +24,7 @@ from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 logger = get_logger(name="task_manager")
 from experiment_scheduler.task_manager.return_code import return_code
+from experiment_scheduler.common.settings import USER_CONFIG
 
 KILL_CHILD_MAX_DEPTH = 2
 
@@ -153,7 +155,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
             pynvml.nvmlShutdown()
         except pynvml.nvml.NVMLError_LibraryNotFound:
             logger.warning("GPU can't be found. Task will be executed without GPU.")
-            num_resource = 10
+            num_resource = int(
+                USER_CONFIG.get("default", "max_task_without_gpu_simultaneously")
+            )
             self._use_gpu = False
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
