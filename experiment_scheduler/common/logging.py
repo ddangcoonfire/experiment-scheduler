@@ -16,7 +16,7 @@ def get_logger(name, *args, **kwargs):
     logger = logging.getLogger(name=name, *args, **kwargs)
     ch = logging.StreamHandler()
     ch.setFormatter(CustomLoggingFormatter())
-    fh = logging.FileHandler(f"{name}.log")
+    fh = logging.FileHandler(f"{name}.log", encoding="utf-8")
     fh.setFormatter(CustomLoggingFormatter())
     logger.addHandler(ch)
     logger.addHandler(fh)
