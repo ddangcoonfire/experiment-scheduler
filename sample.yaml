@@ -1,6 +1,6 @@
 name: smaple
 tasks:
-- cmd: torch train --lr 0.01
-  name: hpo_1
-- cmd: torch train --lr 0.02
-  name: hpo_2
+- cmd: echo test1
+  name: test1
+- cmd: echo test2
+  name: test2
