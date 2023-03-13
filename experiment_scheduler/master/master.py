@@ -308,14 +308,8 @@ def serve():
         try:
             master.start()
             master.wait_for_termination()
-        except KeyboardInterrupt as exception:
-            print("closing...")
-            # logger.info("keyboardInterrupt occurred \n %s", exception)
-            # logger.info("halting master immediately...")
-        except Exception as error_case:  # pylint: disable=broad-except
-            print("closing...")
-            # logger.info("Error Occurred %s", error_case)
-            # logger.info("halting master immediately...")
+        except KeyboardInterrupt:
+            print("Keyboard interrupt occurs. Now closing...")
 
 
 if __name__ == "__main__":
