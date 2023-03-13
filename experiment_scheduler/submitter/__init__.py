@@ -27,11 +27,10 @@ def _run_as_default_process(command, target):
     )
     # [TODO] Add Address
     print(f"now {target} is running")
-    while True:
-        output = task.stdout.readline().decode("utf-8")
-        if len(output) > 0:
-            print(output, end="")
-        sys.stdout.flush()
+    try:
+        task.wait()
+    finally:
+        task.kill()
 
 
 def _run_as_daemon_process(command, target):

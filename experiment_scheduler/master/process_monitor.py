@@ -66,11 +66,10 @@ class ProcessMonitor:
                 try:
                     self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
                     thread_queue[f"is_{task_manager}_healthy"] = True
-                    raise RpcError("hoho")
                 except RpcError as error:
                     thread_queue[f"is_{task_manager}_healthy"] = False
                     self.logger.error(
-                        f"currently task manager {task_manager} is not available."
+                        f"currently task manager {task_manager} is not available. "
                         f"error log : {error}"
                     )
             time.sleep(time_interval)

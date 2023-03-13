@@ -305,11 +305,8 @@ def serve():
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
-        try:
-            master.start()
-            master.wait_for_termination()
-        except KeyboardInterrupt:
-            print("Keyboard interrupt occurs. Now closing...")
+        master.start()
+        master.wait_for_termination()
 
 
 if __name__ == "__main__":
