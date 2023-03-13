@@ -1,3 +1,4 @@
+import sqlalchemy
 from sqlalchemy import Column, String, DateTime, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.functions import now
@@ -14,5 +15,5 @@ class Experiment(Base):
     last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
     tasks = relationship("Task", back_populates="experiment")
 
-if not Table(table_name, metadata, autoload=True).exists():
+if not sqlalchemy.inspect(engine).has_table(table_name):
     Base.metadata.create_all(engine)

@@ -1,8 +1,8 @@
-from typing import List, Dict
+from typing import Dict
 
 from experiment_scheduler.db_util import Session
-from experiment_scheduler.db_util.Experiment import Experiment
-from experiment_scheduler.db_util.Task import Task
+from experiment_scheduler.db_util.experiment import Experiment
+from experiment_scheduler.db_util.task import Task
 
 session = Session()
 
