@@ -19,6 +19,14 @@ service Master {
       rpc get_all_tasks(Experiment) returns (AllExperimentsStatus) {}
 
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+      rpc edit_task(EditTask) return (TaskStatus) {} 
+
+}
+
+message EditTask {
+string task_id = 1;
+string cmd = 2;
 }
 
 message ExperimentStatement {

@@ -291,7 +291,31 @@ class Master(MasterServicer):
             task_id=task_id,
             status=status,
         )
+    
+    def edit_task(self, request, context):
+        task_id = request.task_id
+        cmd = request.cmd
 
+        if task_id in self.queued_tasks.keys:
+            self.queued_tasks[task_id] = cmd
+        
+        elif task_id in dict(self.running_tasks).keys():
+            response = self.process_monitor.kill_task(
+                self.running_tasks[request.task_id]["task_manager"], request.task_id
+            )
+            if response.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[request.task_id]
+
+            self.queued_tasks[task_id] = cmd
+        
+        else:
+            response = self._wrap_by_task_status(
+                request.task_id, TaskStatus.Status.NOTFOUND
+            )
+                
+        return TaskStatus(
+
+        )
 
 def serve():
     """
