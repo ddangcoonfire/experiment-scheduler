@@ -30,6 +30,8 @@ service TaskManager {
 
   rpc get_task_status(Task) returns (TaskStatus) {}
 
+  rpc get_task_logs(Task) returns (TaskFile) {}
+
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
   rpc has_idle_resource(google.protobuf.Empty) returns (IdleResources) {}
@@ -74,4 +76,8 @@ message AllTasksStatus {
 
 message TaskLog {
     string logfile_path = 1;
+}
+
+message TaskFile {
+    bytes log_file = 1;
 }
