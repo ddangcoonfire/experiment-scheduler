@@ -2,6 +2,7 @@
 submitter is for
 [TODO] docstring
 """
+import platform
 import sys
 import subprocess
 import os
@@ -28,7 +29,10 @@ def _run_as_default_process(command, target):
     # [TODO] Add Address
     print(f"now {target} is running")
     while True:
-        output = task.stdout.readline().decode("utf-8")
+        decode_type = "utf-8"
+        if platform.system() == "Windows":
+            decode_type = "cp949"
+        output = task.stdout.readline().decode(decode_type)
         if len(output) > 0:
             print(output, end="")
         sys.stdout.flush()
