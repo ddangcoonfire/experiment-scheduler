@@ -23,6 +23,6 @@ def main():
     stub = master_pb2_grpc.MasterStub(channel)
 
     request = master_pb2.Task(task_id=task_id)
-    response = stub.get_task_logs(request)
+    response = stub.get_task_log(request)
 
     print(response)

@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12task_manager.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08\"\x1f\n\rIdleResources\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\"\x9e\x01\n\rTaskStatement\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12-\n\x08task_env\x18\x04 \x03(\x0b\x32\x1b.TaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xa9\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.TaskStatus.Status\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"8\n\x0e\x41llTasksStatus\x12&\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x0b.TaskStatus\"\x1f\n\x07TaskLog\x12\x14\n\x0clogfile_path\x18\x01 \x01(\t\"\x1c\n\x08TaskFile\x12\x10\n\x08log_file\x18\x01 \x01(\x0c\x32\x80\x03\n\x0bTaskManager\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus\"\x00\x12)\n\x08run_task\x12\x0e.TaskStatement\x1a\x0b.TaskStatus\"\x00\x12!\n\x0cget_task_log\x12\x05.Task\x1a\x08.TaskLog\"\x00\x12!\n\tkill_task\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12\'\n\x0fget_task_status\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12#\n\rget_task_logs\x12\x05.Task\x1a\t.TaskFile\"\x00\x12:\n\rget_all_tasks\x12\x16.google.protobuf.Empty\x1a\x0f.AllTasksStatus\"\x00\x12=\n\x11has_idle_resource\x12\x16.google.protobuf.Empty\x1a\x0e.IdleResources\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12task_manager.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0cServerStatus\x12\r\n\x05\x61live\x18\x01 \x01(\x08\"\x1f\n\rIdleResources\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\"\x9e\x01\n\rTaskStatement\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12-\n\x08task_env\x18\x04 \x03(\x0b\x32\x1b.TaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xa9\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\"\n\x06status\x18\x02 \x01(\x0e\x32\x12.TaskStatus.Status\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"5\n\x0bTaskLogInfo\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x15\n\rlog_file_path\x18\x02 \x01(\t\"8\n\x0e\x41llTasksStatus\x12&\n\x11task_status_array\x18\x01 \x03(\x0b\x32\x0b.TaskStatus\"\x1f\n\x0bTaskLogFile\x12\x10\n\x08log_file\x18\x01 \x01(\x0c\x32\xe8\x02\n\x0bTaskManager\x12\x37\n\x0chealth_check\x12\x16.google.protobuf.Empty\x1a\r.ServerStatus\"\x00\x12)\n\x08run_task\x12\x0e.TaskStatement\x1a\x0b.TaskStatus\"\x00\x12.\n\x0cget_task_log\x12\x0c.TaskLogInfo\x1a\x0c.TaskLogFile\"\x00\x30\x01\x12!\n\tkill_task\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12\'\n\x0fget_task_status\x12\x05.Task\x1a\x0b.TaskStatus\"\x00\x12:\n\rget_all_tasks\x12\x16.google.protobuf.Empty\x1a\x0f.AllTasksStatus\"\x00\x12=\n\x11has_idle_resource\x12\x16.google.protobuf.Empty\x1a\x0e.IdleResources\"\x00\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'task_manager_pb2', globals())
@@ -38,12 +38,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _TASKSTATUS_STATUS._serialized_end=446
   _TASK._serialized_start=448
   _TASK._serialized_end=471
-  _ALLTASKSSTATUS._serialized_start=473
-  _ALLTASKSSTATUS._serialized_end=529
-  _TASKLOG._serialized_start=531
-  _TASKLOG._serialized_end=562
-  _TASKFILE._serialized_start=564
-  _TASKFILE._serialized_end=592
-  _TASKMANAGER._serialized_start=595
-  _TASKMANAGER._serialized_end=979
+  _TASKLOGINFO._serialized_start=473
+  _TASKLOGINFO._serialized_end=526
+  _ALLTASKSSTATUS._serialized_start=528
+  _ALLTASKSSTATUS._serialized_end=584
+  _TASKLOGFILE._serialized_start=586
+  _TASKLOGFILE._serialized_end=617
+  _TASKMANAGER._serialized_start=620
+  _TASKMANAGER._serialized_end=980
 # @@protoc_insertion_point(module_scope)

@@ -31,20 +31,15 @@ class MasterStub(object):
                 request_serializer=master__pb2.Task.SerializeToString,
                 response_deserializer=master__pb2.TaskStatus.FromString,
                 )
-        self.get_task_log = channel.unary_unary(
+        self.get_task_log = channel.unary_stream(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_log',
                 request_serializer=master__pb2.Task.SerializeToString,
-                response_deserializer=master__pb2.TaskLog.FromString,
+                response_deserializer=master__pb2.TaskLogFile.FromString,
                 )
         self.get_all_tasks = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks',
                 request_serializer=master__pb2.Experiment.SerializeToString,
                 response_deserializer=master__pb2.AllExperimentsStatus.FromString,
-                )
-        self.get_task_logs = channel.unary_stream(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_logs',
-                request_serializer=master__pb2.Task.SerializeToString,
-                response_deserializer=master__pb2.TaskFile.FromString,
                 )
         self.halt_process_monitor = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/halt_process_monitor',
@@ -87,12 +82,6 @@ class MasterServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def get_task_logs(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def halt_process_monitor(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -117,20 +106,15 @@ def add_MasterServicer_to_server(servicer, server):
                     request_deserializer=master__pb2.Task.FromString,
                     response_serializer=master__pb2.TaskStatus.SerializeToString,
             ),
-            'get_task_log': grpc.unary_unary_rpc_method_handler(
+            'get_task_log': grpc.unary_stream_rpc_method_handler(
                     servicer.get_task_log,
                     request_deserializer=master__pb2.Task.FromString,
-                    response_serializer=master__pb2.TaskLog.SerializeToString,
+                    response_serializer=master__pb2.TaskLogFile.SerializeToString,
             ),
             'get_all_tasks': grpc.unary_unary_rpc_method_handler(
                     servicer.get_all_tasks,
                     request_deserializer=master__pb2.Experiment.FromString,
                     response_serializer=master__pb2.AllExperimentsStatus.SerializeToString,
-            ),
-            'get_task_logs': grpc.unary_stream_rpc_method_handler(
-                    servicer.get_task_logs,
-                    request_deserializer=master__pb2.Task.FromString,
-                    response_serializer=master__pb2.TaskFile.SerializeToString,
             ),
             'halt_process_monitor': grpc.unary_unary_rpc_method_handler(
                     servicer.halt_process_monitor,
@@ -210,9 +194,9 @@ class Master(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_log',
+        return grpc.experimental.unary_stream(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_log',
             master__pb2.Task.SerializeToString,
-            master__pb2.TaskLog.FromString,
+            master__pb2.TaskLogFile.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -230,23 +214,6 @@ class Master(object):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks',
             master__pb2.Experiment.SerializeToString,
             master__pb2.AllExperimentsStatus.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def get_task_logs(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_logs',
-            master__pb2.Task.SerializeToString,
-            master__pb2.TaskFile.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

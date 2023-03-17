@@ -26,10 +26,10 @@ class TaskManagerStub(object):
                 request_serializer=task__manager__pb2.TaskStatement.SerializeToString,
                 response_deserializer=task__manager__pb2.TaskStatus.FromString,
                 )
-        self.get_task_log = channel.unary_unary(
+        self.get_task_log = channel.unary_stream(
                 '/TaskManager/get_task_log',
-                request_serializer=task__manager__pb2.Task.SerializeToString,
-                response_deserializer=task__manager__pb2.TaskLog.FromString,
+                request_serializer=task__manager__pb2.TaskLogInfo.SerializeToString,
+                response_deserializer=task__manager__pb2.TaskLogFile.FromString,
                 )
         self.kill_task = channel.unary_unary(
                 '/TaskManager/kill_task',
@@ -40,11 +40,6 @@ class TaskManagerStub(object):
                 '/TaskManager/get_task_status',
                 request_serializer=task__manager__pb2.Task.SerializeToString,
                 response_deserializer=task__manager__pb2.TaskStatus.FromString,
-                )
-        self.get_task_logs = channel.unary_unary(
-                '/TaskManager/get_task_logs',
-                request_serializer=task__manager__pb2.Task.SerializeToString,
-                response_deserializer=task__manager__pb2.TaskFile.FromString,
                 )
         self.get_all_tasks = channel.unary_unary(
                 '/TaskManager/get_all_tasks',
@@ -92,12 +87,6 @@ class TaskManagerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def get_task_logs(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def get_all_tasks(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -123,10 +112,10 @@ def add_TaskManagerServicer_to_server(servicer, server):
                     request_deserializer=task__manager__pb2.TaskStatement.FromString,
                     response_serializer=task__manager__pb2.TaskStatus.SerializeToString,
             ),
-            'get_task_log': grpc.unary_unary_rpc_method_handler(
+            'get_task_log': grpc.unary_stream_rpc_method_handler(
                     servicer.get_task_log,
-                    request_deserializer=task__manager__pb2.Task.FromString,
-                    response_serializer=task__manager__pb2.TaskLog.SerializeToString,
+                    request_deserializer=task__manager__pb2.TaskLogInfo.FromString,
+                    response_serializer=task__manager__pb2.TaskLogFile.SerializeToString,
             ),
             'kill_task': grpc.unary_unary_rpc_method_handler(
                     servicer.kill_task,
@@ -137,11 +126,6 @@ def add_TaskManagerServicer_to_server(servicer, server):
                     servicer.get_task_status,
                     request_deserializer=task__manager__pb2.Task.FromString,
                     response_serializer=task__manager__pb2.TaskStatus.SerializeToString,
-            ),
-            'get_task_logs': grpc.unary_unary_rpc_method_handler(
-                    servicer.get_task_logs,
-                    request_deserializer=task__manager__pb2.Task.FromString,
-                    response_serializer=task__manager__pb2.TaskFile.SerializeToString,
             ),
             'get_all_tasks': grpc.unary_unary_rpc_method_handler(
                     servicer.get_all_tasks,
@@ -209,9 +193,9 @@ class TaskManager(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/get_task_log',
-            task__manager__pb2.Task.SerializeToString,
-            task__manager__pb2.TaskLog.FromString,
+        return grpc.experimental.unary_stream(request, target, '/TaskManager/get_task_log',
+            task__manager__pb2.TaskLogInfo.SerializeToString,
+            task__manager__pb2.TaskLogFile.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -246,23 +230,6 @@ class TaskManager(object):
         return grpc.experimental.unary_unary(request, target, '/TaskManager/get_task_status',
             task__manager__pb2.Task.SerializeToString,
             task__manager__pb2.TaskStatus.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def get_task_logs(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/TaskManager/get_task_logs',
-            task__manager__pb2.Task.SerializeToString,
-            task__manager__pb2.TaskFile.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

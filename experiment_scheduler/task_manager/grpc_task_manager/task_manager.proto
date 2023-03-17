@@ -24,13 +24,11 @@ service TaskManager {
 
   rpc run_task(TaskStatement) returns (TaskStatus) {}
 
-  rpc get_task_log(Task) returns (TaskLog) {}
+  rpc get_task_log(TaskLogInfo) returns (stream TaskLogFile) {}
 
   rpc kill_task(Task) returns (TaskStatus) {}
 
   rpc get_task_status(Task) returns (TaskStatus) {}
-
-  rpc get_task_logs(Task) returns (TaskFile) {}
 
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
@@ -40,18 +38,15 @@ service TaskManager {
 message ServerStatus {
     bool alive = 1;
 }
-
 message IdleResources {
     bool exists = 1;
 }
-
 message TaskStatement {
     string task_id = 1;
     string command = 2;
     string name = 3;
     map<string, string> task_env = 4;
 }
-
 message TaskStatus {
     string task_id = 1;
     enum Status {
@@ -65,19 +60,16 @@ message TaskStatus {
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }
-
 message Task {
     string task_id = 1;
 }
-
+message TaskLogInfo {
+    string task_id = 1;
+    string log_file_path = 2;
+}
 message AllTasksStatus {
     repeated TaskStatus task_status_array = 1;
 }
-
-message TaskLog {
-    string logfile_path = 1;
-}
-
-message TaskFile {
+message TaskLogFile {
     bytes log_file = 1;
 }

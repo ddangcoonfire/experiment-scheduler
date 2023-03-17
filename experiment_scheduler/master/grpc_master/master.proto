@@ -14,11 +14,9 @@ service Master {
 
       rpc get_task_status(Task) returns (TaskStatus) {}
 
-      rpc get_task_log(Task) returns (TaskLog) {}
+      rpc get_task_log(Task) returns (stream TaskLogFile) {}
 
       rpc get_all_tasks(Experiment) returns (AllExperimentsStatus) {}
-
-      rpc get_task_logs(Task) returns (stream TaskFile) {}
 
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
@@ -68,11 +66,9 @@ message ExperimentsStatus {
 message AllExperimentsStatus {
     repeated ExperimentsStatus experiment_status_array = 1;
 }
-
 message TaskLog {
     string logfile_path = 1;
 }
-
-message TaskFile {
+message TaskLogFile {
     bytes log_file = 1;
 }
