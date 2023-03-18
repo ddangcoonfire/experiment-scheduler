@@ -148,7 +148,7 @@ class ProcessMonitor:
     def get_available_task_managers(self):
         available_task_managers = []
         for tm_address, tm_stub in self.task_manager_stubs.items():
-            if tm_stub.has_idle_resource(PROTO_EMPTY):
+            if tm_stub.has_idle_resource(PROTO_EMPTY).exists:
                 available_task_managers.append(tm_address)
 
         return available_task_managers

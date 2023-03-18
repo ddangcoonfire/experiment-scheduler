@@ -20,13 +20,13 @@ service Master {
 
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
-      rpc edit_task(EditTask) return (TaskStatus) {} 
+      rpc edit_task(EditTask) returns (MasterResponse) {}
 
 }
 
 message EditTask {
-string task_id = 1;
-string cmd = 2;
+    string task_id = 1;
+    string cmd = 2;
 }
 
 message ExperimentStatement {
@@ -77,4 +77,9 @@ message AllExperimentsStatus {
 
 message TaskLog {
     string logfile_path = 1;
+}
+
+
+experiments {
+    "exp-id" : ["task_id1", "task_id2"]
 }

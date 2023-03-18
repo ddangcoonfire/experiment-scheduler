@@ -3,6 +3,11 @@ exs edit --tid [task_id] --cmd [cmd]
 If certain task need to be re-run with new configuration, use exs edit
 """
 import argparse
+import ast
+import grpc
+from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.master.grpc_master import master_pb2
+from experiment_scheduler.master.grpc_master import master_pb2_grpc
 
 
 def parse_args():
@@ -31,14 +36,15 @@ def main():
     )
     stub = master_pb2_grpc.MasterStub(channel)
 
-    request = master_pb2.EditTask(task_id=task_id)
-    response = stub.edit(request)
+    request = master_pb2.EditTask(task_id=task_id, cmd=cmd)
+    response = stub.edit_task(request)
 
     # pylint: disable=no-member
-    if (
-        response.status == master_pb2.TaskStatus.Status.KILLED
-        or response.status == master_pb2.TaskStatus.Status.DONE
-    ):
-        print(f"Cannot edit {response.task_id}.")
+    if response.status == master_pb2.MasterResponse.ResponseStatus.FAIL:
+        print(
+            f"Cannot edit {task_id}. Task does not exist or Already finished".format(
+                task_id=request.task_id
+            )
+        )
     else:
-        print(f"Success")
+        print("Success")
