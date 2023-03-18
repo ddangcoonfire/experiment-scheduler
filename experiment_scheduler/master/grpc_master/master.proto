@@ -78,8 +78,3 @@ message AllExperimentsStatus {
 message TaskLog {
     string logfile_path = 1;
 }
-
-
-experiments {
-    "exp-id" : ["task_id1", "task_id2"]
-}
