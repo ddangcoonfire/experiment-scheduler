@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import master_pb2 as master__pb2
+from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
 
 
 class MasterStub(object):
