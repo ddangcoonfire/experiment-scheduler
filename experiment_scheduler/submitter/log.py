@@ -24,6 +24,9 @@ def main():
 
     request = master_pb2.Task(task_id=task_id)
 
-    response = stub.get_task_log(request)
+    print(task_id)
+    # response = stub.get_task_log(request)
+    for response in stub.get_task_log(request):
+        yield response
 
-    print(response)
+    print(response);

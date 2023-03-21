@@ -143,6 +143,7 @@ class ProcessMonitor:
         :param task_id:
         :return:
         """
+        print("process_monitor:::", task_id, log_file_path)
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
         # return self.task_manager_stubs[task_manager].get_task_log(protobuf)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(protobuf):

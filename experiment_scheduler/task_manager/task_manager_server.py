@@ -227,6 +227,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         If status of the request task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
+        print("task_manager:::", request.task_id)
         if target_process is None:
             return TaskLogFile(log_file=None); ##None;
 
