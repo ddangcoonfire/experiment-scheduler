@@ -17,7 +17,8 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ServerStatus,
     TaskStatus,
     AllTasksStatus,
-    TaskLog,
+    TaskLogInfo,
+    TaskLogFile,
     IdleResources,
 )
 from experiment_scheduler.common.logging import get_logger, start_end_logger
@@ -223,18 +224,31 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
     def get_task_log(self, request, context):
         """
         Save an output of the requested task and return output file path.
-        If status of the requeest task is Done, delete it from task manager.
+        If status of the request task is Done, delete it from task manager.
         """
         target_process = self._get_task(request.task_id)
         if target_process is None:
-            return TaskStatus(logfile_path="")
+            return TaskLogFile(log_file=None); ##None;
 
-        log_file_path = osp.join(self.log_dir, f"{request.task_id}_log.txt")
+        # log_file_path = osp.join(self.log_dir, f"{request.task_id}_log.txt")
 
         if self._get_process_return_code(request.task_id) is not None:
             del self.tasks[request.task_id]
 
-        return TaskLog(logfile_path=log_file_path)
+        log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
+        chunk_size = 1024
+        if os.path.exists(log_file_path):
+            with open(log_file_path, mode="rb") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if chunk:
+                        entry_response = TaskLogFile(log_file=chunk)
+                        yield entry_response
+                    else:
+                        return
+
+
+        # return TaskLogFile(logfile_path=log_file_path)
 
     @start_end_logger
     def kill_task(self, request, context):

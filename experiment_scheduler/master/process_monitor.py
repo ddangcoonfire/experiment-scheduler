@@ -15,6 +15,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     TaskStatement,
     AllTasksStatus,
     Task,
+    TaskInfo,
     google_dot_protobuf_dot_empty__pb2,
 )
 from experiment_scheduler.common.logging import get_logger
@@ -135,15 +136,18 @@ class ProcessMonitor:
 
         return all_task_status
 
-    def get_task_log(self, task_manager, task_id):
+    def get_task_log(self, task_manager, task_id, log_file_path):
         """
         FIXME
         :param task_manager:
         :param task_id:
         :return:
         """
-        protobuf = Task(task_id=task_id)
-        return self.task_manager_stubs[task_manager].get_task_log(protobuf)
+        protobuf = TaskInfo(task_id=task_id, log_file_path=log_file_path)
+        # return self.task_manager_stubs[task_manager].get_task_log(protobuf)
+        for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(protobuf):
+            yield task_log_chunk
+
 
     def get_available_task_managers(self):
         available_task_managers = []

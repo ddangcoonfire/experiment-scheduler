@@ -169,6 +169,9 @@ class Master(MasterServicer):
             response = self.process_monitor.get_task_log(
                 task_manager_address, request.task_id, task_logfile_path
             )
+            for task_log_chunk in self.process_monitor.get_task_log(task_manager_address, request.task_id,
+                                                                    task_logfile_path):
+                yield task_log_chunk
         # elif request.task_id in dict(self.running_tasks).keys():
         #     response = self.process_monitor.get_task_log(
         #         self.running_tasks[request.task_id]["task_manager"], request.task_id
@@ -179,7 +182,7 @@ class Master(MasterServicer):
         #     response = self._wrap_by_task_status(
         #         request.task_id, TaskStatus.Status.NOTFOUND
         #     )
-        return response
+        # return response
 
     @start_end_logger
     @io_logger
