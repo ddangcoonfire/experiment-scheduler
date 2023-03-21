@@ -11,6 +11,7 @@ import threading
 import ast
 from typing import List
 import grpc
+import os
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -162,20 +163,22 @@ class Master(MasterServicer):
         :param context:
         :return: log path
         """
+        task_manager_address = self.get_task_managers_address[0]
+        task_logfile_path = os.getcwd()
         if request.task_id in dict(self.queued_tasks).keys():
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTSTART
-            )
-        elif request.task_id in dict(self.running_tasks).keys():
             response = self.process_monitor.get_task_log(
-                self.running_tasks[request.task_id]["task_manager"], request.task_id
+                task_manager_address, request.task_id, task_logfile_path
             )
-            if response.status == TaskStatus.Status.KILLED:
-                del self.running_tasks[request.task_id]
-        else:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTFOUND
-            )
+        # elif request.task_id in dict(self.running_tasks).keys():
+        #     response = self.process_monitor.get_task_log(
+        #         self.running_tasks[request.task_id]["task_manager"], request.task_id
+        #     )
+        #     if response.status == TaskStatus.Status.KILLED:
+        #         del self.running_tasks[request.task_id]
+        # else:
+        #     response = self._wrap_by_task_status(
+        #         request.task_id, TaskStatus.Status.NOTFOUND
+        #     )
         return response
 
     @start_end_logger
