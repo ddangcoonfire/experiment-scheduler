@@ -9,6 +9,17 @@ table_name = "experiment"
 
 
 class Experiment(Base, TableConfigurationMixin):
+    """Experimnet
+
+    description : define Experiment object
+
+    ERD Table (link TLDR;)
+
+    Args:
+        Base (_type_): _description_
+        TableConfigurationMixin (_type_): mixin
+    """
+
     # __tablename__ = table_name
 
     # id = Column(String(100), primary_key=True)

@@ -8,6 +8,15 @@ from experiment_scheduler.db_util.mixin import TableConfigurationMixin
 table_name = "task"
 
 class Task(Base, TableConfigurationMixin):
+    """TaskManger
+
+    description : define TaskManger object
+
+    Args:
+        Base (_type_): _description_
+        TableConfigurationMixin (_type_): mixin
+    """
+    
     # __tablename__ = table_name
 
     # id = Column(String(100), primary_key=True)

@@ -5,6 +5,10 @@ from sqlalchemy.orm import declarative_mixin, declared_attr
 
 @declarative_mixin
 class TableConfigurationMixin:
+    """TableConfigurationMixin
+
+    desc : common table information
+    """    
 
     @declared_attr
     def __tablename__(cls):
