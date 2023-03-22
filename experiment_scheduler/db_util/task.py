@@ -8,20 +8,14 @@ from experiment_scheduler.db_util.mixin import TableConfigurationMixin
 table_name = "task"
 
 class Task(Base, TableConfigurationMixin):
-    """TaskManger
-
-    description : define TaskManger object
-
+    """Task
+    description : define Task object
+    ERD Table (link TLDR:)
     Args:
         Base (_type_): _description_
         TableConfigurationMixin (_type_): mixin
     """
-    
-    # __tablename__ = table_name
 
-    # id = Column(String(100), primary_key=True)
-    # created_at = Column(DateTime(timezone=True), server_default=now())
-    # last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
     experiment_id = Column(String(100), ForeignKey('experiment.id'))
     task_manager_id = Column(String(100), ForeignKey('taskmanager.id'))
     name = Column(String(100))

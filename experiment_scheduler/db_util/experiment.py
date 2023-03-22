@@ -10,21 +10,13 @@ table_name = "experiment"
 
 class Experiment(Base, TableConfigurationMixin):
     """Experimnet
-
     description : define Experiment object
-
-    ERD Table (link TLDR;)
-
+    ERD Table (link TLDR:)
     Args:
         Base (_type_): _description_
         TableConfigurationMixin (_type_): mixin
     """
 
-    # __tablename__ = table_name
-
-    # id = Column(String(100), primary_key=True)
-    # created_at = Column(DateTime(timezone=True), server_default=now())
-    # last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
     name = Column(String(100))
     status = Column(String(100))
     tasks = relationship("Task", back_populates="experiment")

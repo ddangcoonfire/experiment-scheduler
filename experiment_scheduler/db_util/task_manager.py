@@ -8,11 +8,13 @@ from experiment_scheduler.db_util.mixin import TableConfigurationMixin
 table_name = "task_manager"
 
 class TaskManager(Base, TableConfigurationMixin):
-    # __tablename__ = table_name
-
-    # id = Column(String(100), primary_key=True)
-    # created_at = Column(DateTime(timezone=True), server_default=now())
-    # last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
+    """TaskManger
+    description : define TaskManger object
+    ERD Table (link TLDR;)
+    Args:
+        Base (_type_): _description_
+        TableConfigurationMixin (_type_): mixin
+    """
 
     address = Column(String(100))
     default_log_file_path = Column(String(100))
