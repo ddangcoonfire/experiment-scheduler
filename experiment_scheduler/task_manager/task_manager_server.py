@@ -3,7 +3,6 @@
 import psutil
 import os
 import subprocess
-import ast
 from typing import Dict
 from concurrent import futures
 from os import path as osp
@@ -17,7 +16,6 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ServerStatus,
     TaskStatus,
     AllTasksStatus,
-    TaskLogInfo,
     TaskLogFile,
     IdleResources,
 )
@@ -225,12 +223,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         """
         Save an output of the requested task and return output file path.
         If status of the request task is Done, delete it from task manager.
+        The response is sent by streaming.
         """
         target_process = self._get_task(request.task_id)
         if target_process is None:
-            return TaskLogFile(log_file=None); ##None;
-
-        # log_file_path = osp.join(self.log_dir, f"{request.task_id}_log.txt")
+            return TaskLogFile(log_file=None)
 
         if self._get_process_return_code(request.task_id) is not None:
             del self.tasks[request.task_id]
@@ -246,9 +243,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
                         yield entry_response
                     else:
                         return
-
-
-        # return TaskLogFile(logfile_path=log_file_path)
 
     @start_end_logger
     def kill_task(self, request, context):

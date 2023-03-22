@@ -22,7 +22,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     AllTasksStatus,
     MasterResponse,
     ExperimentsStatus,
-    AllExperimentsStatus
+    AllExperimentsStatus,
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
@@ -155,34 +155,18 @@ class Master(MasterServicer):
         return response
 
     @start_end_logger
-    @io_logger
     def get_task_log(self, request, context):
         """
+        [Todo] Need to get info of task_manager and log_file_path through DB
         get log certain task
         :param request:
         :param context:
-        :return: log path
+        :return: log_file which is byte format and sent by streaming
         """
-        task_manager_address = self.get_task_managers_address[0]
+        task_manager_address = self.task_managers_address[0]
         task_logfile_path = os.getcwd()
-        if request.task_id in dict(self.queued_tasks).keys():
-            response = self.process_monitor.get_task_log(
-                task_manager_address, request.task_id, task_logfile_path
-            )
-            for task_log_chunk in self.process_monitor.get_task_log(task_manager_address, request.task_id,
-                                                                    task_logfile_path):
-                yield task_log_chunk
-        # elif request.task_id in dict(self.running_tasks).keys():
-        #     response = self.process_monitor.get_task_log(
-        #         self.running_tasks[request.task_id]["task_manager"], request.task_id
-        #     )
-        #     if response.status == TaskStatus.Status.KILLED:
-        #         del self.running_tasks[request.task_id]
-        # else:
-        #     response = self._wrap_by_task_status(
-        #         request.task_id, TaskStatus.Status.NOTFOUND
-        #     )
-        # return response
+        for response in self.process_monitor.get_task_log(task_manager_address, request.task_id, task_logfile_path):
+            yield response
 
     @start_end_logger
     @io_logger

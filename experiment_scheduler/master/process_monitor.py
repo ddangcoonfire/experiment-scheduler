@@ -138,13 +138,12 @@ class ProcessMonitor:
 
     def get_task_log(self, task_manager, task_id, log_file_path):
         """
-        FIXME
         :param task_manager:
         :param task_id:
-        :return:
+        :param log_file_path:
+        The response is sent by streaming.
         """
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
-        # return self.task_manager_stubs[task_manager].get_task_log(protobuf)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(protobuf):
             yield task_log_chunk
 

@@ -10,7 +10,7 @@ from experiment_scheduler.submitter.delete import main as exs_delete
 from experiment_scheduler.submitter.edit import main as exs_edit
 from experiment_scheduler.submitter.list import main as exs_list
 from experiment_scheduler.submitter.status import main as exs_status
-from experiment_scheduler.submitter.status import main as exs_logs
+from experiment_scheduler.submitter.log import main as exs_log
 from experiment_scheduler.submitter.init_master import main as exs_init_master
 from experiment_scheduler.submitter.init_task_manager import (
     main as exs_init_task_manager,
@@ -26,7 +26,7 @@ COMMAND_LIST = {
     "edit": exs_edit,
     "list": exs_list,
     "status": exs_status,
-    "logs": exs_logs,
+    "log": exs_log,
     "init_master": exs_init_master,
     "init_task_manager": exs_init_task_manager,
     "init_resource_monitor": exs_init_resource_monitor,
@@ -38,6 +38,7 @@ HELP_MESSAGE = {
     "edit": "edit task",
     "list": "list all registered tasks",
     "status": "get status of running tasks",
+    "log": "get log of the specific task",
     "init_master": "init master server",
     "init_task_manager": "init task manager server",
     "init_resource_monitor": "init resource monitor server",
