@@ -1,3 +1,5 @@
+exclude: "experiment_scheduler/master/grpc_master|experiment_scheduler/task_manager/grpc_task_manager|experiment_scheduler/resource_monitor"
+
 repos:
   - repo: https://github.com/PyCQA/isort
     rev: "5.12.0"
