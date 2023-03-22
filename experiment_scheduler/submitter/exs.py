@@ -75,7 +75,7 @@ def main():
     Select and execute a function from the command list.
     """
     name = parse_args().operation
-    del sys.argv[1]
+    del sys.argv[sys.argv.index(name)]
     COMMAND_LIST[name]()
 
 

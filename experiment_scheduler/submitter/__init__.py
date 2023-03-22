@@ -5,11 +5,11 @@ submitter is for
 import platform
 import sys
 import subprocess
-import os
+import os, signal
 import argparse
 import datetime
 from experiment_scheduler.common.settings import DEFAULT_EXS_HOME
-
+import time
 
 
 def parse_args():
@@ -26,16 +26,17 @@ def _run_as_default_process(command, target):
     task = subprocess.Popen(
         args=command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
-    # [TODO] Add Address
     print(f"now {target} is running")
-    while True:
-        decode_type = "utf-8"
-        if platform.system() == "Windows":
-            decode_type = "cp949"
-        output = task.stdout.readline().decode(decode_type)
-        if len(output) > 0:
-            print(output, end="")
-        sys.stdout.flush()
+    decode_type = "utf-8"
+    if platform.system() == "Windows":
+        decode_type = "cp949"
+    try:
+        for line in iter(task.stdout.readline, b''):
+            print(line.decode(decode_type))
+    except KeyboardInterrupt:
+        #task.kill()
+        os.kill(task.pid, signal.SIGINT)
+        task.wait()
 
 
 def _run_as_daemon_process(command, target):
