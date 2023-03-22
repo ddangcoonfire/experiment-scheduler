@@ -18,7 +18,6 @@ class TableConfigurationMixin:
     created_at = Column(DateTime(timezone=True), server_default=now())
     last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
 
-
     # def __init__(self):
     #     self._query = None
     #
