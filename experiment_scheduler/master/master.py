@@ -306,25 +306,22 @@ class Master(MasterServicer):
             response = MasterResponse(
                 experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
             )
-        elif task_id in dict(self.running_tasks).keys():
+        elif task_id in self.running_tasks.keys():
             response = self.process_monitor.kill_task(
                 self.running_tasks[task_id]["task_manager"], task_id
             )
             if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[task_id]
 
-            task_name = task_id.split("-")[0]
-            command = cmd
-            task_env = dict()
             self.queued_tasks[task_id] = MasterTaskStatement(
-                name=task_name, command=command, task_env=task_env
+                name=task_id.split("-")[0], command=cmd, task_env={}
             )
             response = MasterResponse(
                 experiment_id="0",
                 response=MasterResponse.ResponseStatus.SUCCESS,  # pylint: disable=E1101
             )
         else:
-            self.logger.info("wrong id")
+            self.logger.warning("Task to edit isn't running or waiting to run.")
             response = MasterResponse(
                 experiment_id="0",
                 response=MasterResponse.ResponseStatus.FAIL,  # pylint: disable=E1101

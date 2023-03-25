@@ -1,5 +1,5 @@
 """
-exs edit --tid [task_id] --cmd [cmd]
+exs edit --task-id [task_id] --cmd [cmd]
 If certain task need to be re-run with new configuration, use exs edit
 """
 import argparse
@@ -12,11 +12,11 @@ from experiment_scheduler.master.grpc_master import master_pb2_grpc
 
 def parse_args():
     """
-    parse only tid, cmd option.
+    parse only task-id, cmd option.
     :return: parsed_arguments
     """
     parser = argparse.ArgumentParser(description="Execute exeperiments.")
-    parser.add_argument("-t", "--tid")
+    parser.add_argument("-t", "--task-id")
     parser.add_argument("-c", "--cmd")
     return parser.parse_args()
 
@@ -28,7 +28,7 @@ def main():
     :return:
     """
     args = parse_args()
-    task_id = args.tid
+    task_id = args.task_id
     cmd = args.cmd
 
     channel = grpc.insecure_channel(
