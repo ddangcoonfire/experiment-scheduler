@@ -39,9 +39,11 @@ def main():
 
     request = master_pb2.EditTask(task_id=task_id, cmd=cmd, task_env=os.environ.copy())
     response = stub.edit_task(request)
-    print(response)
     # pylint: disable=no-member
-    if hasattr(response.status) and response.status == master_pb2.MasterResponse.ResponseStatus.FAIL:
+    if (
+        hasattr(response.status)
+        and response.status == master_pb2.MasterResponse.ResponseStatus.FAIL
+    ):
         print(
             f"Cannot edit {task_id}. Task does not exist or Already finished".format(
                 task_id=request.task_id
