@@ -12,7 +12,6 @@ if not database_exists(db_url):
     create_database(db_url)
 
 engine = create_engine(db_url, echo=True)
-
 Base = declarative_base()
 metadata = MetaData()
 Session = sessionmaker(bind=engine)

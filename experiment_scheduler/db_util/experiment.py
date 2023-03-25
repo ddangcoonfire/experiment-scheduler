@@ -1,11 +1,8 @@
 import sqlalchemy
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.functions import now
 from experiment_scheduler.db_util import Base, engine
 from experiment_scheduler.db_util.mixin import TableConfigurationMixin
-
-table_name = "experiment"
 
 
 class Experiment(Base, TableConfigurationMixin):
@@ -17,6 +14,7 @@ class Experiment(Base, TableConfigurationMixin):
         TableConfigurationMixin (_type_): mixin
     """
 
+    id = Column(String(100), primary_key=True)
     name = Column(String(100))
     status = Column(String(100))
     tasks = relationship(
@@ -27,5 +25,5 @@ class Experiment(Base, TableConfigurationMixin):
     )
 
 
-if not sqlalchemy.inspect(engine).has_table(table_name):
+if not sqlalchemy.inspect(engine).has_table(Experiment.get_table_name()):
     Base.metadata.create_all(engine)

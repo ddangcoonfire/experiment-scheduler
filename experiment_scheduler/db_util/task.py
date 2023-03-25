@@ -1,11 +1,7 @@
 import sqlalchemy
-from sqlalchemy import Column, String, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql.functions import now
+from sqlalchemy import Column, String
 from experiment_scheduler.db_util import Base, engine
 from experiment_scheduler.db_util.mixin import TableConfigurationMixin
-
-table_name = "task"
 
 
 class Task(Base, TableConfigurationMixin):
@@ -17,14 +13,14 @@ class Task(Base, TableConfigurationMixin):
         TableConfigurationMixin (_type_): mixin
     """
 
+    id = Column(String(100), primary_key=True)
     experiment_id = Column(String(100))
     task_manager_id = Column(String(100))
     name = Column(String(100))
     command = Column(String(100))
     status = Column(String(100))
-    logfile_name = Column(String(100))  # task_manager의 default_log_file_path에 branches
-    # experiment = relationship("Experiment", back_populates="tasks")
+    logfile_name = Column(String(100))
 
 
-if not sqlalchemy.inspect(engine).has_table(table_name):
+if not sqlalchemy.inspect(engine).has_table(Task.get_table_name()):
     Base.metadata.create_all(engine)

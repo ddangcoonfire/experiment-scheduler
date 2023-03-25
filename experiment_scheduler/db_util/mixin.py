@@ -30,11 +30,14 @@ class TableConfigurationMixin:
     def __tablename__(cls):
         return cls.__name__.lower()
 
-    id = Column(String(100), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=now())
     last_updated_date = Column(
         DateTime(timezone=True), onupdate=now(), server_default=now()
     )
+
+    @classmethod
+    def get_table_name(cls):
+        return cls.__tablename__
 
     # def __init__(self):
     #     self._query = None

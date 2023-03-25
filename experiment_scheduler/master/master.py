@@ -24,9 +24,10 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     ExperimentStatement,
     AllExperimentsStatus,
 )
-from experiment_scheduler.common import settings
+
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.db_util.task_manager import TaskManager
 from experiment_scheduler.db_util.experiment import Experiment
 from experiment_scheduler.db_util.task import Task
 
@@ -70,7 +71,12 @@ class Master(MasterServicer):
         Get Task Manager's address from experiment_scheduler.cfg
         :return: list of address
         """
-        return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+        task_manager_list = ast.literal_eval(
+            USER_CONFIG.get("default", "task_manager_address")
+        )
+        for idx, task_manager in enumerate(task_manager_list):
+            TaskManager.insert(TaskManager(id="tm_" + str(idx), address=task_manager))
+        return task_manager_list
 
     def _execute_command(self, interval=1) -> None:
         """
@@ -130,6 +136,7 @@ class Master(MasterServicer):
                 id=task_id,
                 name=task.name,
                 status=TaskStatus.Status.NOTSTART,
+                logfile_name=task_id + "_log.txt",
                 command=task.command,
             )
             exp_obj.tasks.append(task_obj)
