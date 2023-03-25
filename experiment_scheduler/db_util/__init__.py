@@ -5,7 +5,8 @@ from sqlalchemy_utils import database_exists, create_database
 
 SCHEMA_NAME = "test2"
 
-db_url = f"mysql+pymysql://root:@localhost:3306/{SCHEMA_NAME}?charset=utf8" # db_url = f"sqlite:///{SCHEMA_NAME}.db"
+db_url = f"sqlite:///{SCHEMA_NAME}.db"
+##db_url = f"mysql+pymysql://root:@localhost:3306/{SCHEMA_NAME}?charset=utf8" # db_url = f"sqlite:///{SCHEMA_NAME}.db"
 
 if not database_exists(db_url):
     create_database(db_url)

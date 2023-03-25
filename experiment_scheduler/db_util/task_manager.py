@@ -7,6 +7,7 @@ from experiment_scheduler.db_util.mixin import TableConfigurationMixin
 
 table_name = "task_manager"
 
+
 class TaskManager(Base, TableConfigurationMixin):
     """TaskManger
     description : define TaskManger object
@@ -19,7 +20,7 @@ class TaskManager(Base, TableConfigurationMixin):
     address = Column(String(100))
     default_log_file_path = Column(String(100))
     spec = Column(JSON)
-    tasks = relationship("Task", back_populates="task_manager")
+
 
 if not sqlalchemy.inspect(engine).has_table(table_name):
     Base.metadata.create_all(engine)
