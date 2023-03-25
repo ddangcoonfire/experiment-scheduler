@@ -5,6 +5,7 @@ If certain task need to be re-run with new configuration, use exs edit
 import argparse
 import ast
 import grpc
+import os
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
@@ -36,11 +37,11 @@ def main():
     )
     stub = master_pb2_grpc.MasterStub(channel)
 
-    request = master_pb2.EditTask(task_id=task_id, cmd=cmd)
+    request = master_pb2.EditTask(task_id=task_id, cmd=cmd, task_env=os.environ.copy())
     response = stub.edit_task(request)
-
+    print(response)
     # pylint: disable=no-member
-    if response.status == master_pb2.MasterResponse.ResponseStatus.FAIL:
+    if hasattr(response.status) and response.status == master_pb2.MasterResponse.ResponseStatus.FAIL:
         print(
             f"Cannot edit {task_id}. Task does not exist or Already finished".format(
                 task_id=request.task_id

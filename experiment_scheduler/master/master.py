@@ -28,6 +28,7 @@ from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 
+
 # pylint: disable=E1101
 def io_logger(func):
     def wrapper(self, *args, **kwargs):
@@ -298,9 +299,11 @@ class Master(MasterServicer):
             status=status,
         )
 
+    @start_end_logger
     def edit_task(self, request, context):
         task_id = request.task_id
         cmd = request.cmd
+        task_env = request.task_env
         if task_id in self.queued_tasks.keys():
             self.queued_tasks[task_id].command = cmd
             response = MasterResponse(
@@ -312,9 +315,8 @@ class Master(MasterServicer):
             )
             if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[task_id]
-
             self.queued_tasks[task_id] = MasterTaskStatement(
-                name=task_id.split("-")[0], command=cmd, task_env={}
+                name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
             )
             response = MasterResponse(
                 experiment_id="0",
