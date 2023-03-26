@@ -1,6 +1,21 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, declared_attr
+from experiment_scheduler.db_util import Session
+
+import logging
+
+logger = logging.getLogger()
+
+
+def io_logger(func):
+    def wrapper(self, *args, **kwargs):
+        self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
+        result = func(self, *args, **kwargs)
+        self.logger.debug(f"response.status : {result.status}")
+        return result
+
+    return wrapper
 
 
 @declarative_mixin
@@ -17,7 +32,9 @@ class TableConfigurationMixin:
 
     id = Column(String(100), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=now())
-    last_updated_date = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
+    last_updated_date = Column(
+        DateTime(timezone=True), onupdate=now(), server_default=now()
+    )
 
     # def __init__(self):
     #     self._query = None
@@ -34,3 +51,14 @@ class TableConfigurationMixin:
     #     if order_by:
     #         query = query.order_by(order_by)
     #     query.first()
+
+    @classmethod
+    def insert(cls, obj):
+        with Session() as session:
+            try:
+                session.add(obj)
+            except:
+                session.rollback()
+                raise
+            else:
+                session.commit()

@@ -19,7 +19,12 @@ class Experiment(Base, TableConfigurationMixin):
 
     name = Column(String(100))
     status = Column(String(100))
-    tasks = relationship("Task", back_populates="experiment")
+    tasks = relationship(
+        "Task",
+        primaryjoin="Experiment.id==Task.experiment_id",
+        foreign_keys="Task.experiment_id",
+        uselist=True,
+    )
 
 
 if not sqlalchemy.inspect(engine).has_table(table_name):

@@ -21,11 +21,14 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     AllTasksStatus,
     MasterResponse,
     ExperimentsStatus,
-    AllExperimentsStatus
+    ExperimentStatement,
+    AllExperimentsStatus,
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.db_util.experiment import Experiment
+from experiment_scheduler.db_util.task import Task
 
 
 def io_logger(func):
@@ -107,6 +110,12 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
+        exp_obj = Experiment(
+            id=experiment_id,
+            name=request.name,
+            status=ExperimentStatement.Status.RUNNING,
+            tasks=[],
+        )
         self.logger.info(
             f"create new experiment_id: {experiment_id}"
         )  # [FIXME] : set to logging pylint: disable=W0511
@@ -117,6 +126,13 @@ class Master(MasterServicer):
             self.logger.info(
                 f"├─task_id: {task_id}"
             )  # [FIXME] : set to logging pylint: disable=W0511
+            task_obj = Task(
+                id=task_id,
+                name=task.name,
+                status=TaskStatus.Status.NOTSTART,
+                command=task.command,
+            )
+            exp_obj.tasks.append(task_obj)
             self.queued_tasks[task_id] = task
             self.experiments[experiment_id].append(task_id)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -125,7 +141,9 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
+        # exp_obj.insert()
         # [todo] add task_id
+        Experiment.insert(exp_obj)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
     @start_end_logger
@@ -221,12 +239,14 @@ class Master(MasterServicer):
             for task_status in response.task_status_array:
                 if task_status.task_id in self.experiments[request.experiment_id]:
                     all_tasks_status.task_status_array.append(
-                        self._wrap_by_task_status(task_status.task_id, task_status.status)
+                        self._wrap_by_task_status(
+                            task_status.task_id, task_status.status
+                        )
                     )
             all_experiments_status.experiment_status_array.append(
                 ExperimentsStatus(
                     experiment_id=request.experiment_id,
-                    task_status_array=all_tasks_status
+                    task_status_array=all_tasks_status,
                 )
             )
         else:
@@ -239,22 +259,25 @@ class Master(MasterServicer):
                 for exp_id in self.experiments.keys():
                     if task_status.task_id in self.experiments[exp_id]:
                         response_dict[exp_id].task_status_array.append(
-                            self._wrap_by_task_status(task_status.task_id, task_status.status)
+                            self._wrap_by_task_status(
+                                task_status.task_id, task_status.status
+                            )
                         )
 
             for task_id in self.queued_tasks:
                 for exp_id in self.experiments.keys():
                     if task_id in self.experiments[exp_id]:
                         response_dict[exp_id].task_status_array.append(
-                            self._wrap_by_task_status(task_id=task_id, status=TaskStatus.Status.NOTSTART)
+                            self._wrap_by_task_status(
+                                task_id=task_id, status=TaskStatus.Status.NOTSTART
+                            )
                         )
 
             for exp_id in response_dict.keys():
                 print(response_dict[exp_id])
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=exp_id,
-                        task_status_array=response_dict[exp_id]
+                        experiment_id=exp_id, task_status_array=response_dict[exp_id]
                     )
                 )
 

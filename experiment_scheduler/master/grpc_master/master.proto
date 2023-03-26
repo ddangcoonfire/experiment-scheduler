@@ -2,9 +2,7 @@ syntax = "proto3";
 package experiment_scheduler.task_manager.grpc_task_manager;
 import "google/protobuf/empty.proto";
 
-
 option objc_class_prefix = "RTG";
-
 
 // Interface exported by the server.
 service Master {
@@ -23,6 +21,11 @@ service Master {
 
 message ExperimentStatement {
     string name = 1;
+    enum Status {
+        RUNNING = 0;
+        DONE = 1;
+        ABNORMAL = 2;
+    }
     repeated MasterTaskStatement tasks = 2;
 }
 message MasterTaskStatement {
