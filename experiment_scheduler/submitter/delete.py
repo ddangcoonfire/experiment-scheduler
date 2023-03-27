@@ -14,7 +14,7 @@ def parse_args():
     Todo
     :return:
     """
-    parser = argparse.ArgumentParser(description="Execute exeperiments.")
+    parser = argparse.ArgumentParser(description="Delete exeperiments.")
     parser.add_argument("-t", "--task")
     return parser.parse_args()
 

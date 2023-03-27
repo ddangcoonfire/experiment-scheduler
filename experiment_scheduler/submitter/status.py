@@ -3,10 +3,21 @@
 """
 import ast
 import grpc
+import argparse
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
 from experiment_scheduler.submitter.delete import parse_args
+
+def parse_args():
+    """
+    Todo
+    :return:
+    """
+    parser = argparse.ArgumentParser(description="Search status for specific Task.")
+    parser.add_argument("-t", "--task")
+    return parser.parse_args()
+
 
 
 def main():
