@@ -3,6 +3,7 @@
 import psutil
 import os
 import subprocess
+import ast
 from typing import Dict
 from concurrent import futures
 from os import path as osp
@@ -315,16 +316,20 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         return IdleResources(exists=self._resource_manager.has_available_resource())
 
 
-def serve(address):
+def serve():
     """run task manager server"""
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
-        TaskManagerServicer(), server
-    )
-    server.add_insecure_port(address)
-    server.start()
-    server.wait_for_termination()
 
+    with futures.ThreadPoolExecutor(max_workers=10) as pool:
+        server = grpc.server(pool)
+        task_manager_address = ast.literal_eval(USER_CONFIG.get("default","task_manager_address"))
+
+        task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
+            TaskManagerServicer(), server
+        )
+        server.add_insecure_port(task_manager_address[0]) # [TODO] set multiple task manager
+        server.start()
+        server.wait_for_termination()
+        print("Interrupt Occurs. Now closing...")
 
 if __name__ == "__main__":
-    serve("[::]:50051")
+    serve()
