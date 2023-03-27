@@ -9,7 +9,6 @@ import os, signal
 import argparse
 import datetime
 from experiment_scheduler.common.settings import DEFAULT_EXS_HOME
-import time
 
 
 def parse_args():
@@ -34,7 +33,6 @@ def _run_as_default_process(command, target):
         for line in iter(task.stdout.readline, b''):
             print(line.decode(decode_type))
     except KeyboardInterrupt:
-        #task.kill()
         os.kill(task.pid, signal.SIGINT)
         task.wait()
 
