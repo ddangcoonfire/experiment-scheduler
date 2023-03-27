@@ -27,6 +27,7 @@ from experiment_scheduler.task_manager.return_code import return_code
 from experiment_scheduler.common.settings import USER_CONFIG
 
 KILL_CHILD_MAX_DEPTH = 2
+CHUNK_SIZE = 1024
 
 
 class ProcessUtil:
@@ -67,7 +68,7 @@ class ProcessUtil:
 
     @staticmethod
     def kill_process_recursively(
-        process: psutil.Process, max_depth: int, cur_depth: int = 0
+            process: psutil.Process, max_depth: int, cur_depth: int = 0
     ) -> bool:
         """kill process recursively up to max depth.
 
@@ -223,27 +224,20 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
     def get_task_log(self, request, context):
         """
         Save an output of the requested task and return output file path.
-        If status of the request task is Done, delete it from task manager.
         The response is sent by streaming.
         """
-        target_process = self._get_task(request.task_id)
-        if target_process is None:
-            return TaskLogFile(log_file=None)
-
-        if self._get_process_return_code(request.task_id) is not None:
-            del self.tasks[request.task_id]
-
         log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
-        chunk_size = 1024
-        if os.path.exists(log_file_path):
-            with open(log_file_path, mode="rb") as f:
-                while True:
-                    chunk = f.read(chunk_size)
-                    if chunk:
-                        entry_response = TaskLogFile(log_file=chunk)
-                        yield entry_response
-                    else:
-                        return
+        try:
+            f = open(log_file_path, mode="rb")
+            while True:
+                chunk = f.read(CHUNK_SIZE)
+                if chunk:
+                    yield TaskLogFile(log_file=chunk)
+                else:
+                    return
+        except OSError:
+            logger.error(f"Getting the log for {request.task_id} fail")
+            yield TaskLogFile(log_file=None)
 
     @start_end_logger
     def kill_task(self, request, context):
@@ -321,15 +315,16 @@ def serve():
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
-        task_manager_address = ast.literal_eval(USER_CONFIG.get("default","task_manager_address"))
+        task_manager_address = ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server
         )
-        server.add_insecure_port(task_manager_address[0]) # [TODO] set multiple task manager
+        server.add_insecure_port(task_manager_address[0])  # [TODO] set multiple task manager
         server.start()
         server.wait_for_termination()
         print("Interrupt Occurs. Now closing...")
+
 
 if __name__ == "__main__":
     serve()
