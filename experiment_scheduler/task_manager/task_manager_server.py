@@ -27,7 +27,7 @@ from experiment_scheduler.task_manager.return_code import return_code
 from experiment_scheduler.common.settings import USER_CONFIG
 
 KILL_CHILD_MAX_DEPTH = 2
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 1024 * 5
 
 
 class ProcessUtil:
