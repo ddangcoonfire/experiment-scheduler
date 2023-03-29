@@ -2,22 +2,24 @@
 Communication with Task Manager through Process Monitor
 """
 
-from multiprocessing import Manager
 import threading
 import time
-from typing import Dict, List, Any
+from multiprocessing import Manager
+from typing import Any, Dict, List
+
 import grpc
 from grpc import RpcError
+
+from experiment_scheduler.common.logging import get_logger
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+    AllTasksStatus,
+    Task,
+    TaskStatement,
+    google_dot_protobuf_dot_empty__pb2,
+)
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
 )
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
-    TaskStatement,
-    AllTasksStatus,
-    Task,
-    google_dot_protobuf_dot_empty__pb2,
-)
-from experiment_scheduler.common.logging import get_logger
 
 PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
@@ -69,8 +71,9 @@ class ProcessMonitor:
                 except RpcError as error:
                     thread_queue[f"is_{task_manager}_healthy"] = False
                     self.logger.error(
-                        f"currently task manager {task_manager} is not available."
-                        f"error log : {error}"
+                        "currently task manager %s is not available.\n error log : %s",
+                        task_manager,
+                        error,
                     )
             time.sleep(time_interval)
 
@@ -146,6 +149,10 @@ class ProcessMonitor:
         return self.task_manager_stubs[task_manager].get_task_log(protobuf)
 
     def get_available_task_managers(self):
+        """
+        returns addresses of runnable task managers
+        :return:
+        """
         available_task_managers = []
         for tm_address, tm_stub in self.task_manager_stubs.items():
             if tm_stub.has_idle_resource(PROTO_EMPTY):

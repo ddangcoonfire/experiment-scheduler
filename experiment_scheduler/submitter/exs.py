@@ -5,19 +5,19 @@
 
 import argparse
 import sys
-from experiment_scheduler.submitter.execute import main as exs_execute
+
 from experiment_scheduler.submitter.delete import main as exs_delete
 from experiment_scheduler.submitter.edit import main as exs_edit
-from experiment_scheduler.submitter.list import main as exs_list
-from experiment_scheduler.submitter.status import main as exs_status
+from experiment_scheduler.submitter.execute import main as exs_execute
 from experiment_scheduler.submitter.init_master import main as exs_init_master
-from experiment_scheduler.submitter.init_task_manager import (
-    main as exs_init_task_manager,
-)
 from experiment_scheduler.submitter.init_resource_monitor import (
     main as exs_init_resource_monitor,
 )
-
+from experiment_scheduler.submitter.init_task_manager import (
+    main as exs_init_task_manager,
+)
+from experiment_scheduler.submitter.list import main as exs_list
+from experiment_scheduler.submitter.status import main as exs_status
 
 COMMAND_LIST = {
     "execute": exs_execute,
@@ -55,7 +55,8 @@ def parse_args():
         choices=COMMAND_LIST,
         metavar="OPERATION",
         help="\n".join(
-            "{}: {}".format(key, value) for key, value in HELP_MESSAGE.items()
+            "{}: {}".format(key, value)  # pylint: disable=consider-using-f-string
+            for key, value in HELP_MESSAGE.items()
         ),
     )
     parser.add_argument(
