@@ -66,7 +66,7 @@ def main():
     logger = get_client_logger(name=task_id, task_id=task_id)
     log_file_path = osp.join(f"{task_id}.txt")
     for response in responses:
-        if response.log_file == bytes("", "utf-8"):
+        if response.error_message:
             logger.error(response.error_message.decode("utf-8"))
             return
         print("hhh")
