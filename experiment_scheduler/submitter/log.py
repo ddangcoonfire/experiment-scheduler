@@ -67,11 +67,11 @@ def main():
     log_file_path = osp.join(f"{task_id}.txt")
     for response in responses:
         if response.log_file == bytes("", "utf-8"):
-            logger.error(f"There is no exist {task_id}_log")
+            logger.error(response.error_message.decode("utf-8"))
             return
+        print("hhh")
         logger.info(f"Start Getting Log [{task_id}]:")
         logger.info(f"{str(response.log_file,'utf-8')}")
         if file_download == "y":
             with open(log_file_path, mode="ab") as file:
                 file.write(response.log_file)
-

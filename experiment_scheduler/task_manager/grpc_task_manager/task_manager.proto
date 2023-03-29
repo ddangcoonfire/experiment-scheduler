@@ -72,4 +72,5 @@ message AllTasksStatus {
 }
 message TaskLogFile {
     bytes log_file = 1;
+    bytes error_message = 2;
 }

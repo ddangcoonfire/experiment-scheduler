@@ -236,8 +236,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
                 else:
                     return
         except OSError:
-            logger.error(f"Getting the log for {request.task_id} fail")
-            yield TaskLogFile(log_file=None)
+            error_message = f"Getting the log for {request.task_id} fail"
+            logger.error(error_message)
+            yield TaskLogFile(log_file=None, error_message=bytes(error_message, 'utf-8'))
 
     @start_end_logger
     def kill_task(self, request, context):

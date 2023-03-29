@@ -23,6 +23,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     MasterResponse,
     ExperimentsStatus,
     AllExperimentsStatus,
+    TaskLogFile
 )
 from experiment_scheduler.common import settings
 from experiment_scheduler.common.settings import USER_CONFIG
@@ -165,8 +166,11 @@ class Master(MasterServicer):
         """
         task_manager_address = self.task_managers_address[0]
         task_logfile_path = os.getcwd()
-        for response in self.process_monitor.get_task_log(task_manager_address, request.task_id, task_logfile_path):
-            yield response
+        if task_logfile_path == "":
+            yield TaskLogFile(log_file=None, error_message=bytes(f"Check task id", "utf-8"))
+        else:
+            for response in self.process_monitor.get_task_log(task_manager_address, request.task_id, task_logfile_path):
+                yield response
 
     @start_end_logger
     @io_logger
