@@ -22,7 +22,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ServerStatus,
     TaskLogFile,
     TaskStatus,
-    ProgressResponse
+    ProgressResponse,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
 
@@ -181,11 +181,11 @@ class Task:
         self._process = process
         self._history: List[Dict[str, float]] = []
 
-    def get_return_code(self):
+    def get_return_code(self) -> Optional[int]:
         return self._process.poll()
 
-    def register_progress(self, progress: Union[int, float], elapsed_time: float):
-        self._history.append({"progress" : progress, "time" : elapsed_time})
+    def register_progress(self, progress: Union[int, float], leap_second: float):
+        self._history.append({"progress": progress, "leap_second": leap_second})
 
     def get_progress(self) -> Optional[Union[int, float]]:
         if self._history:
@@ -271,7 +271,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     def _get_process_return_code(self, task_id: str):
         task = self.tasks.get(task_id)
         if task is None:
-            return False  # to be distinguished from None which means process is running.
+            return (
+                False  # to be distinguished from None which means process is running.
+            )
         return_code = task.get_return_code()
         if return_code is not None:
             self._resource_manager.release_resource(task_id)
@@ -361,22 +363,22 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     def report_progress(self, request, context):
         task = self._find_which_task_report(request.pid)
         if task is None:
-            logger.warning("task(pid : %d) can not be found", request.pid)
+            logger.warning("task(pid: %d) can not be found", request.pid)
             return ProgressResponse(received=False)
 
         task.register_progress(request.progress, request.leap_second)
         return ProgressResponse(received=True)
 
-    def _find_which_task_report(self, pid: int) -> Task:
-        tasks_pid = {task.get_pid() : task for task in self.tasks.values()}
+    def _find_which_task_report(self, pid: int) -> Optional[Task]:
+        tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
         pid_hierachy = [pid]
 
         try:
-            current_process = psutil.Process(self._pid)
+            current_process = psutil.Process(pid)
         except psutil.NoSuchProcess:
             return None
 
-        pid_hierachy += current_process.parents()
+        pid_hierachy += [process.pid for process in current_process.parents()]
 
         for pid in pid_hierachy:
             if pid in tasks_pid:
