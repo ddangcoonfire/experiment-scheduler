@@ -25,11 +25,13 @@ message ExperimentStatement {
     string name = 1;
     repeated MasterTaskStatement tasks = 2;
 }
+
 message MasterTaskStatement {
     string command = 1;
     string name = 2;
     map<string, string> task_env = 4;
 }
+
 message MasterResponse {
     string experiment_id = 1;
     enum ResponseStatus {
@@ -38,6 +40,7 @@ message MasterResponse {
     }
     ResponseStatus response = 2; // response가 의미하는 값은 Enum으로 정의
 }
+
 message TaskStatus {
     string task_id = 1;
     enum Status {
@@ -50,25 +53,32 @@ message TaskStatus {
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }
+
 message Task {
     string task_id = 1;
 }
+
 message Experiment {
     string experiment_id = 1;
 }
+
 message AllTasksStatus {
     repeated TaskStatus task_status_array= 1;
 }
+
 message ExperimentsStatus {
     string experiment_id = 1;
     AllTasksStatus task_status_array = 2;
 }
+
 message AllExperimentsStatus {
     repeated ExperimentsStatus experiment_status_array = 1;
 }
+
 message TaskLog {
     string logfile_path = 1;
 }
+
 message TaskLogFile {
     bytes log_file = 1;
     bytes error_message = 2;

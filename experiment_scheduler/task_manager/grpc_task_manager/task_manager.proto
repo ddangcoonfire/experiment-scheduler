@@ -38,15 +38,18 @@ service TaskManager {
 message ServerStatus {
     bool alive = 1;
 }
+
 message IdleResources {
     bool exists = 1;
 }
+
 message TaskStatement {
     string task_id = 1;
     string command = 2;
     string name = 3;
     map<string, string> task_env = 4;
 }
+
 message TaskStatus {
     string task_id = 1;
     enum Status {
@@ -60,16 +63,20 @@ message TaskStatus {
     }
     Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
 }
+
 message Task {
     string task_id = 1;
 }
+
 message TaskLogInfo {
     string task_id = 1;
     string log_file_path = 2;
 }
+
 message AllTasksStatus {
     repeated TaskStatus task_status_array = 1;
 }
+
 message TaskLogFile {
     bytes log_file = 1;
     bytes error_message = 2;
