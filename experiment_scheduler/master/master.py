@@ -21,6 +21,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     ExperimentsStatus,
     MasterResponse,
     TaskStatus,
+    MasterTaskStatement,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -29,6 +30,7 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 
 
+# pylint: disable=E1101
 def io_logger(func):
     """
     decorator for checking master's request and response
@@ -300,6 +302,38 @@ class Master(MasterServicer):
             status=status,
         )
 
+    @start_end_logger
+    def edit_task(self, request, context):
+        task_id = request.task_id
+        cmd = request.cmd
+        task_env = request.task_env
+        if task_id in self.queued_tasks.keys():
+            self.queued_tasks[task_id].command = cmd
+            response = MasterResponse(
+                experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
+            )
+        elif task_id in self.running_tasks.keys():
+            response = self.process_monitor.kill_task(
+                self.running_tasks[task_id]["task_manager"], task_id
+            )
+            if response.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[task_id]
+            self.queued_tasks[task_id] = MasterTaskStatement(
+                name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
+            )
+            response = MasterResponse(
+                experiment_id="0",
+                response=MasterResponse.ResponseStatus.SUCCESS,  # pylint: disable=E1101
+            )
+        else:
+            self.logger.warning("Task to edit isn't running or waiting to run.")
+            response = MasterResponse(
+                experiment_id="0",
+                response=MasterResponse.ResponseStatus.FAIL,  # pylint: disable=E1101
+            )
+
+        return response
+
 
 def serve():
     """
@@ -320,3 +354,4 @@ def serve():
 
 if __name__ == "__main__":
     serve()
+# pylint: enable=E1101
