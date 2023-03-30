@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.sql.functions import now
-from sqlalchemy.orm import declarative_mixin, declared_attr
+from sqlalchemy.orm import declarative_mixin, declared_attr, Query
 from experiment_scheduler.db_util import Session
 
 import logging
@@ -26,6 +26,7 @@ class TableConfigurationMixin:
         _type_: _description_
     """
 
+
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -39,21 +40,26 @@ class TableConfigurationMixin:
     def get_table_name(cls):
         return cls.__tablename__
 
-    # def __init__(self):
-    #     self._query = None
-    #
-    # def get_query(self, *args, **kwargs) -> Query:
-    #     query = self._query or Session.query(self)
-    #     return query
-    #
-    # def get(self, order_by: str = None, *args, **kwargs):
-    #     query: Query = self.get_query(*args, **kwargs)
-    #     query = query.filter(args)
-    #     query = query.filter_by(kwargs)
-    #
-    #     if order_by:
-    #         query = query.order_by(order_by)
-    #     query.first()
+    @classmethod
+    def list(cls, order_by: str = None, *args, **kwargs):
+        query: Query = Session().query(cls)
+        query = query.filter(*args)
+        query = query.filter_by(**kwargs)
+
+        if order_by:
+            query = query.order_by(order_by)
+        return query.all()
+
+    @classmethod
+    def get(cls, order_by: str = None, *args,  **kwargs):
+        query: Query = Session().query(cls)
+        query = query.filter(*args)
+        query = query.filter_by(**kwargs)
+
+        if order_by:
+            query = query.order_by(order_by)
+        return query.first()
+
 
     @classmethod
     def insert(cls, obj):
