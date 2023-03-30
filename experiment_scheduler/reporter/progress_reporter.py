@@ -29,7 +29,7 @@ def report_progress(progress) -> None:
     )
     response = stub.report_progress(input)
 
-    if response.response == task_manager_pb2.ProgressResponse.ReceivedStatus.FAIL:
+    if response.received_status == task_manager_pb2.ProgressResponse.ReceivedStatus.FAIL:
         logger.warning('fail to report progress')
 
 
