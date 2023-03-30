@@ -86,9 +86,13 @@ message TaskLogFile {
 message Progress {
     float progress = 1;
     double leap_second = 2;
-    int pid = 3;
+    int32 pid = 3;
 }
 
 message ProgressResponse {
-    bool received = 1;
+    enum ReceivedStatus {
+      SUCCESS = 0;
+      FAIL = 1;
+    }
+    ReceivedStatus received_status = 1;
 }
