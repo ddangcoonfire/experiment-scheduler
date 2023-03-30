@@ -27,8 +27,11 @@ def _run_as_default_process(command, target):
     )
     print(f"now {target} is running")
     try:
+        decode_type = "utf-8"
+        if platform.system() == "Windows":
+            decode_type = "cp949"
         for line in iter(task.stdout.readline, b''):
-            print(line.decode("utf-8"))
+            print(line.decode(decode_type))
     except KeyboardInterrupt:
         os.kill(task.pid, signal.SIGINT)
         task.wait()
