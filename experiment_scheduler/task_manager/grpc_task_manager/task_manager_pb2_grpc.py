@@ -51,6 +51,11 @@ class TaskManagerStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=task__manager__pb2.IdleResources.FromString,
                 )
+        self.report_progress = channel.unary_unary(
+                '/TaskManager/report_progress',
+                request_serializer=task__manager__pb2.Progress.SerializeToString,
+                response_deserializer=task__manager__pb2.ProgressResponse.FromString,
+                )
 
 
 class TaskManagerServicer(object):
@@ -94,6 +99,12 @@ class TaskManagerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def has_idle_resource(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def report_progress(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -264,5 +275,22 @@ class TaskManager(object):
         return grpc.experimental.unary_unary(request, target, '/TaskManager/has_idle_resource',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             task__manager__pb2.IdleResources.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def report_progress(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TaskManager/report_progress',
+            task__manager__pb2.Progress.SerializeToString,
+            task__manager__pb2.ProgressResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
