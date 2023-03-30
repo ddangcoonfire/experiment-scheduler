@@ -25,6 +25,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ProgressResponse,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
+from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 logger = get_logger(name="task_manager")
 
@@ -366,10 +367,13 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         task = self._find_which_task_report(request.pid)
         if task is None:
             logger.warning("task(pid: %d) can not be found", request.pid)
-            return ProgressResponse(received=False)
+            return ProgressResponse(
+                received_status=ProgressResponse.ReceivedStatus.FAIL
+            )
 
         task.register_progress(request.progress, request.leap_second)
-        return ProgressResponse(received=True)
+        logger.info(f"{task.get_pid()} {request.progress} {request.leap_second}")
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
     def _find_which_task_report(self, pid: int) -> Optional[Task]:
         tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
