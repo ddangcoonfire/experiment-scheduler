@@ -3,34 +3,41 @@ Master checks all task manager status and allocates jobs from user's yaml
 It is designed to run on localhost while task manager usually recommended to run on another work node.
 Still, running master process on remote server is possible.
 """
+import ast
+import threading
+import time
+import uuid
 from collections import OrderedDict
 from concurrent import futures
-import uuid
-import time
-import threading
-import ast
 from typing import List
+
 import grpc
-from experiment_scheduler.master.process_monitor import ProcessMonitor
+
+from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.master.grpc_master.master_pb2 import (
+    AllExperimentsStatus,
+    AllTasksStatus,
+    ExperimentsStatus,
+    MasterResponse,
+    TaskStatus,
+    MasterTaskStatement,
+)
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
 )
-from experiment_scheduler.master.grpc_master.master_pb2 import (
-    TaskStatus,
-    AllTasksStatus,
-    MasterResponse,
-    ExperimentsStatus,
-    AllExperimentsStatus,
-    MasterTaskStatement,
-)
-from experiment_scheduler.common import settings
-from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.master.process_monitor import ProcessMonitor
 
 
 # pylint: disable=E1101
 def io_logger(func):
+    """
+    decorator for checking master's request and response
+    :param func:
+    :return:
+    """
+
     def wrapper(self, *args, **kwargs):
         self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
         result = func(self, *args, **kwargs)
@@ -54,7 +61,7 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.experiments = dict()
+        self.experiments = {}
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
         self.task_managers_address: list = self.get_task_managers()
@@ -109,15 +116,12 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
-        self.logger.info(
-            f"create new experiment_id: {experiment_id}"
-        )  # [FIXME] : set to logging pylint: disable=W0511
-
+        self.logger.info("create new experiment_id: %s", experiment_id)
         self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
             self.logger.info(
-                f"├─task_id: {task_id}"
+                "├─task_id: %s", task_id
             )  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
             self.experiments[experiment_id].append(task_id)
@@ -235,13 +239,13 @@ class Master(MasterServicer):
             )
         else:
             response = self.process_monitor.get_all_tasks()
-            response_dict = dict()
-            for exp_id in self.experiments.keys():
+            response_dict = {}
+            for exp_id in self.experiments:
                 response_dict[exp_id] = AllTasksStatus()
 
             for task_status in response.task_status_array:
-                for exp_id in self.experiments.keys():
-                    if task_status.task_id in self.experiments[exp_id]:
+                for exp_id, task_list in self.experiments.items():
+                    if task_status.task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
                             self._wrap_by_task_status(
                                 task_status.task_id, task_status.status
@@ -249,19 +253,18 @@ class Master(MasterServicer):
                         )
 
             for task_id in self.queued_tasks:
-                for exp_id in self.experiments.keys():
-                    if task_id in self.experiments[exp_id]:
+                for exp_id, task_list in self.experiments.items():
+                    if task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
                             self._wrap_by_task_status(
                                 task_id=task_id, status=TaskStatus.Status.NOTSTART
                             )
                         )
 
-            for exp_id in response_dict.keys():
-                print(response_dict[exp_id])
+            for exp_id, task_status_array in response_dict.items():
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=exp_id, task_status_array=response_dict[exp_id]
+                        experiment_id=exp_id, task_status_array=task_status_array
                     )
                 )
 

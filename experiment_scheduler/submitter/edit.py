@@ -4,8 +4,8 @@ If certain task need to be re-run with new configuration, use exs edit
 """
 import argparse
 import ast
-import grpc
 import os
+import grpc
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
