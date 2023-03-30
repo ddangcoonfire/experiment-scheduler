@@ -24,7 +24,7 @@ def report_progress(progress) -> None:
 
     input = task_manager_pb2.Progress(
         progress=progress,
-        leap_seoncd=time.time(),
+        leap_second=time.time(),
         pid=os.getpid()
     )
     response = stub.report_progress(input)
