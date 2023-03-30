@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, DateTime
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, declared_attr, Query
 from experiment_scheduler.db_util import Session
@@ -26,7 +26,6 @@ class TableConfigurationMixin:
         _type_: _description_
     """
 
-
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -51,7 +50,7 @@ class TableConfigurationMixin:
         return query.all()
 
     @classmethod
-    def get(cls, order_by: str = None, *args,  **kwargs):
+    def get(cls, order_by: str = None, *args, **kwargs):
         query: Query = Session().query(cls)
         query = query.filter(*args)
         query = query.filter_by(**kwargs)
@@ -59,7 +58,6 @@ class TableConfigurationMixin:
         if order_by:
             query = query.order_by(order_by)
         return query.first()
-
 
     @classmethod
     def insert(cls, obj):
@@ -71,3 +69,6 @@ class TableConfigurationMixin:
                 raise
             else:
                 session.commit()
+
+    def commit(self):
+        Session.object_session(self).commit()
