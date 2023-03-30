@@ -9,33 +9,12 @@ from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
 # from experiment_scheduler.common.logging import get_logger
-import logging
 
-
-_level_color_map = {
-    logging.INFO: "\u001b[32m [INFO] " + "%(message)s" + "\u001b[0m",
-    logging.WARNING: "\u001b[33m [WARN] " + "%(message)s" + "\u001b[0m",
-    logging.ERROR: "\u001b[31m [ERROR] " + "%(message)s" + "\u001b[0m",
-}
-
-def get_client_logger(name, task_id, *args, **kwargs):
-    logger = logging.getLogger(name=name, *args, **kwargs)
-    ch = logging.StreamHandler()
-    ch.setFormatter(ClientLoggingFormatter())
-    logger.addHandler(ch)
-    logger.setLevel(logging.INFO)
-    return logger
-
-
-class ClientLoggingFormatter(logging.Formatter):
-    """
-    custom logging
-    """
-
-    def format(self, record: logging.LogRecord) -> str:
-        log_fmt = _level_color_map.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+class Log_Color:
+    INFO = "\u001b[32m [LOG] "
+    WARNING = "\u001b[33m [WARN] "
+    ERROR = "\u001b[31m [ERROR] "
+    END = '\033[0m'
 
 def parse_args():
     """
@@ -54,6 +33,7 @@ def main():
     :return:
     """
     args = parse_args()
+    print(args)
     task_id = args.task
     file_download = args.file
     channel = grpc.insecure_channel(
@@ -63,15 +43,13 @@ def main():
 
     request = master_pb2.Task(task_id=task_id)
     responses = stub.get_task_log(request)
-    logger = get_client_logger(name=task_id, task_id=task_id)
     log_file_path = osp.join(f"{task_id}.txt")
     for response in responses:
         if response.error_message:
-            logger.error(response.error_message.decode("utf-8"))
+            print(Log_Color.ERROR + response.error_message.decode("utf-8") + Log_Color.END)
             return
-        print("hhh")
-        logger.info(f"Start Getting Log [{task_id}]:")
-        logger.info(f"{str(response.log_file,'utf-8')}")
+        print(Log_Color.INFO + f"Start Getting Log [{task_id}]:" + Log_Color.END)
+        print(Log_Color.INFO + f"{str(response.log_file,'utf-8')}" + Log_Color.END)
         if file_download == "y":
             with open(log_file_path, mode="ab") as file:
                 file.write(response.log_file)
