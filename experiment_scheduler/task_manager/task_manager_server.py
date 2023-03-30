@@ -362,6 +362,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
     @start_end_logger
     def report_progress(self, request, context):
+        """ get and save progress of task """
         task = self._find_which_task_report(request.pid)
         if task is None:
             logger.warning("task(pid: %d) can not be found", request.pid)
@@ -374,6 +375,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
     def _find_which_task_report(self, pid: int) -> Optional[Task]:
+        """ find out all pids of task considering a case that pid is child process of task"""
         tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
         pid_hierachy = [pid]
 
