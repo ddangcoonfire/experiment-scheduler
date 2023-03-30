@@ -18,7 +18,7 @@ def report_progress(progress) -> None:
     progress : current progress of task
     """
     channel = grpc.insecure_channel(
-        ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+        ast.literal_eval(USER_CONFIG.get("default", "task_manager_address")[0])
     )
     stub = task_manager_pb2_grpc.TaskManagerStub(channel)
 
