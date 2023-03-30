@@ -23,7 +23,7 @@ def report_progress(progress) -> None:
     stub = task_manager_pb2_grpc.TaskManagerStub(channel)
 
     input = task_manager_pb2.Progress(
-        progress=git status`progress,
+        progress=progress,
         leap_seoncd=time.time(),
         pid=os.getpid()
     )
