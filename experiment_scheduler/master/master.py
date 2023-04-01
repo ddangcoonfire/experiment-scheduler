@@ -30,6 +30,7 @@ from experiment_scheduler.common.logging import get_logger, start_end_logger
 from experiment_scheduler.db_util.task_manager import TaskManager
 from experiment_scheduler.db_util.experiment import Experiment
 from experiment_scheduler.db_util.task import Task
+from experiment_scheduler.db_util import Session
 
 import logging
 
@@ -221,13 +222,13 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.KILLED
             )
 
+            
         elif request.task_id in dict(self.running_tasks).keys():
             response = self.process_monitor.kill_task(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
             if response.status == TaskStatus.Status.KILLED:
                 del self.running_tasks[request.task_id]
-
         else:
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
@@ -317,10 +318,16 @@ class Master(MasterServicer):
                 "task": prior_task,
                 "task_manager": task_manager,
             }
-            task_obj = Task.get(id=prior_task_id)
-            task_obj.status = TaskStatus.Status.RUNNING
-            task_obj.task_manager_id = TaskManager.get(address=task_manager).id
-            task_obj.commit()
+            
+            with Session() as session:
+                #task_obj = Task.get(id=prior_task_id)
+                task_obj = session.get(Task, prior_task_id)
+                #task_obj = session.query(Task).filter(Task.id==prior_task_id).first()
+                task_obj.status = TaskStatus.Status.RUNNING
+                task_obj.task_manager_id = TaskManager.get(address=task_manager).id
+
+                session.commit()
+
         else:
             self.queued_tasks[prior_task_id] = prior_task
             self.queued_tasks.move_to_end(prior_task_id, False)
