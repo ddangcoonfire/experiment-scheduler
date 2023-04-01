@@ -265,13 +265,13 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         """
         log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
         try:
-            f = open(log_file_path, mode="rb")
-            while True:
-                chunk = f.read(CHUNK_SIZE)
-                if chunk:
-                    yield TaskLogFile(log_file=chunk)
-                else:
-                    return
+            with open(log_file_path, mode="rb") as file:
+                while True:
+                    chunk = file.read(CHUNK_SIZE)
+                    if chunk:
+                        yield TaskLogFile(log_file=chunk)
+                    else:
+                        return
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
             logger.error(error_message)
