@@ -151,8 +151,6 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
-        # exp_obj.insert()
-        # [todo] add task_id
         Experiment.insert(exp_obj)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
@@ -318,27 +316,22 @@ class Master(MasterServicer):
                 "task": prior_task,
                 "task_manager": task_manager,
             }
-            
-            """ 
-            with Session() as session:
-                #task_obj = Task.get(id=prior_task_id)  <- not working
-                task_obj = session.get(Task, prior_task_id)                               <-
-                #task_obj = session.query(Task).filter(Task.id==prior_task_id).first()    <- choose one
-                task_obj.status = TaskStatus.Status.RUNNING
-                task_obj.task_manager_id = TaskManager.get(address=task_manager).id
 
-                session.commit()
+            task_obj = Task.get(id=prior_task_id)
+            task_obj.status = TaskStatus.Status.RUNNING
+            task_obj.task_manager_id = TaskManager.get(address=task_manager).id
+            task_obj.commit()
+
+            ### update using mixin method '.update()'
             """
-
-            ### update mixin method '.update()'
-            update_dict = {
-                "status" : TaskStatus.Status.RUNNING,
-                "task_manager_id" : TaskManager.get(address=task_manager).id
-            }
-
-            Task.update(id = prior_task_id, update = update_dict)
-            ###
-
+            in mac os(jinwoo's dev env), orm update with assignment operator is not working. 
+            """
+            # update_dict = {
+            #     "status" : TaskStatus.Status.RUNNING,
+            #     "task_manager_id" : TaskManager.get(address=task_manager).id
+            # }
+            #
+            # Task.update(id = prior_task_id, update = update_dict)
 
         else:
             self.queued_tasks[prior_task_id] = prior_task
