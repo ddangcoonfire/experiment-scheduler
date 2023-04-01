@@ -8,13 +8,17 @@ from os import path as osp
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
+
+
 # from experiment_scheduler.common.logging import get_logger
 
-class Log_Color:
+class LogColor:
+    """Provides colors setting for log"""
     INFO = "\u001b[32m [LOG] "
     WARNING = "\u001b[33m [WARN] "
     ERROR = "\u001b[31m [ERROR] "
     END = '\033[0m'
+
 
 def parse_args():
     """
@@ -46,10 +50,10 @@ def main():
     log_file_path = osp.join(f"{task_id}.txt")
     for response in responses:
         if response.error_message:
-            print(Log_Color.ERROR + response.error_message.decode("utf-8") + Log_Color.END)
+            print(LogColor.ERROR + response.error_message.decode("utf-8") + LogColor.END)
             return
-        print(Log_Color.INFO + f"Start Getting Log [{task_id}]:" + Log_Color.END)
-        print(Log_Color.INFO + f"{str(response.log_file,'utf-8')}" + Log_Color.END)
+        print(LogColor.INFO + f"Start Getting Log [{task_id}]:" + LogColor.END)
+        print(LogColor.INFO + f"{str(response.log_file, 'utf-8')}" + LogColor.END)
         if file_download == "y":
             with open(log_file_path, mode="ab") as file:
                 file.write(response.log_file)
