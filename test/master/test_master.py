@@ -22,13 +22,11 @@ def mockTaskId(run=True):
 
 
 class Task:
-
     def __init__(self, name):
         self.name = name
 
 
 class TestRequest:
-
     def __init__(self, *args, **kwargs):
         self.name = "test_name"
         self.tasks = [Task("task_name")]
@@ -81,19 +79,17 @@ class MockTask:
 
 
 class MockTaskWithStatus:
-
     def __init__(self, task_id, status):
         self.task_id = task_id
         self.status = status
 
 
 class MockTaskManagerAddress:
-
     def __init__(self, task_managers_address):
         self.address_list = task_managers_address
 
     def get_address_list(self):
-        return self.address_list;
+        return self.address_list
 
 
 class TestMaster(TestCase):
@@ -104,10 +100,21 @@ class TestMaster(TestCase):
     def setUp(self):
         Master.get_task_managers = Mock(return_value=mockGetTaskManagers())
         self.master = Master()
-        self.master.queued_tasks = OrderedDict([(mockTaskId(False), MockTask(None, False))])
+        self.master.queued_tasks = OrderedDict(
+            [(mockTaskId(False), MockTask(None, False))]
+        )
         self.master.running_tasks = OrderedDict(
-            [(mockTaskId(), {"task": MockTask(), "task_manager": "test_task_manager",
-                             "gpu_idx": 1})])
+            [
+                (
+                    mockTaskId(),
+                    {
+                        "task": MockTask(),
+                        "task_manager": "test_task_manager",
+                        "gpu_idx": 1,
+                    },
+                )
+            ]
+        )
 
     def tearDown(self):
         patch.stopall()
@@ -116,7 +123,7 @@ class TestMaster(TestCase):
     def test__execute_command(self, mock_time_sleep):
         # given
         self.master.execute_task = Mock()
-        mock_available_task_managers_address = MockTaskManagerAddress([1, 2, 3]);
+        mock_available_task_managers_address = MockTaskManagerAddress([1, 2, 3])
         self.master.process_monitor.get_available_task_managers = Mock(
             return_value=(mock_available_task_managers_address.get_address_list())
         )
@@ -125,7 +132,9 @@ class TestMaster(TestCase):
         self.assertRaises(Exception, lambda: self.master._execute_command())
 
         # then
-        self.master.execute_task.assert_called_with(mock_available_task_managers_address.get_address_list()[0])
+        self.master.execute_task.assert_called_with(
+            mock_available_task_managers_address.get_address_list()[0]
+        )
 
     def test_select_task_manager(self):
         # when
@@ -158,8 +167,7 @@ class TestMaster(TestCase):
         test_request = MockTask(None, False)
         self.master._wrap_by_task_status = Mock(
             return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
+                task_id=test_request.task_id, status=TaskStatus.Status.KILLED
             )
         )
 
@@ -175,8 +183,7 @@ class TestMaster(TestCase):
         test_request = MockTask()
         self.master.process_monitor.kill_task = Mock(
             return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
+                task_id=test_request.task_id, status=TaskStatus.Status.KILLED
             )
         )
 
@@ -192,8 +199,7 @@ class TestMaster(TestCase):
         test_request = MockTask("not_found_task_id")
         self.master.process_monitor.kill_task = Mock(
             return_value=master_pb2.TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.NOTFOUND
+                task_id=test_request.task_id, status=TaskStatus.Status.NOTFOUND
             )
         )
 
@@ -209,8 +215,7 @@ class TestMaster(TestCase):
         test_request = MockTask(None, False)
         self.master._wrap_by_task_status = Mock(
             return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.NOTSTART
+                task_id=test_request.task_id, status=TaskStatus.Status.NOTSTART
             )
         )
 
@@ -226,8 +231,7 @@ class TestMaster(TestCase):
         test_request = MockTask()
         self.master.process_monitor.get_task_status = Mock(
             return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.RUNNING
+                task_id=test_request.task_id, status=TaskStatus.Status.RUNNING
             )
         )
 
@@ -243,8 +247,7 @@ class TestMaster(TestCase):
         test_request = MockTask()
         self.master.process_monitor.get_task_status = Mock(
             return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
+                task_id=test_request.task_id, status=TaskStatus.Status.KILLED
             )
         )
 
@@ -254,7 +257,7 @@ class TestMaster(TestCase):
         # then
         self.assertEqual(test_request.task_id, test_return_value.task_id)
         self.assertEqual(TaskStatus.Status.KILLED, test_return_value.status)
-        self.assertEqual(None, self.master.running_tasks.get(test_request.task_id));
+        self.assertEqual(None, self.master.running_tasks.get(test_request.task_id))
 
     def test_get_status_not_found_task(self):
         # given
@@ -271,8 +274,7 @@ class TestMaster(TestCase):
         # given
         self.master.process_monitor.run_task = Mock(
             return_value=TaskStatus(
-                task_id=mockTaskId(False),
-                status=TaskStatus.Status.RUNNING
+                task_id=mockTaskId(False), status=TaskStatus.Status.RUNNING
             )
         )
         # when
@@ -281,4 +283,7 @@ class TestMaster(TestCase):
         # then
         self.assertEqual(mockTaskId(False), test_return_value.task_id)
         self.assertEqual(TaskStatus.Status.RUNNING, test_return_value.status)
-        self.assertEqual(self.master.running_tasks[test_return_value.task_id]['task_manager'], "test_task_manager")
+        self.assertEqual(
+            self.master.running_tasks[test_return_value.task_id]["task_manager"],
+            "test_task_manager",
+        )

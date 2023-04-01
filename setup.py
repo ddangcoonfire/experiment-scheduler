@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 def get_require_package():
-    with open('requirement.txt') as f:
+    with open("requirement.txt") as f:
         required = f.read().splitlines()
 
     return required

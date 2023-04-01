@@ -15,24 +15,22 @@ class responser(object):
         N.nvmlInit()
 
         def get_gpu_info(handle):
-
             def get_process_info(target_process):
                 process = {}
                 if nv_process.pid not in responser.global_processes:
-                    responser.global_processes[target_process.pid] = \
-                        psutil.Process(pid=target_process.pid)
-                process['pid'] = target_process.pid
+                    responser.global_processes[target_process.pid] = psutil.Process(
+                        pid=target_process.pid
+                    )
+                process["pid"] = target_process.pid
                 return process
 
             try:
-                nv_comp_processes = \
-                    N.nvmlDeviceGetComputeRunningProcesses(handle)
+                nv_comp_processes = N.nvmlDeviceGetComputeRunningProcesses(handle)
             except N.NVMLError as e:
                 logger.info("compute_processes", e)
                 nv_comp_processes = None
             try:
-                nv_graphics_processes = \
-                    N.nvmlDeviceGetGraphicsRunningProcesses(handle)
+                nv_graphics_processes = N.nvmlDeviceGetGraphicsRunningProcesses(handle)
             except N.NVMLError as e:
                 logger.info("graphics_processes", e)
                 nv_graphics_processes = None
@@ -54,8 +52,11 @@ class responser(object):
 
             util_info = N.nvmlDeviceGetUtilizationRates(handle)
 
-            return {'gpu-index': N.nvmlDeviceGetIndex(handle),
-                    'processes': processes, 'available_util': (100 - util_info.gpu)}
+            return {
+                "gpu-index": N.nvmlDeviceGetIndex(handle),
+                "processes": processes,
+                "available_util": (100 - util_info.gpu),
+            }
 
         gpu_all_stat = []
         device_count = N.nvmlDeviceGetCount()
@@ -70,8 +71,11 @@ class responser(object):
     @staticmethod
     def get_max_free_gpu():
         gpu_all_stat = responser.get_all_gpu_info()
-        max_free_gpu = {'gpu-index': -1, 'process': None, 'available_util': -1}
+        max_free_gpu = {"gpu-index": -1, "process": None, "available_util": -1}
         for gpu in gpu_all_stat:
-            if gpu.get('available_util') > max_free_gpu.get('available_util') and gpu.get('available_util') > 20:
+            if (
+                gpu.get("available_util") > max_free_gpu.get("available_util")
+                and gpu.get("available_util") > 20
+            ):
                 max_free_gpu = gpu
-        return max_free_gpu.get('gpu-index')
+        return max_free_gpu.get("gpu-index")

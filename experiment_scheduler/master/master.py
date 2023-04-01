@@ -220,7 +220,6 @@ class Master(MasterServicer):
                 request.task_id, TaskStatus.Status.KILLED
             )
 
-            
         elif request.task_id in dict(self.running_tasks).keys():
             response = self.process_monitor.kill_task(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
@@ -324,7 +323,7 @@ class Master(MasterServicer):
 
             ### update using mixin method '.update()'
             """
-            in mac os(jinwoo's dev env), orm update with assignment operator is not working. 
+            in mac os(jinwoo's dev env), orm update with assignment operator is not working.
             """
             # update_dict = {
             #     "status" : TaskStatus.Status.RUNNING,

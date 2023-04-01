@@ -20,13 +20,15 @@ class ResourceMonitorTest(TestCase):
     """
     test class for resource monitor.
     """
+
     def turnLocalServerOn(self):
         """
         turn grpc local server
         :return:
         """
         self._server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=10), options=(('grpc.so_reuseport', 5),)  # pylint:disable=R1732
+            futures.ThreadPoolExecutor(max_workers=10),
+            options=(("grpc.so_reuseport", 5),),  # pylint:disable=R1732
         )
         resource_monitor_pb2_grpc.add_ResourceMonitorServicer_to_server(
             ResourceMonitor(), self._server

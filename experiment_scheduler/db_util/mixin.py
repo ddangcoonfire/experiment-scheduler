@@ -83,4 +83,3 @@ class TableConfigurationMixin:
 
     def commit(self):
         Session.object_session(self).commit()
-

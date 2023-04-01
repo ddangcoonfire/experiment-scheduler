@@ -1,19 +1,19 @@
 # Experiment-Scheduler
-Running Same Experiments is boring, Kuberenetes is hard to install.   
+Running Same Experiments is boring, Kuberenetes is hard to install.
 For whom needs easily usable multiple-experiment environment, here's <b>experiment-scheduler</b>
 
 # About Experiment-Scheduler
-Experiment-Scheduler is open-source, for automating repeated experiments.   
-In some environments like where k8s is not supported, where you can only use is ssh servers with python, repeatedly running same experiments with different parameters would be annoying and boring.    
-By minimum settings and minimum effort, we provide distributed multi-experiment environment without affecting your already-completed server setting.    
-Our goal is make you only concentrate on experiment by providing easily, fastly constructable experiment tool.   
+Experiment-Scheduler is open-source, for automating repeated experiments.
+In some environments like where k8s is not supported, where you can only use is ssh servers with python, repeatedly running same experiments with different parameters would be annoying and boring.
+By minimum settings and minimum effort, we provide distributed multi-experiment environment without affecting your already-completed server setting.
+Our goal is make you only concentrate on experiment by providing easily, fastly constructable experiment tool.
 
 # Quick Start
 ## Installation
 ```shell
 pip3 install experiment-scheduler
 ```
-## Set address of master and task_manager 
+## Set address of master and task_manager
 (by default, it starts as local) <!-- must changed later -->
 ```python3
 # experiment_scheduler.cfg
@@ -62,8 +62,7 @@ What we are going to work on from v0.1 on the next few months :
 
 **Web Page for Experiment Tracking**
 
-- Create Web Page Running on localhost to check current status of master, task_manager.    
+- Create Web Page Running on localhost to check current status of master, task_manager.
 - Home, Logs, Status, Experiments pages will be served.
 
 **Autotesting for further development and dockerization**
-

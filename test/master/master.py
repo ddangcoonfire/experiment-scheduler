@@ -8,39 +8,52 @@ from experiment_scheduler.master.master import Master
 from experiment_scheduler.resource_monitor.resource_monitor import ResourceMonitor
 import grpc
 from concurrent import futures
-from experiment_scheduler.master.grpc_master.master_pb2_grpc import add_MasterServicer_to_server, MasterStub
-from experiment_scheduler.master.grpc_master.master_pb2 import ExperimentStatement, MasterTaskStatement, \
-    MasterResponse, TaskStatus
-from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import add_TaskManagerServicer_to_server, \
-    TaskManagerStub
+from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
+    add_MasterServicer_to_server,
+    MasterStub,
+)
+from experiment_scheduler.master.grpc_master.master_pb2 import (
+    ExperimentStatement,
+    MasterTaskStatement,
+    MasterResponse,
+    TaskStatus,
+)
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
+    add_TaskManagerServicer_to_server,
+    TaskManagerStub,
+)
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
-from experiment_scheduler.resource_monitor.grpc_resource_monitor.resource_monitor_pb2_grpc import add_ResourceMonitorServicer_to_server, \
-    ResourceMonitorStub
+from experiment_scheduler.resource_monitor.grpc_resource_monitor.resource_monitor_pb2_grpc import (
+    add_ResourceMonitorServicer_to_server,
+    ResourceMonitorStub,
+)
 from multiprocessing import Process, set_start_method
 
-TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'sample.yaml')
+TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), "sample.yaml")
 
 
 def turn_resource_monitor_on():
     resource_monitor = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     add_ResourceMonitorServicer_to_server(ResourceMonitor(), resource_monitor)
-    resource_monitor.add_insecure_port('[::]:50053')
+    resource_monitor.add_insecure_port("[::]:50053")
     print("Turn resource_monitor on for testing")
     resource_monitor.start()
     resource_monitor.wait_for_termination()
 
+
 def turn_master_on():
     master = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     add_MasterServicer_to_server(Master(), master)
-    master.add_insecure_port('[::]:50052')
+    master.add_insecure_port("[::]:50052")
     print("Turn master on for testing")
     master.start()
     master.wait_for_termination()
 
+
 def turn_task_manager_on():
     task_manager = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     add_TaskManagerServicer_to_server(TaskManagerServicer(), task_manager)
-    task_manager.add_insecure_port('[::]:50051')
+    task_manager.add_insecure_port("[::]:50051")
     print("Turn task manager on for testing")
     task_manager.start()
     task_manager.wait_for_termination()
@@ -48,16 +61,26 @@ def turn_task_manager_on():
 
 class MasterTester:
     def __init__(self):
-        master_process = Process(target=turn_master_on, )
+        master_process = Process(
+            target=turn_master_on,
+        )
         master_process.start()
-        task_manager_process = Process(target=turn_task_manager_on, )
+        task_manager_process = Process(
+            target=turn_task_manager_on,
+        )
         task_manager_process.start()
-        resource_monitor = Process(target=turn_resource_monitor_on(), )
+        resource_monitor = Process(
+            target=turn_resource_monitor_on(),
+        )
         resource_monitor.start()
         time.sleep(1)
-        self.task_manager_stub = TaskManagerStub(grpc.insecure_channel("localhost:50051"))
+        self.task_manager_stub = TaskManagerStub(
+            grpc.insecure_channel("localhost:50051")
+        )
         self.master_stub = MasterStub(grpc.insecure_channel("localhost:50052"))
-        self.resource_monitor_listener_stub = ResourceMonitorStub(grpc.insecure_channel("localhost:50053"))
+        self.resource_monitor_listener_stub = ResourceMonitorStub(
+            grpc.insecure_channel("localhost:50053")
+        )
 
     def test_master(self):
         self._request_experiments_test()
@@ -68,10 +91,12 @@ class MasterTester:
         submitter.server_on()
 
         def out(command):
-            result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True)
+            result = run(
+                command, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True
+            )
             return result.stdout
 
-        response = await out('exs execute -f sample.yaml')
+        response = await out("exs execute -f sample.yaml")
         print("result:: ", response)
         assert type(response.experiment_id) is str
         assert response.response is MasterResponse.ResponseStatus.SUCCESS
@@ -94,15 +119,22 @@ class MasterTester:
 
     def run_unit_test(self):
         self._run_example_experiment("name2", "test2")
-        status_list = self.master_stub.get_task_status(master_pb2.google_dot_protobuf_dot_empty__pb2.Empty())
+        status_list = self.master_stub.get_task_status(
+            master_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
+        )
         assert type(status_list) is master_pb2.AllTasksStatus
         get_status_response = self.master_stub.get_task_status(status_list[0][0])
         assert type(get_status_response.task_id) is str
-        assert get_status_response.response is (TaskStatus.Status.DONE or TaskStatus.Status.RUNNING
-                                                or TaskStatus.Status.NOTFOUND)
+        assert get_status_response.response is (
+            TaskStatus.Status.DONE
+            or TaskStatus.Status.RUNNING
+            or TaskStatus.Status.NOTFOUND
+        )
         kill_response = self.master_stub.kill_task(status_list[0][0])
         assert type(kill_response.task_id) is str
-        assert kill_response.response is (TaskStatus.Status.KILLED or TaskStatus.Status.DONE)
+        assert kill_response.response is (
+            TaskStatus.Status.KILLED or TaskStatus.Status.DONE
+        )
 
     def _run_example_experiment(self, name, test_name):
         master_task_statement = MasterTaskStatement()
