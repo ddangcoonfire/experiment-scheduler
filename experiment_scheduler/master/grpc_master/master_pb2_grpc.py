@@ -46,6 +46,11 @@ class MasterStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 )
+        self.edit_task = channel.unary_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/edit_task',
+                request_serializer=master__pb2.EditTask.SerializeToString,
+                response_deserializer=master__pb2.MasterResponse.FromString,
+                )
 
 
 class MasterServicer(object):
@@ -88,6 +93,12 @@ class MasterServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def edit_task(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -120,6 +131,11 @@ def add_MasterServicer_to_server(servicer, server):
                     servicer.halt_process_monitor,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'edit_task': grpc.unary_unary_rpc_method_handler(
+                    servicer.edit_task,
+                    request_deserializer=master__pb2.EditTask.FromString,
+                    response_serializer=master__pb2.MasterResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -231,5 +247,22 @@ class Master(object):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/halt_process_monitor',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def edit_task(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/edit_task',
+            master__pb2.EditTask.SerializeToString,
+            master__pb2.MasterResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
