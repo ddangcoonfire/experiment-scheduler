@@ -19,6 +19,7 @@ repos:
         entry: pylint
         language: system
         types: [python]
-        exclude: ^experiment_scheduler/master/grpc_master/
+        exclude: ^experiment_scheduler/master/grpc_master/|^experiment_scheduler/task_manager/grpc_task_manager/
         args:
           - --max-line-length=120
+          - --rcfile=.pylintrc

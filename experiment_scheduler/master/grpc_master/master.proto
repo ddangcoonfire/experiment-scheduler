@@ -19,6 +19,15 @@ service Master {
       rpc get_all_tasks(Experiment) returns (AllExperimentsStatus) {}
 
       rpc halt_process_monitor(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+      rpc edit_task(EditTask) returns (MasterResponse) {}
+
+}
+
+message EditTask {
+    string task_id = 1;
+    string cmd = 2;
+    map<string, string> task_env = 4;
 }
 
 message ExperimentStatement {
@@ -38,7 +47,7 @@ message MasterResponse {
         SUCCESS = 0;
         FAIL = 1;
     }
-    ResponseStatus response = 2; // response가 의미하는 값은 Enum으로 정의
+    ResponseStatus response = 2;
 }
 
 message TaskStatus {
@@ -51,7 +60,7 @@ message TaskStatus {
         ABNORMAL = 4;
         NOTFOUND = 5;
     }
-    Status status = 2; // TaskStatus가 의미하는 값은 Enum으로 정의
+    Status status = 2;
 }
 
 message Task {

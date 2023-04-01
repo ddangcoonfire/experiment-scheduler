@@ -2,12 +2,12 @@
 submitter is for
 [TODO] docstring
 """
-import platform
-import sys
-import subprocess
-import os, signal
 import argparse
 import datetime
+import os
+import signal
+import subprocess
+import sys
 from experiment_scheduler.common.settings import DEFAULT_EXS_HOME
 
 
@@ -22,33 +22,30 @@ def parse_args():
 
 
 def _run_as_default_process(command, target):
-    task = subprocess.Popen(
+    with subprocess.Popen(
         args=command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
-    print(f"now {target} is running")
-    try:
-        decode_type = "utf-8"
-        if platform.system() == "Windows":
-            decode_type = "cp949"
-        for line in iter(task.stdout.readline, b''):
-            print(line.decode(decode_type))
-    except KeyboardInterrupt:
-        os.kill(task.pid, signal.SIGINT)
-        task.wait()
+    ) as task:
+        print(f"now {target} is running")
+        try:
+            for line in iter(task.stdout.readline, b""):
+                print(line.decode("utf-8"))
+        except KeyboardInterrupt:
+            os.kill(task.pid, signal.SIGINT)
+            task.wait()
 
 
 def _run_as_daemon_process(command, target):
     file_name = (
         f"{target}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-log.txt"
     )
-    with open(file_name, "w") as log_file:
-        subprocess.Popen(
+    with open(file_name, "w", encoding="utf-8") as log_file:
+        with subprocess.Popen(
             args=command,
             stdout=log_file,
             stderr=log_file,
-        )
-    print(f"now {target} is running.")
-    print(f"tracking logs in {file_name}")
+        ):
+            print(f"now {target} is running.")
+            print(f"tracking logs in {file_name}")
 
 
 def server_on(target, script_location):

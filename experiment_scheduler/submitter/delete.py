@@ -3,10 +3,11 @@
 """
 import argparse
 import ast
+
 import grpc
+
 from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.master.grpc_master import master_pb2
-from experiment_scheduler.master.grpc_master import master_pb2_grpc
+from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 
 def parse_args():
@@ -32,11 +33,12 @@ def main():
     )
     stub = master_pb2_grpc.MasterStub(channel)
 
-    request = master_pb2.Task(task_id=task_id)
+    request = master_pb2.Task(task_id=task_id)  # pylint: disable=no-member
     response = stub.kill_task(request)
 
-    # pylint: disable=no-member
-    if response.status == master_pb2.TaskStatus.Status.KILLED or response.status == master_pb2.TaskStatus.Status.DONE:
+    if response.status in set(
+        master_pb2.TaskStatus.Status.KILLED, master_pb2.TaskStatus.Status.DONE
+    ):
         print(f"task {response.task_id} is deleted")
     else:
         print(f"fail to delete {response.task_id} task")
