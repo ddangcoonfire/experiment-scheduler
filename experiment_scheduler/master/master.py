@@ -319,14 +319,26 @@ class Master(MasterServicer):
                 "task_manager": task_manager,
             }
             
+            """ 
             with Session() as session:
-                #task_obj = Task.get(id=prior_task_id)
-                task_obj = session.get(Task, prior_task_id)
-                #task_obj = session.query(Task).filter(Task.id==prior_task_id).first()
+                #task_obj = Task.get(id=prior_task_id)  <- not working
+                task_obj = session.get(Task, prior_task_id)                               <-
+                #task_obj = session.query(Task).filter(Task.id==prior_task_id).first()    <- choose one
                 task_obj.status = TaskStatus.Status.RUNNING
                 task_obj.task_manager_id = TaskManager.get(address=task_manager).id
 
                 session.commit()
+            """
+
+            ### update mixin method '.update()'
+            update_dict = {
+                "status" : TaskStatus.Status.RUNNING,
+                "task_manager_id" : TaskManager.get(address=task_manager).id
+            }
+
+            Task.update(id = prior_task_id, update = update_dict)
+            ###
+
 
         else:
             self.queued_tasks[prior_task_id] = prior_task

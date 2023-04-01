@@ -70,5 +70,17 @@ class TableConfigurationMixin:
             else:
                 session.commit()
 
+    @classmethod
+    def update(cls, id, update):
+        with Session() as session:
+            try:
+                session.query(cls).filter_by(id=id).update(update)
+            except:
+                session.rollback()
+                raise
+            else:
+                session.commit()
+
     def commit(self):
         Session.object_session(self).commit()
+
