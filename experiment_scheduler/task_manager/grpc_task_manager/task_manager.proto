@@ -24,7 +24,7 @@ service TaskManager {
 
   rpc run_task(TaskStatement) returns (TaskStatus) {}
 
-  rpc get_task_log(Task) returns (TaskLog) {}
+  rpc get_task_log(TaskLogInfo) returns (stream TaskLogFile) {}
 
   rpc kill_task(Task) returns (TaskStatus) {}
 
@@ -68,10 +68,16 @@ message Task {
     string task_id = 1;
 }
 
+message TaskLogInfo {
+    string task_id = 1;
+    string log_file_path = 2;
+}
+
 message AllTasksStatus {
     repeated TaskStatus task_status_array = 1;
 }
 
-message TaskLog {
-    string logfile_path = 1;
+message TaskLogFile {
+    bytes log_file = 1;
+    bytes error_message = 2;
 }

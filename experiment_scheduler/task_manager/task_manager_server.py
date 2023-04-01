@@ -18,7 +18,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     AllTasksStatus,
     IdleResources,
     ServerStatus,
-    TaskLog,
+    TaskLogFile,
     TaskStatus,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
@@ -26,6 +26,7 @@ from experiment_scheduler.task_manager.return_code import ReturnCode
 logger = get_logger(name="task_manager")
 
 KILL_CHILD_MAX_DEPTH = 2
+CHUNK_SIZE = 1024 * 5
 
 
 class ProcessUtil:
@@ -260,18 +261,21 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     def get_task_log(self, request, context):
         """
         Save an output of the requested task and return output file path.
-        If status of the requeest task is Done, delete it from task manager.
+        The response is sent by streaming.
         """
-        target_process = self._get_task(request.task_id)
-        if target_process is None:
-            return TaskStatus(logfile_path="")
-
-        log_file_path = osp.join(self.log_dir, f"{request.task_id}_log.txt")
-
-        if self._get_process_return_code(request.task_id) is not None:
-            del self.tasks[request.task_id]
-
-        return TaskLog(logfile_path=log_file_path)
+        log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
+        try:
+            with open(log_file_path, mode="rb") as file:
+                while True:
+                    chunk = file.read(CHUNK_SIZE)
+                    if chunk:
+                        yield TaskLogFile(log_file=chunk)
+                    else:
+                        return
+        except OSError:
+            error_message = f"Getting the log for {request.task_id} fail"
+            logger.error(error_message)
+            yield TaskLogFile(log_file=None, error_message=bytes(error_message, 'utf-8'))
 
     @start_end_logger
     def kill_task(self, request, context):

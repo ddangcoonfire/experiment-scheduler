@@ -4,6 +4,7 @@ It is designed to run on localhost while task manager usually recommended to run
 Still, running master process on remote server is possible.
 """
 import ast
+import os
 import threading
 import time
 import uuid
@@ -22,6 +23,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     MasterResponse,
     TaskStatus,
     MasterTaskStatement,
+    TaskLogFile
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -160,29 +162,20 @@ class Master(MasterServicer):
         return response
 
     @start_end_logger
-    @io_logger
     def get_task_log(self, request, context):
         """
         get log certain task
         :param request:
         :param context:
-        :return: log path
+        :return: log_file which is byte format and sent by streaming
         """
-        if request.task_id in dict(self.queued_tasks).keys():
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTSTART
-            )
-        elif request.task_id in dict(self.running_tasks).keys():
-            response = self.process_monitor.get_task_log(
-                self.running_tasks[request.task_id]["task_manager"], request.task_id
-            )
-            if response.status == TaskStatus.Status.KILLED:
-                del self.running_tasks[request.task_id]
+        task_manager_address = self.task_managers_address[0]
+        task_logfile_path = os.getcwd()
+        if task_logfile_path == "":
+            yield TaskLogFile(log_file=None, error_message=bytes("Check task id", "utf-8"))
         else:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTFOUND
-            )
-        return response
+            for response in self.process_monitor.get_task_log(task_manager_address, request.task_id, task_logfile_path):
+                yield response
 
     @start_end_logger
     @io_logger

@@ -8,8 +8,6 @@ import os
 import signal
 import subprocess
 import sys
-import time
-
 from experiment_scheduler.common.settings import DEFAULT_EXS_HOME
 
 
