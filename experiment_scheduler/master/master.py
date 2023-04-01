@@ -3,39 +3,47 @@ Master checks all task manager status and allocates jobs from user's yaml
 It is designed to run on localhost while task manager usually recommended to run on another work node.
 Still, running master process on remote server is possible.
 """
+import ast
+import threading
+import time
+import uuid
 from collections import OrderedDict
 from concurrent import futures
-import uuid
-import time
-import threading
-import ast
 from typing import List
+
 import grpc
-from experiment_scheduler.master.process_monitor import ProcessMonitor
+
+from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.master.grpc_master.master_pb2 import (
+    AllExperimentsStatus,
+    AllTasksStatus,
+    MasterResponse,
+    TaskStatus,
+    MasterTaskStatement,
+    ExperimentsStatus,
+    ExperimentStatement,
+)
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
     add_MasterServicer_to_server,
 )
-from experiment_scheduler.master.grpc_master.master_pb2 import (
-    TaskStatus,
-    AllTasksStatus,
-    MasterResponse,
-    ExperimentsStatus,
-    ExperimentStatement,
-    AllExperimentsStatus,
-)
+from experiment_scheduler.master.process_monitor import ProcessMonitor
 
-from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.db_util.connection import initialize_db
 from experiment_scheduler.db_util.task_manager import TaskManager
 from experiment_scheduler.db_util.experiment import Experiment
 from experiment_scheduler.db_util.task import Task
-from experiment_scheduler.db_util import Session
-
-import logging
 
 
+# pylint: disable=E1101
 def io_logger(func):
+    """
+    decorator for checking master's request and response
+    :param func:
+    :return:
+    """
+
     def wrapper(self, *args, **kwargs):
         self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
         result = func(self, *args, **kwargs)
@@ -59,7 +67,7 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.experiments = dict()
+        self.experiments = {}
         self.queued_tasks = OrderedDict()
         self.running_tasks = OrderedDict()
         self.task_managers_address: list = self.get_task_managers()
@@ -119,21 +127,18 @@ class Master(MasterServicer):
         :return:
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
+        self.logger.info("create new experiment_id: %s", experiment_id)
         exp_obj = Experiment(
             id=experiment_id,
             name=request.name,
             status=ExperimentStatement.Status.RUNNING,
             tasks=[],
         )
-        self.logger.info(
-            f"create new experiment_id: {experiment_id}"
-        )  # [FIXME] : set to logging pylint: disable=W0511
-
         self.experiments[experiment_id] = []
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
             self.logger.info(
-                f"├─task_id: {task_id}"
+                "├─task_id: %s", task_id
             )  # [FIXME] : set to logging pylint: disable=W0511
             task_obj = Task(
                 id=task_id,
@@ -151,6 +156,7 @@ class Master(MasterServicer):
             if experiment_id is not None
             else response_status.FAIL
         )
+        # [todo] add task_id
         Experiment.insert(exp_obj)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
@@ -213,13 +219,11 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-
         if request.task_id in dict(self.queued_tasks).keys():
             del self.queued_tasks[request.task_id]
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.KILLED
             )
-
         elif request.task_id in dict(self.running_tasks).keys():
             response = self.process_monitor.kill_task(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
@@ -230,7 +234,6 @@ class Master(MasterServicer):
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-
         return response
 
     @start_end_logger
@@ -262,13 +265,13 @@ class Master(MasterServicer):
             )
         else:
             response = self.process_monitor.get_all_tasks()
-            response_dict = dict()
-            for exp_id in self.experiments.keys():
+            response_dict = {}
+            for exp_id in self.experiments:
                 response_dict[exp_id] = AllTasksStatus()
 
             for task_status in response.task_status_array:
-                for exp_id in self.experiments.keys():
-                    if task_status.task_id in self.experiments[exp_id]:
+                for exp_id, task_list in self.experiments.items():
+                    if task_status.task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
                             self._wrap_by_task_status(
                                 task_status.task_id, task_status.status
@@ -276,19 +279,18 @@ class Master(MasterServicer):
                         )
 
             for task_id in self.queued_tasks:
-                for exp_id in self.experiments.keys():
-                    if task_id in self.experiments[exp_id]:
+                for exp_id, task_list in self.experiments.items():
+                    if task_id in task_list:
                         response_dict[exp_id].task_status_array.append(
                             self._wrap_by_task_status(
                                 task_id=task_id, status=TaskStatus.Status.NOTSTART
                             )
                         )
 
-            for exp_id in response_dict.keys():
-                print(response_dict[exp_id])
+            for exp_id, task_status_array in response_dict.items():
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=exp_id, task_status_array=response_dict[exp_id]
+                        experiment_id=exp_id, task_status_array=task_status_array
                     )
                 )
 
@@ -343,6 +345,38 @@ class Master(MasterServicer):
             status=status,
         )
 
+    @start_end_logger
+    def edit_task(self, request, context):
+        task_id = request.task_id
+        cmd = request.cmd
+        task_env = request.task_env
+        if task_id in self.queued_tasks.keys():
+            self.queued_tasks[task_id].command = cmd
+            response = MasterResponse(
+                experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
+            )
+        elif task_id in self.running_tasks.keys():
+            response = self.process_monitor.kill_task(
+                self.running_tasks[task_id]["task_manager"], task_id
+            )
+            if response.status == TaskStatus.Status.KILLED:
+                del self.running_tasks[task_id]
+            self.queued_tasks[task_id] = MasterTaskStatement(
+                name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
+            )
+            response = MasterResponse(
+                experiment_id="0",
+                response=MasterResponse.ResponseStatus.SUCCESS,  # pylint: disable=E1101
+            )
+        else:
+            self.logger.warning("Task to edit isn't running or waiting to run.")
+            response = MasterResponse(
+                experiment_id="0",
+                response=MasterResponse.ResponseStatus.FAIL,  # pylint: disable=E1101
+            )
+
+        return response
+
 
 def serve():
     """
@@ -351,6 +385,7 @@ def serve():
     :return: None
     """
 
+    initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
@@ -363,3 +398,4 @@ def serve():
 
 if __name__ == "__main__":
     serve()
+# pylint: enable=E1101

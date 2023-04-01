@@ -1,25 +1,11 @@
 from sqlalchemy import Column, DateTime
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, declared_attr, Query
-from experiment_scheduler.db_util import Session
-
-import logging
-
-logger = logging.getLogger()
-
-
-def io_logger(func):
-    def wrapper(self, *args, **kwargs):
-        self.logger.debug(f"task_id from request : {args[1].task_id}")  # request
-        result = func(self, *args, **kwargs)
-        self.logger.debug(f"response.status : {result.status}")
-        return result
-
-    return wrapper
+from experiment_scheduler.db_util.connection import Session
 
 
 @declarative_mixin
-class TableConfigurationMixin:
+class DbCommonMixin:
     """TableConfigurationMixin
     desc : common table information
     Returns:
@@ -28,6 +14,12 @@ class TableConfigurationMixin:
 
     @declared_attr
     def __tablename__(cls):
+        """
+        set Table Name for saving metadata
+        :param request: none
+        :param context: none
+        :return: table name
+        """
         return cls.__name__.lower()
 
     created_at = Column(DateTime(timezone=True), server_default=now())
@@ -37,10 +29,21 @@ class TableConfigurationMixin:
 
     @classmethod
     def get_table_name(cls):
+        """
+        get Table Name
+        :param request: none
+        :param context: none
+        :return: table name
+        """
         return cls.__tablename__
 
     @classmethod
     def list(cls, order_by: str = None, *args, **kwargs):
+        """
+        select all data conditionally in certain table
+        :param request: condition, order
+        :return: data(s)
+        """
         query: Query = Session().query(cls)
         query = query.filter(*args)
         query = query.filter_by(**kwargs)
@@ -51,6 +54,11 @@ class TableConfigurationMixin:
 
     @classmethod
     def get(cls, order_by: str = None, *args, **kwargs):
+        """
+        select a data conditionally in certain table
+        :param request: condition, order
+        :return: data
+        """
         query: Query = Session().query(cls)
         query = query.filter(*args)
         query = query.filter_by(**kwargs)
@@ -61,6 +69,11 @@ class TableConfigurationMixin:
 
     @classmethod
     def insert(cls, obj):
+        """
+        insert data in certain table
+        :param request: instance of pre-defined class
+        :return: none
+        """
         with Session() as session:
             try:
                 session.add(obj)
@@ -72,6 +85,12 @@ class TableConfigurationMixin:
 
     @classmethod
     def update(cls, id, update):
+        """
+        update data having request id in certain table
+        this method is temporal for testing
+        :param request: id, instance of pre-defined class
+        :return: none
+        """
         with Session() as session:
             try:
                 session.query(cls).filter_by(id=id).update(update)
@@ -82,4 +101,9 @@ class TableConfigurationMixin:
                 session.commit()
 
     def commit(self):
+        """
+        for using orm update, need to commit at update
+        :param request: id, instance of pre-defined class
+        :return: none
+        """
         Session.object_session(self).commit()

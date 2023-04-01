@@ -1,10 +1,10 @@
 import sqlalchemy
 from sqlalchemy import Column, String
-from experiment_scheduler.db_util import Base, engine
-from experiment_scheduler.db_util.mixin import TableConfigurationMixin
+from experiment_scheduler.db_util.connection import Base, engine
+from experiment_scheduler.db_util.mixin import DbCommonMixin
 
 
-class Task(Base, TableConfigurationMixin):
+class Task(Base, DbCommonMixin):
     """Task
     description : define Task object
     ERD Table (link TLDR:)

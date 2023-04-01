@@ -1,12 +1,10 @@
-import logging
-
 import sqlalchemy
 from sqlalchemy import Column, String, JSON
-from experiment_scheduler.db_util import Base, engine
-from experiment_scheduler.db_util.mixin import TableConfigurationMixin
+from experiment_scheduler.db_util.connection import Base, engine
+from experiment_scheduler.db_util.mixin import DbCommonMixin
 
 
-class TaskManager(Base, TableConfigurationMixin):
+class TaskManager(Base, DbCommonMixin):
     """TaskManger
     description : define TaskManger object
     ERD Table (link TLDR;)

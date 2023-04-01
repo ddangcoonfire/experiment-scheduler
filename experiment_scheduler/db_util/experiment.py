@@ -1,11 +1,11 @@
 import sqlalchemy
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
-from experiment_scheduler.db_util import Base, engine
-from experiment_scheduler.db_util.mixin import TableConfigurationMixin
+from experiment_scheduler.db_util.connection import Base, engine
+from experiment_scheduler.db_util.mixin import DbCommonMixin
 
 
-class Experiment(Base, TableConfigurationMixin):
+class Experiment(Base, DbCommonMixin):
     """Experimnet
     description : define Experiment object
     ERD Table (link TLDR:)

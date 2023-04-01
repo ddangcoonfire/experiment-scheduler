@@ -1,30 +1,29 @@
 """This file is in charge of server code run as daemon process."""
 
-import psutil
+import ast
 import os
 import subprocess
-import ast
-from typing import Dict
 from concurrent import futures
 from os import path as osp
+from typing import Dict
 
 import grpc
-
+import psutil
 import pynvml
 
+from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
-    ServerStatus,
-    TaskStatus,
     AllTasksStatus,
-    TaskLog,
     IdleResources,
+    ServerStatus,
+    TaskLog,
+    TaskStatus,
 )
-from experiment_scheduler.common.logging import get_logger, start_end_logger
+from experiment_scheduler.task_manager.return_code import ReturnCode
 
 logger = get_logger(name="task_manager")
-from experiment_scheduler.task_manager.return_code import return_code
-from experiment_scheduler.common.settings import USER_CONFIG
 
 KILL_CHILD_MAX_DEPTH = 2
 
@@ -48,6 +47,10 @@ class ProcessUtil:
 
     @property
     def pid(self):
+        """
+        return process id
+        :return: pid
+        """
         return self._pid
 
     def kill_itself_with_child_process(self, max_depth: int) -> bool:
@@ -96,18 +99,37 @@ class ProcessUtil:
 
 
 class ResourceManager:
+    """
+    Resource Manager checks task manager's status.
+    """
+
     def __init__(self, num_resource: int):
         self._resource_rental_history = {}
         self._available_resources = [True for _ in range(num_resource)]
         self.logger = get_logger(name="resource_manager")
 
     def set_resource_as_idle(self, resource_idx: int):
+        """
+
+        :param resource_idx:
+        :return:
+        """
         self._available_resources[resource_idx] = True
 
     def set_resource_as_used(self, resource_idx: int):
+        """
+
+        :param resource_idx:
+        :return:
+        """
         self._available_resources[resource_idx] = False
 
     def release_resource(self, task_id):
+        """
+
+        :param task_id:
+        :return:
+        """
         if task_id not in self._resource_rental_history:
             return
         resource_idx = self._resource_rental_history[task_id]
@@ -115,6 +137,11 @@ class ResourceManager:
         del self._resource_rental_history[task_id]
 
     def get_resource(self, task_id):
+        """
+
+        :param task_id:
+        :return:
+        """
         resource_idx = None
         for idx, resource_is_idle in enumerate(self._available_resources):
             if resource_is_idle:
@@ -130,22 +157,30 @@ class ResourceManager:
         return resource_idx
 
     def has_available_resource(self):
+        """
+
+        :return:
+        """
         for resource_is_idle in self._available_resources:
             if resource_is_idle:
                 return True
         return False
 
     def get_tasks_using_resource(self):
+        """
+
+        :return:
+        """
         return list(self._resource_rental_history.keys())
 
 
-class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code):
+class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode):
     """Provides methods that implement functionality of task manager server."""
 
     # pylint: disable=no-member
 
     def __init__(self, log_dir=os.getcwd()):
-        super(return_code).__init__()
+        super(ReturnCode).__init__()
         self.tasks: Dict[str, subprocess.Popen] = {}
         self.log_dir = log_dir
         self._use_gpu = True
@@ -164,6 +199,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
     @property
     def use_gpu(self):
+        """
+
+        :return:
+        """
         return self._use_gpu
 
     def health_check(self, request, context):
@@ -184,8 +223,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
 
         if self.use_gpu:
             request.task_env["CUDA_VISIBLE_DEVICES"] = str(resource_idx)
-
-        task = subprocess.Popen(
+        with subprocess.Popen(
             args=request.command,
             shell=True,
             env=request.task_env,
@@ -193,9 +231,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
-        )
-
-        self.tasks[task_id] = task
+        ) as task:
+            self.tasks[task_id] = task
 
         self.logger.info("%s is now running!", task_id)
 
@@ -240,7 +277,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self._get_task(request.task_id)
-        self.logger.info("kill task with id : {}".format(request.task_id))
+        self.logger.info("kill task with id : %s", request.task_id)
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
@@ -253,11 +290,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, return_code
         if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
             self.logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
-        else:
-            self.logger.info("Fail to kill %s", request.task_id)
-            return TaskStatus(
-                task_id=request.task_id, status=TaskStatus.Status.ABNORMAL
-            )
+        self.logger.info("Fail to kill %s", request.task_id)
+        return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.ABNORMAL)
 
     @start_end_logger
     def get_task_status(self, request, context):

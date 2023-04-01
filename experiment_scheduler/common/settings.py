@@ -4,6 +4,7 @@ In package, these variables work like constant, but they need initial setting.
 """
 import configparser
 import os
+
 import experiment_scheduler
 
 
@@ -15,7 +16,7 @@ def _set_user_config():
     parser = configparser.ConfigParser()
     config_path = os.path.join(DEFAULT_EXS_HOME, "experiment_scheduler.cfg")
     parser.read(config_path)
-    print("Set configuration path to %s" % config_path)
+    print("Set configuration path to %s", config_path)
     return parser
 
 

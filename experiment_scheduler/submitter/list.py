@@ -3,10 +3,12 @@
 """
 import argparse
 import ast
-import grpc
 import os
+
+import grpc
+
 from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.master.grpc_master import master_pb2_grpc, master_pb2
+from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 TASK_STATUS = ["waiting", "running", "done", "killed", "abnormal", "not found"]
 
@@ -40,7 +42,7 @@ def main():
 
     # print(response)
 
-    if args.verbose == True:
+    if args.verbose:
         for exp_status in response.experiment_status_array:
             exp_array_without_last = exp_status.task_status_array.task_status_array[:-1]
             exp_array_last = exp_status.task_status_array.task_status_array[-1]
@@ -57,12 +59,15 @@ def main():
             exp_array_without_last = exp_status.task_status_array.task_status_array[:-1]
             exp_array_last = exp_status.task_status_array.task_status_array[-1]
             print(
-                f"experiment_id: {exp_status.experiment_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}}"
+                f"experiment_id: "
+                f"{exp_status.experiment_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}}"
             )
             for task_status in exp_array_without_last:
                 print(
-                    f"\t├─ {task_status.task_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}} ({TASK_STATUS[task_status.status]})"
+                    f"\t├─ {task_status.task_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}} "
+                    f"({TASK_STATUS[task_status.status]})"
                 )
             print(
-                f"\t└─ {exp_array_last.task_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}} ({TASK_STATUS[exp_array_last.status]})"
+                f"\t└─ {exp_array_last.task_id[:70]:{100 if ter_col_size - 20 > 100 else ter_col_size - 20}} "
+                f"({TASK_STATUS[exp_array_last.status]})"
             )

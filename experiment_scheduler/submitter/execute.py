@@ -5,11 +5,12 @@
 import argparse
 import ast
 import os
-import yaml
+
 import grpc
+import yaml
+
 from experiment_scheduler.common.settings import USER_CONFIG
-from experiment_scheduler.master.grpc_master import master_pb2
-from experiment_scheduler.master.grpc_master import master_pb2_grpc
+from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 
 def parse_args():
@@ -27,7 +28,7 @@ def parse_input_file(parsed_yaml):
     """
     Parse yaml and change yaml shape to experiment statement shape for grpc
     """
-    input = master_pb2.ExperimentStatement(
+    input_file = master_pb2.ExperimentStatement(
         name=parsed_yaml["name"],
         tasks=[
             master_pb2.MasterTaskStatement(
@@ -36,7 +37,7 @@ def parse_input_file(parsed_yaml):
             for task in parsed_yaml["tasks"]
         ],
     )
-    return input
+    return input_file
 
 
 def main():
@@ -47,8 +48,8 @@ def main():
     args = parse_args()
     file_path = args.file
 
-    with open(file_path) as f:
-        parsed_yaml = yaml.load(f, Loader=yaml.FullLoader)
+    with open(file_path, "r", encoding="utf-8") as file_pointer:
+        parsed_yaml = yaml.load(file_pointer, Loader=yaml.FullLoader)
     channel = grpc.insecure_channel(
         ast.literal_eval(USER_CONFIG.get("default", "master_address"))
     )
