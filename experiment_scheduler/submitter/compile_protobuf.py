@@ -1,3 +1,5 @@
+"""Command to compile protobuf."""
+
 import subprocess
 import re
 from pathlib import Path
@@ -14,44 +16,54 @@ except ImportError:
 
 PROTO_PATH = [grpc_master, grpc_task_manager]
 
-    
+
 def compile_proto_file(proto_file: Union[str, Path]):
+    """Compile protobuf file."""
     proto_file = Path(proto_file)
-    subprocess.run([
-        "python", "-m", "grpc_tools.protoc",
-        f"--proto_path={proto_file.parent}",
-        f"--python_out={proto_file.parent}",
-        f"--pyi_out={proto_file.parent}",
-        f"--grpc_python_out={proto_file.parent}",
-        str(proto_file)
-    ])
+    subprocess.run(
+        [
+            "python",
+            "-m",
+            "grpc_tools.protoc",
+            f"--proto_path={proto_file.parent}",
+            f"--python_out={proto_file.parent}",
+            f"--pyi_out={proto_file.parent}",
+            f"--grpc_python_out={proto_file.parent}",
+            str(proto_file),
+        ],
+        check=False,
+    )
 
     pb2_grpc_file = proto_file.parent / f"{proto_file.stem}_pb2_grpc.py"
-    with pb2_grpc_file.open("r") as f:
-        lines = f.readlines()
+    with pb2_grpc_file.open("r") as file:
+        lines = file.readlines()
 
     pb2_file = f"{proto_file.stem}_pb2"
     abs_pb2_file = pb2_file
     for key in reversed(proto_file.parent.parts):
-        abs_pb2_file = f"{key}." + abs_pb2_file 
+        abs_pb2_file = f"{key}." + abs_pb2_file
         if key == "experiment_scheduler":
             break
 
-    with pb2_grpc_file.open("w") as f:
+    with pb2_grpc_file.open("w") as file:
         for line in lines:
-            if  pb2_file in line:
-                line = re.sub(rf'{pb2_file}', rf'{abs_pb2_file}', line)
-            f.write(line)
+            if pb2_file in line:
+                line = re.sub(rf"{pb2_file}", rf"{abs_pb2_file}", line)
+            file.write(line)
 
 
 def main():
+    """Main function."""
     if grpc_tools is None:
-        import grpc
-        print(f"grpc_tools isn't installed. Please install grpc_tools=={grpc.__version__}")
+        import grpc  # pylint: disable=import-outside-toplevel
+
+        print(
+            f"grpc_tools isn't installed. Please install grpc_tools=={grpc.__version__}"
+        )
         return
 
     for sub_package in PROTO_PATH:
-        pkg_using_proto = Path(sub_package.__file__).parent 
+        pkg_using_proto = Path(sub_package.__file__).parent
         for proto_file in pkg_using_proto.rglob("*.proto"):
             compile_proto_file(proto_file)
 
