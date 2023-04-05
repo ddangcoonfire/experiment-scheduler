@@ -11,6 +11,7 @@ services:
       - init_master
     environment:
       - PYTHONUNBUFFERED=1
+      - EXS_TASK_MANAGER_ADDRESS=task_manager:50051
   task_manager:
     image: experiment_scheduler:latest
     container_name: task_manager
