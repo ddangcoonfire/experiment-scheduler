@@ -208,7 +208,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     # pylint: disable=no-member, unused-argument
 
     def __init__(self, log_dir=os.getcwd()):
-        super(ReturnCode).__init__()
+        super().__init__()
         self.tasks: Dict[str, Task] = {}
         self.log_dir = log_dir
         self._use_gpu = True
