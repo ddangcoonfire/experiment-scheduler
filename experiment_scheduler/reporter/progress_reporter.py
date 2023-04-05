@@ -10,7 +10,8 @@ from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
 from experiment_scheduler.common.logging import get_logger
 
-logger = get_logger(name='reporter')
+logger = get_logger(name="reporter")
+
 
 def report_progress(progress) -> None:
     """
@@ -22,15 +23,13 @@ def report_progress(progress) -> None:
     )
     stub = task_manager_pb2_grpc.TaskManagerStub(channel)
 
-    input = task_manager_pb2.Progress(
-        progress=progress,
-        leap_second=time.time(),
-        pid=os.getpid()
+    progress = task_manager_pb2.Progress(
+        progress=progress, leap_second=time.time(), pid=os.getpid()
     )
-    response = stub.report_progress(input)
+    response = stub.report_progress(progress)
 
-    if response.received_status == task_manager_pb2.ProgressResponse.ReceivedStatus.FAIL:
-        logger.warning('fail to report progress')
-
-
-
+    if (
+        response.received_status
+        == task_manager_pb2.ProgressResponse.ReceivedStatus.FAIL
+    ):
+        logger.warning("fail to report progress")
