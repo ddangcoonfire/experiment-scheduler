@@ -4,6 +4,7 @@ from os import path as osp
 
 import pytest
 from experiment_scheduler.task_manager import task_manager_server
+from experiment_scheduler.task_manager.task_manager_server import Task
 from experiment_scheduler.task_manager.grpc_task_manager import (
     task_manager_pb2,
     task_manager_pb2_grpc,
@@ -270,3 +271,21 @@ class TestRunTsak:
 
         with pytest.raises(TypeError):
             task_manager_service.run_task(task_statement, None)
+
+
+class TestTask:
+    def test_task(self, mocker):
+        Task(mocker.MagicMock())
+
+    def test_get_return_code(self, mocker):
+        # prepare
+        mock_popen = mocker.MagicMock()
+        expected_ret_val = 1
+        mock_popen.poll.return_value = expected_ret_val
+        task = Task(mock_popen)
+
+        # run
+        ret = task.get_return_code()
+
+        # check
+        assert ret == expected_ret_val
