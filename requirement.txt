@@ -6,3 +6,5 @@ pynvml
 protobuf
 psutil
 pyfiglet
+sqlalchemy
+sqlalchemy-utils
