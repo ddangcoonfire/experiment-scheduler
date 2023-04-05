@@ -37,6 +37,7 @@ def main():
     )
     stub = master_pb2_grpc.MasterStub(channel)
 
+    # pylint: disable=E1101
     request = master_pb2.EditTask(task_id=task_id, cmd=cmd, task_env=os.environ.copy())
     response = stub.edit_task(request)
     # pylint: disable=no-member
