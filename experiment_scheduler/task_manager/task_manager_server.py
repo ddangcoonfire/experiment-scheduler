@@ -1,13 +1,11 @@
 """This file is in charge of server code run as daemon process."""
 
-import ast
 import os
 import subprocess
 import ast
 from typing import Dict, List, Optional, Union
 from concurrent import futures
 from os import path as osp
-from typing import Dict
 
 import grpc
 import psutil
@@ -25,7 +23,6 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ProgressResponse,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
-from experiment_scheduler.common.logging import get_logger, start_end_logger
 
 logger = get_logger(name="task_manager")
 
@@ -177,30 +174,38 @@ class ResourceManager:
         :return:
         """
         return list(self._resource_rental_history.keys())
+
+
 class Task:
+    """Wrapper class for Task."""
+
     def __init__(self, process: subprocess.Popen):
         self._process = process
         self._history: List[Dict[str, float]] = []
 
     def get_return_code(self) -> Optional[int]:
+        """Get return code."""
         return self._process.poll()
 
     def register_progress(self, progress: Union[int, float], leap_second: float):
+        """Register progress."""
         self._history.append({"progress": progress, "leap_second": leap_second})
 
     def get_progress(self) -> Optional[Union[int, float]]:
+        """Get latest progress."""
         if self._history:
             return self._history[-1]["progress"]
         return None
 
     def get_pid(self) -> int:
+        """Get pid."""
         return self._process.pid
 
 
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode):
     """Provides methods that implement functionality of task manager server."""
 
-    # pylint: disable=no-member
+    # pylint: disable=no-member, unused-argument
 
     def __init__(self, log_dir=os.getcwd()):
         super(task_manager_pb2_grpc.TaskManagerServicer, self).__init__()
@@ -246,11 +251,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         if self.use_gpu:
             request.task_env["CUDA_VISIBLE_DEVICES"] = str(resource_idx)
-        task =  subprocess.Popen(
+        task = subprocess.Popen(  # pylint: disable=consider-using-with
             args=request.command,
             shell=True,
             env=request.task_env,
-            stdout=open(
+            stdout=open(  # pylint: disable=consider-using-with
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
@@ -359,12 +364,13 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return TaskStatus.Status.ABNORMAL
 
     def has_idle_resource(self, request, context):
+        """Check there is available resource."""
         self._release_unused_resource()
         return IdleResources(exists=self._resource_manager.has_available_resource())
 
     @start_end_logger
     def report_progress(self, request, context):
-        """ get and save progress of task """
+        """get and save progress of task"""
         task = self._find_which_task_report(request.pid)
         if task is None:
             logger.warning("task(pid: %d) can not be found", request.pid)
@@ -373,16 +379,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             )
 
         task.register_progress(request.progress, request.leap_second)
-        logger.info(f"{task.get_pid()} {request.progress} {request.leap_second}")
         return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
-    def _find_which_task_report(self, pid: int) -> Optional[Task]:
-        """ find out all pids of task considering a case that pid is child process of task"""
+    def _find_which_task_report(self, current_pid: int) -> Optional[Task]:
+        """find out all pids of task considering a case that pid is child process of task"""
         tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
-        pid_hierachy = [pid]
+        pid_hierachy = [current_pid]
 
         try:
-            current_process = psutil.Process(pid)
+            current_process = psutil.Process(current_pid)
         except psutil.NoSuchProcess:
             return None
 
