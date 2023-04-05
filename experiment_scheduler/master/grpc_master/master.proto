@@ -32,6 +32,11 @@ message EditTask {
 
 message ExperimentStatement {
     string name = 1;
+    enum Status {
+        RUNNING = 0;
+        DONE = 1;
+        ABNORMAL = 2;
+    }
     repeated MasterTaskStatement tasks = 2;
 }
 

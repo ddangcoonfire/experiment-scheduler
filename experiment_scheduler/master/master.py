@@ -20,6 +20,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     AllExperimentsStatus,
     AllTasksStatus,
     ExperimentsStatus,
+    ExperimentStatement,
     MasterResponse,
     TaskStatus,
     MasterTaskStatement,
@@ -31,6 +32,10 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 )
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 
+from experiment_scheduler.db_util.connection import initialize_db
+from experiment_scheduler.db_util.task_manager import TaskManager
+from experiment_scheduler.db_util.experiment import Experiment
+from experiment_scheduler.db_util.task import Task
 
 # pylint: disable=E1101
 def io_logger(func):
@@ -85,6 +90,8 @@ class Master(MasterServicer):
             address = ast.literal_eval(
                 USER_CONFIG.get("default", "task_manager_address")
             )
+        for idx, task_manager in enumerate(address):
+            TaskManager.insert(TaskManager(id="tm_" + str(idx), address=task_manager))
         return address
 
     def _execute_command(self, interval=1) -> None:
@@ -127,6 +134,12 @@ class Master(MasterServicer):
         experiment_id = request.name + "-" + str(uuid.uuid1())
         self.logger.info("create new experiment_id: %s", experiment_id)
         self.experiments[experiment_id] = []
+        exp_obj = Experiment(
+            id=experiment_id,
+            name=request.name,
+            status=ExperimentStatement.Status.RUNNING,
+            tasks=[],
+        )
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
             self.logger.info(
@@ -134,6 +147,14 @@ class Master(MasterServicer):
             )  # [FIXME] : set to logging pylint: disable=W0511
             self.queued_tasks[task_id] = task
             self.experiments[experiment_id].append(task_id)
+            task_obj = Task(
+                id=task_id,
+                name=task.name,
+                status=TaskStatus.Status.NOTSTART,
+                logfile_name=task_id + "_log.txt",
+                command=task.command,
+            )
+            exp_obj.tasks.append(task_obj)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
         response = (
             response_status.SUCCESS
@@ -141,6 +162,7 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         # [todo] add task_id
+        Experiment.insert(exp_obj)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
     @start_end_logger
@@ -293,6 +315,10 @@ class Master(MasterServicer):
                 "task": prior_task,
                 "task_manager": task_manager,
             }
+            task_obj = Task.get(id=prior_task_id)
+            task_obj.status = TaskStatus.Status.RUNNING
+            task_obj.task_manager_id = TaskManager.get(address=task_manager).id
+            task_obj.commit()
         else:
             self.queued_tasks[prior_task_id] = prior_task
             self.queued_tasks.move_to_end(prior_task_id, False)
@@ -343,7 +369,7 @@ def serve():
     If an anomaly action erupt, kill process monitor before close master object
     :return: None
     """
-
+    initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
         master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
