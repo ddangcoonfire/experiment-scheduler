@@ -1,0 +1,29 @@
+services:
+  master:
+    image: experiment_scheduler:latest
+    container_name: master
+    ports:
+      - "50052:50052"
+    networks:
+      - exs-nt
+    entrypoint:
+      - exs
+      - init_master
+    environment:
+      - PYTHONUNBUFFERED=1
+  task_manager:
+    image: experiment_scheduler:latest
+    container_name: task_manager
+    ports:
+      - "50051:50051"
+    networks:
+      - exs-nt
+    entrypoint:
+      - exs
+      - init_task_manager
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  exs-nt:
+    external: false

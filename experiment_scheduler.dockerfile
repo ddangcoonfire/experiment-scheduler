@@ -1,10 +1,8 @@
 FROM python:3.9
 
 RUN pip install update
-COPY . .
-
+ADD requirement.txt requirement.txt
 RUN pip install -r requirement.txt
 
+COPY . .
 RUN pip install -e .
-
-ENTRYPOINT ["exs", "init_master"]
