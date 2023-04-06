@@ -18,6 +18,7 @@ from experiment_scheduler.submitter.init_task_manager import (
 )
 from experiment_scheduler.submitter.list import main as exs_list
 from experiment_scheduler.submitter.status import main as exs_status
+from experiment_scheduler.submitter.compile_protobuf import main as exs_compile
 
 COMMAND_LIST = {
     "execute": exs_execute,
@@ -29,6 +30,7 @@ COMMAND_LIST = {
     "init_master": exs_init_master,
     "init_task_manager": exs_init_task_manager,
     "init_resource_monitor": exs_init_resource_monitor,
+    "grpc_compile": exs_compile,
 }
 
 HELP_MESSAGE = {
