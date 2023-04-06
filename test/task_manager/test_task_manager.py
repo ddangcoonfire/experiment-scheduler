@@ -16,7 +16,6 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 )
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
 
-
 @pytest.fixture
 def task_manager_service(tmp_path):
     return TaskManagerServicer(tmp_path)
@@ -72,7 +71,7 @@ class mock_task_id:
         self.status = {"RUNNING": "1", "DONE": "2", "KILLED": "3", "NOTFOUND": "4"}
 
 
-class TestClass:
+class TestTaskManagerServicer:
     task_id = mock_task_id()
 
     @pytest.fixture
@@ -224,6 +223,8 @@ class TestClass:
                 == task_manager_servicer.tasks[request_task_id]
         )
 
+    def test_report_progress(self):
+        pass
 
 class TestHealthCheck:
     def test_health_check(self, task_manager_service):
@@ -274,15 +275,18 @@ class TestRunTsak:
 
 
 class TestTask:
-    def test_task(self, mocker):
-        Task(mocker.MagicMock())
 
-    def test_get_return_code(self, mocker):
+    @pytest.fixture
+    def task(self, mocker):
+        return mocker.MagicMock()
+    def test_task(self, task):
+        Task(task)
+
+    def test_get_return_code(self, task):
         # prepare
-        mock_popen = mocker.MagicMock()
         expected_ret_val = 1
-        mock_popen.poll.return_value = expected_ret_val
-        task = Task(mock_popen)
+        task.poll.return_value = expected_ret_val
+        task = Task(task)
 
         # run
         ret = task.get_return_code()
@@ -290,28 +294,34 @@ class TestTask:
         # check
         assert ret == expected_ret_val
 
-    def test_get_progress(self, mocker):
+    def test_register_progress(self):
+        '''TODO : if 'progress' in history.keys()
+                  if 'leap_second' in history.keys()
+                  if len(history) == 1
+        '''
+        pass
+
+    def test_get_progress(self, task, mocker):
         # prepare
-        mock_popen = mocker.MagicMock()
         expected_ret_val = 1
-        task = Task(mock_popen)
-        task.register_progress(1, mocker.MagicMock())
+        current_task = Task(task)
+        current_task.register_progress(1, mocker.MagicMock())
 
         # run
-        ret = task.get_progress()
+        ret = current_task.get_progress()
 
         # check
         assert ret == expected_ret_val
 
-    def test_get_pid(self, mocker):
+    def test_get_pid(self, task):
         # prepare
-        mock_popen = mocker.MagicMock()
         expected_ret_val = 1
-        mock_popen.pid = expected_ret_val
-        task = Task(mock_popen)
+        task.pid = expected_ret_val
+        current_task = Task(task)
 
         # run
-        ret = task.get_pid()
+        ret = current_task.get_pid()
 
         # check
         assert ret == expected_ret_val
+
