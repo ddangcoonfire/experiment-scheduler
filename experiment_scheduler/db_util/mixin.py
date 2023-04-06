@@ -2,7 +2,7 @@
 DBCommonMixin class contains common column and method
 """
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime,String
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, Query
 from sqlalchemy.exc import ArgumentError
@@ -16,7 +16,6 @@ class DbCommonMixin:
     Returns:
         _type_: _description_
     """
-
     created_at = Column(DateTime(timezone=True), server_default=now())
     last_updated_date = Column(
         DateTime(timezone=True), onupdate=now(), server_default=now()

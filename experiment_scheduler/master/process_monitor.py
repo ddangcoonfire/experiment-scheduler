@@ -116,29 +116,6 @@ class ProcessMonitor:
         response = self.task_manager_stubs[task_manager].kill_task(protobuf)
         return response
 
-    def get_task_status(self, task_manager, task_id):
-        """
-        FIXME
-        :param task_manager:
-        :param task_id:
-        :return:
-        """
-        protobuf = Task(task_id=task_id)
-        return self.task_manager_stubs[task_manager].get_task_status(protobuf)
-
-    def get_all_tasks(self):
-        """
-        FIXME
-        :param: task_manager
-        :return:
-        """
-        all_task_status = AllTasksStatus()
-        for address in self.task_manager_address:
-            response = self.task_manager_stubs[address].get_all_tasks(PROTO_EMPTY)
-            all_task_status.task_status_array.extend(response.task_status_array)
-
-        return all_task_status
-
     def get_task_log(self, task_manager, task_id, log_file_path):
         """
         :param task_manager:
@@ -149,7 +126,6 @@ class ProcessMonitor:
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(protobuf):
             yield task_log_chunk
-
 
     def get_available_task_managers(self):
         """

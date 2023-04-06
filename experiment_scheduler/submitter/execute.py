@@ -8,6 +8,7 @@ import os
 
 import grpc
 import yaml
+import json
 
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc

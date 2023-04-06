@@ -37,3 +37,4 @@ def main():
     response = stub.get_task_status(request)
 
     print(response)
+

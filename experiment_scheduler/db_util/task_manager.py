@@ -4,7 +4,7 @@ TaskManager class is to manage task_manager's metadata
 """
 
 import sqlalchemy
-from sqlalchemy import Column, String, JSON
+from sqlalchemy import Column, String, JSON, Integer
 from experiment_scheduler.db_util.connection import Base, engine
 from experiment_scheduler.db_util.mixin import DbCommonMixin
 
@@ -22,7 +22,8 @@ class TaskManager(Base, DbCommonMixin):
 
     id = Column(String(100), primary_key=True)
     address = Column(String(100))
-    default_log_file_path = Column(String(100))
+    log_file_path = Column(String(100), server_default="./log/")
+    status = Column(Integer)
     spec = Column(JSON)
 
 

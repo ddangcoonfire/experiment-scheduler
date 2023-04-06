@@ -3,7 +3,7 @@ Experiment class is ORM class of Experiment defined in user's yaml file
 """
 
 import sqlalchemy
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Integer
 from sqlalchemy.orm import relationship
 from experiment_scheduler.db_util.connection import Base, engine
 from experiment_scheduler.db_util.mixin import DbCommonMixin
@@ -22,7 +22,7 @@ class Experiment(Base, DbCommonMixin):
 
     id = Column(String(100), primary_key=True)
     name = Column(String(100))
-    status = Column(String(100))
+    status = Column(Integer)
     tasks = relationship(
         "Task",
         primaryjoin="Experiment.id==Task.experiment_id",

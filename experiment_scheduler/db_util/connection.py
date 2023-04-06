@@ -10,7 +10,7 @@ from experiment_scheduler.common.settings import USER_CONFIG
 
 db_url = ast.literal_eval(USER_CONFIG.get("default", "db_url"))
 Base = declarative_base()
-engine = create_engine(db_url, echo=True)
+engine = create_engine(db_url)
 metadata = MetaData()
 Session = sessionmaker(bind=engine)
 

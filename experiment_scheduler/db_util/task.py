@@ -1,9 +1,9 @@
 """
-Experiment class is ORM class of Task defined in user's yaml file
+Task class defined in yaml file
 """
 
 import sqlalchemy
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Integer, JSON
 from experiment_scheduler.db_util.connection import Base, engine
 from experiment_scheduler.db_util.mixin import DbCommonMixin
 
@@ -24,7 +24,8 @@ class Task(Base, DbCommonMixin):
     task_manager_id = Column(String(100))
     name = Column(String(100))
     command = Column(String(100))
-    status = Column(String(100))
+    status = Column(Integer)
+    task_env =  Column(JSON)
     logfile_name = Column(String(100))
 
 

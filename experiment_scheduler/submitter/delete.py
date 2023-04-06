@@ -36,9 +36,8 @@ def main():
     request = master_pb2.Task(task_id=task_id)  # pylint: disable=no-member
     response = stub.kill_task(request)
 
-    if response.status in set(
-        master_pb2.TaskStatus.Status.KILLED, master_pb2.TaskStatus.Status.DONE
-    ):
+    print(response.status)
+    if response.status in [master_pb2.TaskStatus.Status.KILLED, master_pb2.TaskStatus.Status.DONE]:
         print(f"task {response.task_id} is deleted")
     else:
         print(f"fail to delete {response.task_id} task")
