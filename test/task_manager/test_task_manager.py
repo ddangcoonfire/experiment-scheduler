@@ -1,6 +1,7 @@
 import os
 import signal
 from os import path as osp
+from unittest.mock import patch
 
 import pytest
 from experiment_scheduler.task_manager import task_manager_server
@@ -72,7 +73,6 @@ class mock_task_id:
 
 
 class TestClass:
-
     task_id = mock_task_id()
 
     @pytest.fixture
@@ -175,7 +175,7 @@ class TestClass:
 
     @pytest.mark.parametrize("request_task_id", task_id.status["RUNNING"])
     def test_wrap_by_grpc_task_status_running_task(
-        self, request_task_id, task_manager_servicer
+            self, request_task_id, task_manager_servicer
     ):
         assert task_manager_servicer._wrap_by_grpc_task_status(
             request_task_id
@@ -185,7 +185,7 @@ class TestClass:
 
     @pytest.mark.parametrize("request_task_id", task_id.status["DONE"])
     def test_wrap_by_grpc_task_status_done_task(
-        self, request_task_id, task_manager_servicer
+            self, request_task_id, task_manager_servicer
     ):
         assert task_manager_servicer._wrap_by_grpc_task_status(
             request_task_id
@@ -195,7 +195,7 @@ class TestClass:
 
     @pytest.mark.parametrize("request_task_id", task_id.status["KILLED"])
     def test_wrap_by_grpc_task_status_killed_task(
-        self, request_task_id, task_manager_servicer
+            self, request_task_id, task_manager_servicer
     ):
         assert task_manager_servicer._wrap_by_grpc_task_status(
             request_task_id
@@ -206,22 +206,22 @@ class TestClass:
     @pytest.mark.parametrize("request_task_id", task_id.status["RUNNING"])
     def test_get_task_running_task(self, request_task_id, task_manager_servicer):
         assert (
-            task_manager_servicer._get_task(request_task_id)
-            == task_manager_servicer.tasks[request_task_id]
+                task_manager_servicer._get_task(request_task_id)
+                == task_manager_servicer.tasks[request_task_id]
         )
 
     @pytest.mark.parametrize("request_task_id", task_id.status["DONE"])
     def test_get_task_done_task(self, request_task_id, task_manager_servicer):
         assert (
-            task_manager_servicer._get_task(request_task_id)
-            == task_manager_servicer.tasks[request_task_id]
+                task_manager_servicer._get_task(request_task_id)
+                == task_manager_servicer.tasks[request_task_id]
         )
 
     @pytest.mark.parametrize("request_task_id", task_id.status["KILLED"])
     def test_get_task_killed_task(self, request_task_id, task_manager_servicer):
         assert (
-            task_manager_servicer._get_task(request_task_id)
-            == task_manager_servicer.tasks[request_task_id]
+                task_manager_servicer._get_task(request_task_id)
+                == task_manager_servicer.tasks[request_task_id]
         )
 
 
@@ -233,7 +233,7 @@ class TestHealthCheck:
 class TestRunTsak:
     @staticmethod
     def make_run_task_request(
-        gpuidx=0, command="pwd", name="test", task_env=os.environ.copy()
+            gpuidx=0, command="pwd", name="test", task_env=os.environ.copy()
     ):
         """make request of run_task with proper default value"""
         return TaskStatement(
@@ -261,7 +261,7 @@ class TestRunTsak:
             task_manager_service.run_task(request, None)
 
     def test_run_task_with_wrong_task_statement_type(
-        self, task_manager_service, mocker
+            self, task_manager_service, mocker
     ):
         task_statement = mocker.Mock()
         task_statement.gpuidx = 0
@@ -286,6 +286,32 @@ class TestTask:
 
         # run
         ret = task.get_return_code()
+
+        # check
+        assert ret == expected_ret_val
+
+    def test_get_progress(self, mocker):
+        # prepare
+        mock_popen = mocker.MagicMock()
+        expected_ret_val = 1
+        task = Task(mock_popen)
+        task.register_progress(1, mocker.MagicMock())
+
+        # run
+        ret = task.get_progress()
+
+        # check
+        assert ret == expected_ret_val
+
+    def test_get_pid(self, mocker):
+        # prepare
+        mock_popen = mocker.MagicMock()
+        expected_ret_val = 1
+        mock_popen.pid = expected_ret_val
+        task = Task(mock_popen)
+
+        # run
+        ret = task.get_pid()
 
         # check
         assert ret == expected_ret_val
