@@ -78,7 +78,14 @@ class Master(MasterServicer):
         Get Task Manager's address from experiment_scheduler.cfg
         :return: list of address
         """
-        return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+        address_string = os.getenv("EXS_TASK_MANAGER_ADDRESS", None)
+        if address_string is not None:
+            address = address_string.split(" ")
+        else:
+            address = ast.literal_eval(
+                USER_CONFIG.get("default", "task_manager_address")
+            )
+        return address
 
     def _execute_command(self, interval=1) -> None:
         """

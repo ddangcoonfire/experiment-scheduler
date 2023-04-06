@@ -350,16 +350,13 @@ def serve():
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
-        task_manager_address = ast.literal_eval(
-            USER_CONFIG.get("default", "task_manager_address")
-        )
+        local_port = ast.literal_eval(USER_CONFIG.get("task_manager", "local_port"))
+        local_address = ":".join(["0.0.0.0", str(local_port)])
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server
         )
-        server.add_insecure_port(
-            task_manager_address[0]
-        )  # [TODO] set multiple task manager
+        server.add_insecure_port(local_address)  # [TODO] set multiple task manager
         server.start()
         server.wait_for_termination()
         print("Interrupt Occurs. Now closing...")
