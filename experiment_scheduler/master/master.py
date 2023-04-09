@@ -70,6 +70,8 @@ class Master(MasterServicer):
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
+        self.health_check_thread = threading.Thread(target=self._health_check, daemon=True)
+        self.health_check_thread.start()
         self.logger = get_logger(name="master class")
 
     @staticmethod
@@ -103,6 +105,22 @@ class Master(MasterServicer):
                     task_manager = available_task_managers[0]
                     self.execute_task(task_manager)
             time.sleep(interval)
+
+    def _health_check(self, interval=5) -> None:
+        """[TODO] Write Docs"""
+        while True:
+            unhealthy_task_manager = []
+            for task_manager in self.task_managers_address:
+                if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                    unhealthy_task_manager.append(task_manager)
+            if len(unhealthy_task_manager) > 0:
+                for unhealthy_task_manager in unhealthy_task_manager:
+                    available_task_managers = (
+                        self.process_monitor.get_available_task_managers()
+                    )
+                    if available_task_managers:
+                        task_manager = available_task_managers[0]
+                        self.execute_task(task_manager, True, unhealthy_task_manager)
 
     def select_task_manager(self, selected=-1):
         """
@@ -183,7 +201,7 @@ class Master(MasterServicer):
             )
         else:
             for response in self.process_monitor.get_task_log(
-                task_manager_address, request.task_id, task_logfile_path
+                    task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
@@ -273,14 +291,17 @@ class Master(MasterServicer):
         return all_experiments_status
 
     @start_end_logger
-    def execute_task(self, task_manager):
+    def execute_task(self, task_manager, unhealthy_task_manager=None):
         """
         run certain task
         :param task_manager:
         :param gpu_idx:
+        :param unhealthy_task_manager:
         :return: task's status
         """
-        prior_task_id, prior_task = self.queued_tasks.popitem(last=False)
+        # [TODO] DB에서 Task 정보 갖고오기
+        if not unhealthy_task_manager:
+            prior_task_id, prior_task = self.queued_tasks.popitem(last=False)
         response = self.process_monitor.run_task(
             prior_task_id,
             task_manager,
