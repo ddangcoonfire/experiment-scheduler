@@ -89,6 +89,15 @@ class Master(MasterServicer):
             )
         return address
 
+    def _get_available_task_managers_excute_task(self, unhealthy_task_manager=None) -> None:
+        """[TODO] Write Docs"""
+        available_task_managers = (
+            self.process_monitor.get_available_task_managers()
+        )
+        if available_task_managers:
+            task_manager = available_task_managers[0]
+            self.execute_task(task_manager, unhealthy_task_manager)
+
     def _execute_command(self, interval=1) -> None:
         """
         this thread_running_function periodically checks queued_task and available task_managers.
@@ -98,29 +107,20 @@ class Master(MasterServicer):
         """
         while True:
             if len(self.queued_tasks) > 0:
-                available_task_managers = (
-                    self.process_monitor.get_available_task_managers()
-                )
-                if available_task_managers:
-                    task_manager = available_task_managers[0]
-                    self.execute_task(task_manager)
+                self._get_available_task_managers_excute_task()
             time.sleep(interval)
 
-    def _health_check(self, interval=5) -> None:
+    def _health_check(self, interval=60) -> None:
         """[TODO] Write Docs"""
         while True:
-            unhealthy_task_manager = []
+            unhealthy_task_manager_list = []
             for task_manager in self.task_managers_address:
                 if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
-                    unhealthy_task_manager.append(task_manager)
-            if len(unhealthy_task_manager) > 0:
-                for unhealthy_task_manager in unhealthy_task_manager:
-                    available_task_managers = (
-                        self.process_monitor.get_available_task_managers()
-                    )
-                    if available_task_managers:
-                        task_manager = available_task_managers[0]
-                        self.execute_task(task_manager, True, unhealthy_task_manager)
+                    unhealthy_task_manager_list.append(task_manager)
+            if len(unhealthy_task_manager_list) > 0:
+                for unhealthy_task_manager in unhealthy_task_manager_list:
+                    self._get_available_task_managers_excute_task(unhealthy_task_manager)
+            time.sleep(interval)
 
     def select_task_manager(self, selected=-1):
         """
