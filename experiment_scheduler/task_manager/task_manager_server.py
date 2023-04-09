@@ -181,7 +181,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     # pylint: disable=no-member
 
     def __init__(self, log_dir=os.getcwd()):
-        super(ReturnCode).__init__()
+        super(task_manager_pb2_grpc.TaskManagerServicer, self).__init__()
         self.tasks: Dict[str, subprocess.Popen] = {}
         self.log_dir = log_dir
         self._use_gpu = True
@@ -275,7 +275,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
             logger.error(error_message)
-            yield TaskLogFile(log_file=None, error_message=bytes(error_message, 'utf-8'))
+            yield TaskLogFile(
+                log_file=None, error_message=bytes(error_message, "utf-8")
+            )
 
     @start_end_logger
     def kill_task(self, request, context):
