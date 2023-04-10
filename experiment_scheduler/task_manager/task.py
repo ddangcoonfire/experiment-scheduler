@@ -1,4 +1,5 @@
 """Task class for task manager server."""
+import signal
 from typing import Dict, List, Optional, Union
 
 import psutil
@@ -40,48 +41,33 @@ class Task:
             return self._history[-1]["progress"]
         return None
 
-    def kill_itself_with_child_process(self, max_depth: int) -> bool:
-        """
-        Kill itself with child process.
-        This is equivalent to calling kill_process_recursively up to max_depth and then returning True if successful.
+    def kill_process_tree(
+        self,
+        sig: signal.Signals = signal.SIGTERM,
+        include_me: bool = True,
+        timeout: Optional[int] = None,
+    ):
+        """Kill a process tree (including grandchildren) with signal.
 
         Args:
-                max_depth: Maximum depth of child processes to find and kill.
+            sig: Signal to send to processes.
+            include_me: Whether to include itself or not.
+            timeout: How many seconds to wait processes.
 
         Returns:
-                True if successful False otherwise.
+                Which processes are gone and which ones are still alive.
         """
-        if self._process is None:
-            logger.warning("Fail to get process(%d).", self._pid)
-            return False
-        return self.kill_process_recursively(self._process, max_depth, 0)
+        children = self._process.children(recursive=True)
+        if include_me:
+            children.append(self._process)
+        for process in children:
+            try:
+                process.send_signal(sig)
+            except psutil.NoSuchProcess:
+                pass
+        gone, alive = psutil.wait_procs(children, timeout=timeout)
 
-    @staticmethod
-    def kill_process_recursively(
-        process: psutil.Process, max_depth: int, cur_depth: int = 0
-    ) -> bool:
-        """Kill process recursively up to max_depth.
-
-        Args:
-                process: Process to be killed.
-                max_depth: Maximum depth of child processes to find and kill.
-                cur_depth: Current depth of child processes. Default is 0
-
-        Returns:
-                True if process was killed
-        """
-        if not process.is_running():
-            return True
-
-        if cur_depth < max_depth:
-            for child_process in process.children():
-                Task.kill_process_recursively(child_process, max_depth, cur_depth + 1)
-
-        if process.is_running():
-            process.terminate()
-            process.wait()
-
-        return True
+        return (gone, alive)
 
     def is_child_pid(self, pid: int):
         """Check if the process is a child of this process.
