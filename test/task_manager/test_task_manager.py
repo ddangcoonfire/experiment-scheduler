@@ -1,6 +1,7 @@
 import os
 import signal
 from os import path as osp
+from unittest.mock import patch
 
 import pytest
 from experiment_scheduler.task_manager import task_manager_server
@@ -11,6 +12,7 @@ from experiment_scheduler.task_manager.grpc_task_manager import (
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     ServerStatus,
     TaskStatement,
+    ProgressResponse,
 )
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
 
@@ -35,6 +37,12 @@ class MockTask:
     @staticmethod
     def wait():
         return None
+
+    def get_pid(self) -> str:
+        return self.task_id
+
+    def register_progress(self, progress, leap_second):
+        pass
 
 
 class MockRunTask(MockTask):
@@ -63,6 +71,14 @@ class MockKilledTask(MockTask):
 class MockRequest:
     def __init__(self, task_id):
         self.task_id = task_id
+
+
+class MockProgressReportRequest(MockRequest):
+    def __init__(self, task_id, pid, progress, leap_second):
+        super().__init__(task_id)
+        self.pid = pid
+        self.progress = progress
+        self.leap_second = leap_second
 
 
 class mock_task_id:
@@ -148,6 +164,26 @@ class TestClass:
         ) == task_manager_pb2.TaskStatus(
             task_id=requested.task_id, status=task_manager_pb2.TaskStatus.Status.KILLED
         )
+
+    @pytest.mark.parametrize(
+        "requested",
+        [MockProgressReportRequest(task_id=1, pid=2, progress=0.5, leap_second=5)],
+    )
+    def test_report_progress(self, requested, task_manager_servicer):
+        assert task_manager_servicer.report_progress(
+            requested, ""
+        ) == task_manager_pb2.ProgressResponse(
+            received_status=ProgressResponse.ReceivedStatus.FAIL
+        )
+        with patch(
+            "experiment_scheduler.task_manager.task_manager_server.TaskManagerServicer._find_which_task_report"
+        ) as mock_method:
+            mock_method.return_value = MockTask(1)
+            assert task_manager_servicer.report_progress(
+                requested, ""
+            ) == task_manager_pb2.ProgressResponse(
+                received_status=ProgressResponse.ReceivedStatus.SUCCESS
+            )
 
     def test_get_all_tasks(self, task_manager_servicer):
         task_id = mock_task_id()
