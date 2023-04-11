@@ -103,6 +103,7 @@ class Master(MasterServicer):
                     task_manager = available_task_managers[0]
                     self.execute_task(task_manager)
             time.sleep(interval)
+    
 
     def select_task_manager(self, selected=-1):
         """
@@ -142,6 +143,22 @@ class Master(MasterServicer):
         )
         # [todo] add task_id
         return MasterResponse(experiment_id=experiment_id, response=response)
+    
+    @start_end_logger
+    def request_anomaly_exited_tasks(self, request, context):
+        """
+        """
+        task_list = request.task_list
+        for task_id in task_list:
+            task = self.running_tasks[task_id]["task"]
+            del self.running_tasks[task_id]
+            self.queued_tasks[task_id] = task
+            self.queued_tasks.move_to_end(task_id, False)
+
+        
+        return MasterResponse(experiment_id="", response=MasterResponse.ResponseStatus.SUCCESS)
+    
+        
 
     @start_end_logger
     def get_task_status(self, request, context):
@@ -159,8 +176,6 @@ class Master(MasterServicer):
             response = self.process_monitor.get_task_status(
                 self.running_tasks[request.task_id]["task_manager"], request.task_id
             )
-            if response.status == TaskStatus.Status.KILLED:
-                del self.running_tasks[request.task_id]
         else:
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND

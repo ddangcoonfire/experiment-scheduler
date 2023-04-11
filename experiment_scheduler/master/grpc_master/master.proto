@@ -22,6 +22,8 @@ service Master {
 
       rpc edit_task(EditTask) returns (MasterResponse) {}
 
+      rpc request_anomaly_exited_tasks(TaskList) returns (MasterResponse) {}
+
 }
 
 message EditTask {
@@ -91,4 +93,8 @@ message TaskLog {
 message TaskLogFile {
     bytes log_file = 1;
     bytes error_message = 2;
+}
+
+message TaskList {
+    repeated Task task_list = 1;
 }

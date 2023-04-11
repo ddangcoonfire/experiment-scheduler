@@ -6,3 +6,4 @@ pynvml
 protobuf
 psutil
 pyfiglet
+grpcio-tools==1.53.0

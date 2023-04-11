@@ -4,12 +4,15 @@ import os
 import subprocess
 import ast
 from typing import Dict, Optional
+from threading import Thread
 from concurrent import futures
 from os import path as osp
-
+import time
 import grpc
 import pynvml
 
+from experiment_scheduler.master.grpc_master import master_pb2
+from experiment_scheduler.master.grpc_master import master_pb2_grpc
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
@@ -129,6 +132,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
 
+        checkthread = Thread(target=self.get_dead_tasks, daemon = True)
+        checkthread.start()
+
+
     @property
     def use_gpu(self):
         """
@@ -244,6 +251,25 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 self._get_task_status_by_task_id(task_id)
             )
         return all_tasks_status
+    
+    def get_dead_tasks(self):
+        while True:
+            dead_tasks = []
+            for task_id, task in self.tasks.items():
+                return_code = task.get_return_code()
+                if return_code not in [0, None]:
+                    self._resource_manager.release_resource(task_id)
+                    dead_tasks.append(master_pb2.Task(task_id=task_id))
+            if dead_tasks:
+                for dead_task in dead_tasks:
+                    del self.tasks[dead_task.task_id] 
+                channel = grpc.insecure_channel(
+                    ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+                )
+                stub = master_pb2_grpc.MasterStub(channel)
+                stub.request_anomaly_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+            time.sleep(1)
+
 
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)
