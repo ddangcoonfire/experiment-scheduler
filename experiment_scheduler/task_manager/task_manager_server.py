@@ -1,11 +1,11 @@
 """This file is in charge of server code run as daemon process."""
 
-import ast
 import os
 import subprocess
+import ast
+from typing import Dict, List, Optional, Union
 from concurrent import futures
 from os import path as osp
-from typing import Dict
 
 import grpc
 import psutil
@@ -20,6 +20,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ServerStatus,
     TaskLogFile,
     TaskStatus,
+    ProgressResponse,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
 
@@ -175,14 +176,40 @@ class ResourceManager:
         return list(self._resource_rental_history.keys())
 
 
+class Task:
+    """Wrapper class for Task."""
+
+    def __init__(self, process: subprocess.Popen):
+        self._process = process
+        self._history: List[Dict[str, float]] = []
+
+    def get_return_code(self) -> Optional[int]:
+        """Get return code."""
+        return self._process.poll()
+
+    def register_progress(self, progress: Union[int, float], leap_second: float):
+        """Register progress."""
+        self._history.append({"progress": progress, "leap_second": leap_second})
+
+    def get_progress(self) -> Optional[Union[int, float]]:
+        """Get latest progress."""
+        if self._history:
+            return self._history[-1]["progress"]
+        return None
+
+    def get_pid(self) -> int:
+        """Get pid."""
+        return self._process.pid
+
+
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode):
     """Provides methods that implement functionality of task manager server."""
 
-    # pylint: disable=no-member
+    # pylint: disable=no-member, unused-argument
 
     def __init__(self, log_dir=os.getcwd()):
         super(task_manager_pb2_grpc.TaskManagerServicer, self).__init__()
-        self.tasks: Dict[str, subprocess.Popen] = {}
+        self.tasks: Dict[str, Task] = {}
         self.log_dir = log_dir
         self._use_gpu = True
         try:
@@ -224,16 +251,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         if self.use_gpu:
             request.task_env["CUDA_VISIBLE_DEVICES"] = str(resource_idx)
-        with subprocess.Popen(
+        task = subprocess.Popen(  # pylint: disable=consider-using-with
             args=request.command,
             shell=True,
             env=request.task_env,
-            stdout=open(
+            stdout=open(  # pylint: disable=consider-using-with
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
-        ) as task:
-            self.tasks[task_id] = task
+        )
+        self.tasks[task_id] = Task(task)
 
         self.logger.info("%s is now running!", task_id)
 
@@ -248,11 +275,12 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             self._get_process_return_code(task_id)
 
     def _get_process_return_code(self, task_id: str):
-        if task_id not in self.tasks:
+        task = self.tasks.get(task_id)
+        if task is None:
             return (
                 False  # to be distinguished from None which means process is running.
             )
-        return_code = self.tasks[task_id].poll()
+        return_code = task.get_return_code()
         if return_code is not None:
             self._resource_manager.release_resource(task_id)
         return return_code
@@ -282,7 +310,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
-        target_process = self._get_task(request.task_id)
+        target_process = self.tasks.get(request.task_id)
         self.logger.info("kill task with id : %s", request.task_id)
         if target_process is None:
             return TaskStatus(
@@ -315,7 +343,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return all_tasks_status
 
     def _get_task_status_by_task_id(self, task_id):
-        target_process = self._get_task(task_id)
+        target_process = self.tasks.get(task_id)
 
         if target_process is None:
             return TaskStatus(task_id=task_id, status=TaskStatus.Status.NOTFOUND)
@@ -335,16 +363,41 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             return TaskStatus.Status.KILLED
         return TaskStatus.Status.ABNORMAL
 
-    def _get_task(self, task_id):
-        """Get a task instance if exists. if not, return None"""
-        if task_id not in self.tasks:
-            self.logger.warning("%s is not found in task_manager!", task_id)
-            return None
-        return self.tasks[task_id]
-
     def has_idle_resource(self, request, context):
+        """Check there is available resource."""
         self._release_unused_resource()
         return IdleResources(exists=self._resource_manager.has_available_resource())
+
+    @start_end_logger
+    def report_progress(self, request, context):
+        """get and save progress of task"""
+        task = self._find_which_task_report(request.pid)
+        if task is None:
+            logger.warning("task(pid: %d) can not be found", request.pid)
+            return ProgressResponse(
+                received_status=ProgressResponse.ReceivedStatus.FAIL
+            )
+
+        task.register_progress(request.progress, request.leap_second)
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
+    def _find_which_task_report(self, current_pid: int) -> Optional[Task]:
+        """find out all pids of task considering a case that pid is child process of task"""
+        tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
+        pid_hierachy = [current_pid]
+
+        try:
+            current_process = psutil.Process(current_pid)
+        except psutil.NoSuchProcess:
+            return None
+
+        pid_hierachy += [process.pid for process in current_process.parents()]
+
+        for pid in pid_hierachy:
+            if pid in tasks_pid:
+                return tasks_pid[pid]
+
+        return None
 
 
 def serve():
