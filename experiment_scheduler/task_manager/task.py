@@ -27,7 +27,7 @@ class Task:
         Returns:
                 The return code or None if the process is running
         """
-        if self._process.is_running():
+        if self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE:
             return None
         return self._process.wait()
 

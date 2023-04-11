@@ -149,12 +149,11 @@ class Master(MasterServicer):
         """
         """
         task_list = request.task_list
-        for task_id in task_list:
-            task = self.running_tasks[task_id]["task"]
-            del self.running_tasks[task_id]
-            self.queued_tasks[task_id] = task
-            self.queued_tasks.move_to_end(task_id, False)
-
+        for task_class in task_list:
+            task = self.running_tasks[task_class.task_id]["task"]
+            del self.running_tasks[task_class.task_id]
+            self.queued_tasks[task_class.task_id] = task
+            self.queued_tasks.move_to_end(task_class.task_id, False)
         
         return MasterResponse(experiment_id="", response=MasterResponse.ResponseStatus.SUCCESS)
     

@@ -135,7 +135,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         checkthread = Thread(target=self.get_dead_tasks, daemon = True)
         checkthread.start()
 
-
     @property
     def use_gpu(self):
         """
