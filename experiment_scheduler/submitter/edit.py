@@ -42,8 +42,8 @@ def main():
     response = stub.edit_task(request)
     # pylint: disable=no-member
     if (
-        hasattr(response.status)
-        and response.status == master_pb2.MasterResponse.ResponseStatus.FAIL
+        hasattr(master_pb2.MasterResponse, 'response')
+        and response.response == master_pb2.MasterResponse.ResponseStatus.FAIL
     ):
         print(
             f"Cannot edit {task_id}. Task does not exist or Already finished".format(

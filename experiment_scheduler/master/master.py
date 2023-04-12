@@ -40,7 +40,6 @@ from experiment_scheduler.db_util.connection import initialize_db
 from experiment_scheduler.db_util.task_manager import TaskManager
 from experiment_scheduler.db_util.experiment import Experiment
 from experiment_scheduler.db_util.task import Task
-from experiment_scheduler.db_util.queue import Queue
 import json
 import datetime
 
@@ -200,8 +199,11 @@ class Master(MasterServicer):
         :param context:
         :return: log_file which is byte format and sent by streaming
         """
-        task_manager_address = self.task_managers_address[0]
-        task_logfile_path = os.getcwd()
+        task = Task.get(id=request.task_id)
+        task_manager = TaskManager.get(id=task.task_manager_id)
+
+        task_manager_address = task_manager.address
+        task_logfile_path = task_manager.log_file_path
         if task_logfile_path == "":
             yield TaskLogFile(
                 log_file=None, error_message=bytes("Check task id", "utf-8")
@@ -334,21 +336,34 @@ class Master(MasterServicer):
         task_env = request.task_env
 
         ## 아직 task_manager에 도달 X
-        if task_id in self.queued_tasks.keys():
-            self.queued_tasks[task_id].command = cmd
+        queue_tasks = Task.list(status=TaskStatus.Status.NOTSTART)
+        running_tasks = Task.list(status=TaskStatus.Status.RUNNING)
+        if task_id in [task.id for task in queue_tasks]:
+        # if task_id in self.queued_tasks.keys():
+        #     self.queued_tasks[task_id].command = cmd
+            target_task = Task.get(id=task_id)
+            target_task.command = cmd
+            target_task.commit()
             response = MasterResponse(
                 experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
             )
-
-        elif task_id in self.running_tasks.keys():
+        elif task_id in [task.id for task in running_tasks]:
+        # elif task_id in self.running_tasks.keys():
+            target_task = Task.get(id=task_id)
+            target_task_manager = TaskManager.get(id=target_task.task_manager_id)
             response = self.process_monitor.kill_task(
-                self.running_tasks[task_id]["task_manager"], task_id
+                target_task_manager.address, task_id
             )
             if response.status == TaskStatus.Status.KILLED:
-                del self.running_tasks[task_id]
-            self.queued_tasks[task_id] = MasterTaskStatement(
-                name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
-            )
+                # del self.running_tasks[task_id]
+                # self.queued_tasks[task_id] = MasterTaskStatement(
+                #     name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
+                # )
+                target_task.status = TaskStatus.Status.NOTSTART
+                target_task.task_env = os.environ.copy()
+                target_task.command = cmd
+                target_task.commit()
+
             response = MasterResponse(
                 experiment_id="0",
                 response=MasterResponse.ResponseStatus.SUCCESS,  # pylint: disable=E1101
