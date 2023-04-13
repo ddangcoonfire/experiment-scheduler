@@ -4,6 +4,8 @@ from os import path as osp
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import mocker
+
 from experiment_scheduler.task_manager import task_manager_server
 from experiment_scheduler.task_manager.task_manager_server import Task
 from experiment_scheduler.task_manager.grpc_task_manager import (
@@ -13,8 +15,10 @@ from experiment_scheduler.task_manager.grpc_task_manager import (
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
     ServerStatus,
     TaskStatement,
+    ProgressResponse,
 )
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer
+
 
 @pytest.fixture
 def task_manager_service(tmp_path):
@@ -36,6 +40,12 @@ class MockTask:
     @staticmethod
     def wait():
         return None
+
+    def get_pid(self) -> str:
+        return self.task_id
+
+    def register_progress(self, progress, leap_seoncd):
+        pass
 
 
 class MockRunTask(MockTask):
@@ -64,6 +74,14 @@ class MockKilledTask(MockTask):
 class MockRequest:
     def __init__(self, task_id):
         self.task_id = task_id
+
+
+class MockProgressReportRequest(MockRequest):
+    def __init__(self, task_id, pid, progress, leap_second):
+        super().__init__(task_id)
+        self.pid = pid
+        self.progress = progress
+        self.leap_second = leap_second
 
 
 class mock_task_id:
@@ -149,6 +167,19 @@ class TestTaskManagerServicer:
             task_id=requested.task_id, status=task_manager_pb2.TaskStatus.Status.KILLED
         )
 
+    @pytest.mark.parametrize('requested', [MockProgressReportRequest(task_id=1, pid=2, progress=0.5, leap_second=5)])
+    def test_report_progress(self, requested, task_manager_servicer):
+        # Case : Fail
+        assert task_manager_servicer.report_progress(requested, "") == task_manager_pb2.ProgressResponse(
+            received_status=ProgressResponse.ReceivedStatus.FAIL)
+
+        # Case : Success
+        with patch(
+                'experiment_scheduler.task_manager.task_manager_server.TaskManagerServicer._find_which_task_report') as mock_method:
+            mock_method.return_value = MockTask(1)
+            assert task_manager_servicer.report_progress(requested, '') == task_manager_pb2.ProgressResponse(
+                received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
     def test_get_all_tasks(self, task_manager_servicer):
         task_id = mock_task_id()
         expect_all_tasks_status = task_manager_pb2.AllTasksStatus()
@@ -223,8 +254,6 @@ class TestTaskManagerServicer:
                 == task_manager_servicer.tasks[request_task_id]
         )
 
-    def test_report_progress(self):
-        pass
 
 class TestHealthCheck:
     def test_health_check(self, task_manager_service):
@@ -279,6 +308,7 @@ class TestTask:
     @pytest.fixture
     def task(self, mocker):
         return mocker.MagicMock()
+
     def test_task(self, task):
         Task(task)
 
@@ -294,12 +324,15 @@ class TestTask:
         # check
         assert ret == expected_ret_val
 
-    def test_register_progress(self):
-        '''TODO : if 'progress' in history.keys()
-                  if 'leap_second' in history.keys()
-                  if len(history) == 1
-        '''
-        pass
+    def test_register_progress(self, task, mocker):
+        # prepare
+        current_task = Task(task)
+        current_task.register_progress(mocker.MagicMock(), mocker.MagicMock())
+
+        # run and check
+        assert 'progress' in current_task._history[0].keys()
+        assert 'leap_second' in current_task._history[0].keys()
+        assert len(current_task._history) == 1
 
     def test_get_progress(self, task, mocker):
         # prepare
@@ -324,4 +357,3 @@ class TestTask:
 
         # check
         assert ret == expected_ret_val
-
