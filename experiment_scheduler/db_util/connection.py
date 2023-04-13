@@ -4,7 +4,7 @@ This file exists to manage sqlalchemy function
 import ast
 
 from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session
 from sqlalchemy_utils import database_exists, create_database
 from experiment_scheduler.common.settings import USER_CONFIG
 
@@ -12,7 +12,7 @@ db_url = ast.literal_eval(USER_CONFIG.get("default", "db_url"))
 Base = declarative_base()
 engine = create_engine(db_url)
 metadata = MetaData()
-Session = sessionmaker(bind=engine)
+Session = scoped_session(sessionmaker(bind=engine))
 
 
 def initialize_db():

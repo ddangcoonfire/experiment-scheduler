@@ -98,4 +98,11 @@ class DbCommonMixin:
         :param request: id, instance of pre-defined class
         :return: none
         """
+
+        print(Session.object_session(self))
+
         Session.object_session(self).commit()
+        """
+        with Session.object_session(self) as session:
+            session.commit()
+"""

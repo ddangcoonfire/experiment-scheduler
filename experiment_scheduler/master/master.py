@@ -13,10 +13,6 @@ from concurrent import futures
 from typing import List
 
 import grpc
-from google.protobuf.json_format import MessageToJson
-from google.protobuf.json_format import Parse
-from google.protobuf.json_format import ParseDict
-from google.protobuf.json_format import MessageToDict
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 from experiment_scheduler.common.settings import USER_CONFIG
@@ -149,15 +145,18 @@ class Master(MasterServicer):
         )
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
+            task_env = {key: val for key, val in task.task_env.items()}
+
             self.logger.info(
                 "├─task_id: %s", task_id
             )  # [FIXME] : set to logging pylint: disable=W0511
             # self.queued_tasks[task_id] = task
+
             task = Task(
                 id=task_id,
                 name=task.name,
                 status=TaskStatus.Status.NOTSTART,
-                task_env=os.environ.copy(),
+                task_env=task_env,
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
             )
