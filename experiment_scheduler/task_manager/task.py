@@ -13,6 +13,9 @@ class Task:
     """Task class which includes helpful functions to task manager server."""
 
     def __init__(self, pid: int):
+        if pid < 0:
+            raise ValueError
+
         self._process = psutil.Process(pid)
         self._history: List[Dict[str, float]] = []
 
@@ -27,7 +30,10 @@ class Task:
         Returns:
                 The return code or None if the process is running
         """
-        if self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE:
+        if (
+            self._process.is_running()
+            and self._process.status() != psutil.STATUS_ZOMBIE
+        ):
             return None
         return self._process.wait()
 
