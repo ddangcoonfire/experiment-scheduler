@@ -101,7 +101,7 @@ class Master(MasterServicer):
         """
         while True:
             queue_task = TaskEntity.get(
-                status=TaskStatus.Status.NOTSTART, order_by=TaskEntity.last_updated_date
+                status=TaskStatus.Status.NOTSTART, order_by=TaskEntity.updated_at
             )
             if queue_task is not None:
                 available_task_managers = (
@@ -307,7 +307,7 @@ class Master(MasterServicer):
             task.task_env = task_env
             task.commit()
         else:
-            task.last_updated_date = datetime.datetime.now()
+            task.updated_at = datetime.datetime.now()
             task.commit()
         return response
 
