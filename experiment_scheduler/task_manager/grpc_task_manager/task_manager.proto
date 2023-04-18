@@ -33,6 +33,8 @@ service TaskManager {
   rpc get_all_tasks(google.protobuf.Empty) returns (AllTasksStatus) {}
 
   rpc has_idle_resource(google.protobuf.Empty) returns (IdleResources) {}
+
+  rpc report_progress(Progress) returns (ProgressResponse) {}
 }
 
 message ServerStatus {
@@ -80,4 +82,18 @@ message AllTasksStatus {
 message TaskLogFile {
     bytes log_file = 1;
     bytes error_message = 2;
+}
+
+message Progress {
+    float progress = 1;
+    double leap_second = 2;
+    int32 pid = 3;
+}
+
+message ProgressResponse {
+    enum ReceivedStatus {
+      SUCCESS = 0;
+      FAIL = 1;
+    }
+    ReceivedStatus received_status = 1;
 }
