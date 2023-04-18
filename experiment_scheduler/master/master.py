@@ -8,10 +8,9 @@ import os
 import threading
 import time
 import uuid
-from collections import OrderedDict
 from concurrent import futures
 from typing import List
-
+import datetime
 import grpc
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
@@ -23,7 +22,6 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     ExperimentStatement,
     MasterResponse,
     TaskStatus,
-    MasterTaskStatement,
     TaskLogFile,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
@@ -33,11 +31,9 @@ from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
 from experiment_scheduler.master.process_monitor import ProcessMonitor
 
 from experiment_scheduler.db_util.connection import initialize_db
-from experiment_scheduler.db_util.task_manager import TaskManager
-from experiment_scheduler.db_util.experiment import Experiment
-from experiment_scheduler.db_util.task import Task
-import json
-import datetime
+from experiment_scheduler.db_util.task_manager import TaskManager as TaskManagerEntity
+from experiment_scheduler.db_util.experiment import Experiment as ExperimentEntity
+from experiment_scheduler.db_util.task import Task as TaskEntity
 
 
 # pylint: disable=E1101
@@ -71,8 +67,6 @@ class Master(MasterServicer):
         """
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
-        self.queued_tasks = OrderedDict()
-        self.running_tasks = OrderedDict()
         self.task_managers_address: list = self.get_task_managers()
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
@@ -93,7 +87,9 @@ class Master(MasterServicer):
                 USER_CONFIG.get("default", "task_manager_address")
             )
         for idx, task_manager in enumerate(address):
-            TaskManager.insert(TaskManager(id="tm_" + str(idx), address=task_manager))
+            TaskManagerEntity.insert(
+                TaskManagerEntity(id="tm_" + str(idx), address=task_manager)
+            )
         return address
 
     def _execute_command(self, interval=1) -> None:
@@ -104,14 +100,16 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            queue_task = Task.get(status=TaskStatus.Status.NOTSTART, order_by=Task.last_updated_date)
-            if queue_task != None:
+            queue_task = TaskEntity.get(
+                status=TaskStatus.Status.NOTSTART, order_by=TaskEntity.last_updated_date
+            )
+            if queue_task is not None:
                 available_task_managers = (
                     self.process_monitor.get_available_task_managers()
                 )
                 if available_task_managers:
                     task_manager_address = available_task_managers[0]
-                    task_manager = TaskManager.get(address = task_manager_address)
+                    task_manager = TaskManagerEntity.get(address=task_manager_address)
                     self.execute_task(task_manager.address, queue_task.id)
             time.sleep(interval)
 
@@ -137,7 +135,7 @@ class Master(MasterServicer):
         """
         experiment_id = request.name + "-" + str(uuid.uuid1())
         self.logger.info("create new experiment_id: %s", experiment_id)
-        exp = Experiment(
+        exp = ExperimentEntity(
             id=experiment_id,
             name=request.name,
             status=ExperimentStatement.Status.RUNNING,
@@ -145,14 +143,15 @@ class Master(MasterServicer):
         )
         for task in request.tasks:
             task_id = task.name + "-" + uuid.uuid4().hex
-            task_env = {key: val for key, val in task.task_env.items()}
+            task_env = {  # pylint: disable=R1721
+                key: val for key, val in task.task_env.items()
+            }
 
             self.logger.info(
                 "├─task_id: %s", task_id
             )  # [FIXME] : set to logging pylint: disable=W0511
-            # self.queued_tasks[task_id] = task
 
-            task = Task(
+            task = TaskEntity(
                 id=task_id,
                 name=task.name,
                 status=TaskStatus.Status.NOTSTART,
@@ -168,7 +167,7 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         # [todo] add task_id
-        Experiment.insert(exp)
+        ExperimentEntity.insert(exp)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
     @start_end_logger
@@ -179,15 +178,13 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        task = Task.get(id=request.task_id)
-        if task == None:
+        task = TaskEntity.get(id=request.task_id)
+        if task is None:
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
         else:
-            response = self._wrap_by_task_status(
-                task.id, task.status
-            )
+            response = self._wrap_by_task_status(task.id, task.status)
         return response
 
     @start_end_logger
@@ -198,8 +195,8 @@ class Master(MasterServicer):
         :param context:
         :return: log_file which is byte format and sent by streaming
         """
-        task = Task.get(id=request.task_id)
-        task_manager = TaskManager.get(id=task.task_manager_id)
+        task = TaskEntity.get(id=request.task_id)
+        task_manager = TaskManagerEntity.get(id=task.task_manager_id)
 
         task_manager_address = task_manager.address
         task_logfile_path = task_manager.log_file_path
@@ -221,25 +218,21 @@ class Master(MasterServicer):
         :param context:
         :return: task's status
         """
-        task = Task.get(id=request.task_id)
+        task = TaskEntity.get(id=request.task_id)
         response = None
-        if task == None:
+        if task is None:
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.NOTFOUND
             )
-        elif task.status == TaskStatus.Status.NOTSTART or task.task_manager_id == None:
-            # del self.queued_tasks[request.task_id]  # task.status = NOTSTART
+        elif task.status == TaskStatus.Status.NOTSTART or task.task_manager_id is None:
             response = self._wrap_by_task_status(
                 request.task_id, TaskStatus.Status.KILLED
             )
             task.status = TaskStatus.Status.KILLED
             task.commit()
-        elif task.status == TaskStatus.Status.RUNNING: ### 여기
-            # del self.running_tasks[request.task_id]
-            task_manager = TaskManager.get(id=task.task_manager_id)
-            response = self.process_monitor.kill_task(
-                task_manager.address, task.id
-            )
+        elif task.status == TaskStatus.Status.RUNNING:
+            task_manager = TaskManagerEntity.get(id=task.task_manager_id)
+            response = self.process_monitor.kill_task(task_manager.address, task.id)
             task.status = TaskStatus.Status.KILLED
             task.commit()
         elif task.status == TaskStatus.Status.DONE:
@@ -261,12 +254,10 @@ class Master(MasterServicer):
 
         if request.experiment_id:
             all_tasks_status = AllTasksStatus()
-            exp = Experiment.get(id = request.experiment_id)
+            exp = ExperimentEntity.get(id=request.experiment_id)
             for task in exp.tasks:
                 all_tasks_status.task_status_array.append(
-                    self._wrap_by_task_status(
-                        task.id, task.status
-                    )
+                    self._wrap_by_task_status(task.id, task.status)
                 )
             all_experiments_status.experiment_status_array.append(
                 ExperimentsStatus(
@@ -275,14 +266,12 @@ class Master(MasterServicer):
                 )
             )
         else:
-            exp_list = Experiment.list()
+            exp_list = ExperimentEntity.list()
             for exp in exp_list:
                 all_tasks_status = AllTasksStatus()
                 for task in exp.tasks:
                     all_tasks_status.task_status_array.append(
-                        self._wrap_by_task_status(
-                            task.id, task.status
-                        )
+                        self._wrap_by_task_status(task.id, task.status)
                     )
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
@@ -300,22 +289,22 @@ class Master(MasterServicer):
         :param gpu_idx:
         :return: task's status
         """
-        task = Task.get(id=task_id)
-        task_manager = TaskManager.get(address=task_manager_address)
+        task = TaskEntity.get(id=task_id)
+        task_manager = TaskManagerEntity.get(address=task_manager_address)
+        task_env = {  # pylint: disable=R1721
+            key: val for key, val in task.task_env.items()
+        }
         response = self.process_monitor.run_task(
             task.id,
             task_manager_address,
             task.command,
             task.name,
-            task.task_env,
+            task_env,
         )
         if response.status == TaskStatus.Status.RUNNING:
-            # self.running_tasks[prior_task_id] = {
-            #     "task": prior_task,
-            #     "task_manager": task_manager,
-            # }
             task.status = TaskStatus.Status.RUNNING
             task.task_manager_id = task_manager.id
+            task.task_env = task_env
             task.commit()
         else:
             task.last_updated_date = datetime.datetime.now()
@@ -332,34 +321,28 @@ class Master(MasterServicer):
     def edit_task(self, request, context):
         task_id = request.task_id
         cmd = request.cmd
-        task_env = request.task_env
+        task_env = {  # pylint: disable=R1721
+            key: val for key, val in request.task_env.items()
+        }
 
-        ## 아직 task_manager에 도달 X
-        queue_tasks = Task.list(status=TaskStatus.Status.NOTSTART)
-        running_tasks = Task.list(status=TaskStatus.Status.RUNNING)
+        queue_tasks = TaskEntity.list(status=TaskStatus.Status.NOTSTART)
+        running_tasks = TaskEntity.list(status=TaskStatus.Status.RUNNING)
         if task_id in [task.id for task in queue_tasks]:
-        # if task_id in self.queued_tasks.keys():
-        #     self.queued_tasks[task_id].command = cmd
-            target_task = Task.get(id=task_id)
+            target_task = TaskEntity.get(id=task_id)
             target_task.command = cmd
             target_task.commit()
             response = MasterResponse(
                 experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
             )
         elif task_id in [task.id for task in running_tasks]:
-        # elif task_id in self.running_tasks.keys():
-            target_task = Task.get(id=task_id)
-            target_task_manager = TaskManager.get(id=target_task.task_manager_id)
+            target_task = TaskEntity.get(id=task_id)
+            target_task_manager = TaskManagerEntity.get(id=target_task.task_manager_id)
             response = self.process_monitor.kill_task(
                 target_task_manager.address, task_id
             )
             if response.status == TaskStatus.Status.KILLED:
-                # del self.running_tasks[task_id]
-                # self.queued_tasks[task_id] = MasterTaskStatement(
-                #     name=task_id.split("-")[0], command=cmd, task_env=dict(task_env)
-                # )
                 target_task.status = TaskStatus.Status.NOTSTART
-                target_task.task_env = os.environ.copy()
+                target_task.task_env = task_env
                 target_task.command = cmd
                 target_task.commit()
 

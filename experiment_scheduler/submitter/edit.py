@@ -42,7 +42,7 @@ def main():
     response = stub.edit_task(request)
     # pylint: disable=no-member
     if (
-        hasattr(master_pb2.MasterResponse, 'response')
+        hasattr(master_pb2.MasterResponse, "response")
         and response.response == master_pb2.MasterResponse.ResponseStatus.FAIL
     ):
         print(

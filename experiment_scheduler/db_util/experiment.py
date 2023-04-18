@@ -13,9 +13,6 @@ class Experiment(Base, DbCommonMixin):
     """Experimnet
     description : define Experiment object
     ERD Table (link TLDR:)
-    Args:
-        Base (_type_): _description_
-        TableConfigurationMixin (_type_): mixin
     """
 
     __tablename__ = "experiment"

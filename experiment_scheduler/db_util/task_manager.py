@@ -13,9 +13,6 @@ class TaskManager(Base, DbCommonMixin):
     """TaskManger
     description : define TaskManger object
     ERD Table (link TLDR;)
-    Args:
-        Base (_type_): _description_
-        TableConfigurationMixin (_type_): mixin
     """
 
     __tablename__ = "task_manager"

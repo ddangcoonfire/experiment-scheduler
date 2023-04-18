@@ -12,7 +12,6 @@ from grpc import RpcError
 
 from experiment_scheduler.common.logging import get_logger
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
-    AllTasksStatus,
     Task,
     TaskLogInfo,
     TaskStatement,
@@ -124,7 +123,9 @@ class ProcessMonitor:
         The response is sent by streaming.
         """
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
-        for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(protobuf):
+        for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(
+            protobuf
+        ):
             yield task_log_chunk
 
     def get_available_task_managers(self):

@@ -12,9 +12,6 @@ class Task(Base, DbCommonMixin):
     """Task
     description : define Task object
     ERD Table (link TLDR:)
-    Args:
-        Base (_type_): _description_
-        TableConfigurationMixin (_type_): mixin
     """
 
     __tablename__ = "task"
@@ -25,7 +22,7 @@ class Task(Base, DbCommonMixin):
     name = Column(String(100))
     command = Column(String(100))
     status = Column(Integer)
-    task_env =  Column(JSON)
+    task_env = Column(JSON)
     logfile_name = Column(String(100))
 
 

@@ -2,7 +2,7 @@
 DBCommonMixin class contains common column and method
 """
 
-from sqlalchemy import Column, DateTime,String
+from sqlalchemy import Column, DateTime
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, Query
 from sqlalchemy.exc import ArgumentError
@@ -13,13 +13,10 @@ from experiment_scheduler.db_util.connection import Session
 class DbCommonMixin:
     """TableConfigurationMixin
     desc : common table information
-    Returns:
-        _type_: _description_
     """
+
     created_at = Column(DateTime(timezone=True), server_default=now())
-    last_updated_date = Column(
-        DateTime(timezone=True), onupdate=now(), server_default=now()
-    )
+    updated_at = Column(DateTime(timezone=True), onupdate=now(), server_default=now())
 
     @classmethod
     def get_table_name(cls):
@@ -98,11 +95,9 @@ class DbCommonMixin:
         :param request: id, instance of pre-defined class
         :return: none
         """
-
-        print(Session.object_session(self))
-
-        Session.object_session(self).commit()
-        """
         with Session.object_session(self) as session:
-            session.commit()
-"""
+            try:
+                session.commit()
+            except Exception as exc:
+                session.rollback()
+                raise ArgumentError("SQL Commit Error") from exc
