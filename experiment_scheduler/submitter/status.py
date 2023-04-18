@@ -9,6 +9,7 @@ import grpc
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
+
 def parse_args():
     """
     Todo
@@ -17,7 +18,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Search status for specific Task.")
     parser.add_argument("-t", "--task")
     return parser.parse_args()
-
 
 
 def main():
@@ -37,4 +37,3 @@ def main():
     response = stub.get_task_status(request)
 
     print(response)
-
