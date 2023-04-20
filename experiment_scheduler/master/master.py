@@ -23,7 +23,7 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     MasterResponse,
     TaskStatus,
     MasterTaskStatement,
-    TaskLogFile
+    TaskLogFile,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -78,7 +78,14 @@ class Master(MasterServicer):
         Get Task Manager's address from experiment_scheduler.cfg
         :return: list of address
         """
-        return ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
+        address_string = os.getenv("EXS_TASK_MANAGER_ADDRESS", None)
+        if address_string is not None:
+            address = address_string.split(" ")
+        else:
+            address = ast.literal_eval(
+                USER_CONFIG.get("default", "task_manager_address")
+            )
+        return address
 
     def _execute_command(self, interval=1) -> None:
         """
@@ -137,7 +144,6 @@ class Master(MasterServicer):
         return MasterResponse(experiment_id=experiment_id, response=response)
 
     @start_end_logger
-    @io_logger
     def get_task_status(self, request, context):
         """
         get status certain task
@@ -172,13 +178,16 @@ class Master(MasterServicer):
         task_manager_address = self.task_managers_address[0]
         task_logfile_path = os.getcwd()
         if task_logfile_path == "":
-            yield TaskLogFile(log_file=None, error_message=bytes("Check task id", "utf-8"))
+            yield TaskLogFile(
+                log_file=None, error_message=bytes("Check task id", "utf-8")
+            )
         else:
-            for response in self.process_monitor.get_task_log(task_manager_address, request.task_id, task_logfile_path):
+            for response in self.process_monitor.get_task_log(
+                task_manager_address, request.task_id, task_logfile_path
+            ):
                 yield response
 
     @start_end_logger
-    @io_logger
     def kill_task(self, request, context):
         """
         delete certain task
