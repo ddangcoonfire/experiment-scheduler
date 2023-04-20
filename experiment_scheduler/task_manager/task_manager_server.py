@@ -320,7 +320,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
-        p_util = ProcessUtil(target_process.pid)
+        p_util = ProcessUtil(target_process.get_pid())
         if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
             self.logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
