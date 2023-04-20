@@ -6,3 +6,5 @@ pynvml
 protobuf
 psutil
 pyfiglet
+sqlalchemy==2.0.7
+sqlalchemy-utils==0.40.0
