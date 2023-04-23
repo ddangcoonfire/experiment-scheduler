@@ -94,14 +94,30 @@ class Master(MasterServicer):
             )
         return address
 
-    def _get_available_task_managers_excute_task(self, unhealthy_task_manager=None) -> None:
+    def _get_available_task_managers_execute_task(self, unhealthy_task_manager):
         """[TODO] Write Docs"""
-        available_task_managers = (
-            self.process_monitor.get_available_task_managers()
-        )
-        if available_task_managers:
-            task_manager = available_task_managers[0]
-            self.execute_task(task_manager, unhealthy_task_manager)
+        task_id_list = TaskEntity.get(status=TaskStatus.Status.RUNNING,
+                                      task_manager_id=TaskManagerEntity.get(address=unhealthy_task_manager))
+        for task_id in task_id_list:
+            available_task_managers = (
+                self.process_monitor.get_available_task_managers()
+            )
+
+            if available_task_managers:
+                task_manager = available_task_managers[0]
+                self.execute_task(task_manager, task_id)
+
+    def _health_check(self, interval=60) -> None:
+        """[TODO] Write Docs"""
+        while True:
+            unhealthy_task_manager_list = []
+            for task_manager in self.task_managers_address:
+                if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                    unhealthy_task_manager_list.append(task_manager)
+            if len(unhealthy_task_manager_list) > 0:
+                for unhealthy_task_manager in unhealthy_task_manager_list:
+                    self._get_available_task_managers_execute_task(unhealthy_task_manager)
+            time.sleep(interval)
 
     def _execute_command(self, interval=1) -> None:
         """
@@ -122,18 +138,6 @@ class Master(MasterServicer):
                     task_manager_address = available_task_managers[0]
                     task_manager = TaskManagerEntity.get(address=task_manager_address)
                     self.execute_task(task_manager.address, queue_task.id)
-            time.sleep(interval)
-
-    def _health_check(self, interval=60) -> None:
-        """[TODO] Write Docs"""
-        while True:
-            unhealthy_task_manager_list = []
-            for task_manager in self.task_managers_address:
-                if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
-                    unhealthy_task_manager_list.append(task_manager)
-            if len(unhealthy_task_manager_list) > 0:
-                for unhealthy_task_manager in unhealthy_task_manager_list:
-                    self._get_available_task_managers_excute_task(unhealthy_task_manager)
             time.sleep(interval)
 
     def select_task_manager(self, selected=-1):
@@ -305,17 +309,13 @@ class Master(MasterServicer):
         return all_experiments_status
 
     @start_end_logger
-    def execute_task(self, task_manager_address, task_id, unhealthy_task_manager=None):
+    def execute_task(self, task_manager_address, task_id):
         """
         run certain task
-        :param task_manager:
-        :param gpu_idx:
-        :param unhealthy_task_manager:
+        :param task_manager_address:
+        :param task_id:
         :return: task's status
         """
-        # [TODO] DB에서 Task 정보 갖고오기
-        if not unhealthy_task_manager:
-            prior_task_id, prior_task = self.queued_tasks.popitem(last=False)
         task = TaskEntity.get(id=task_id)
         task_manager = TaskManagerEntity.get(address=task_manager_address)
         task_env = {  # pylint: disable=R1721
