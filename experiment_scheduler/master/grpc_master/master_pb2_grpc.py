@@ -3,12 +3,11 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
+import experiment_scheduler.master.grpc_master.master_pb2 as master__pb2
 
 
 class MasterStub(object):
-    """Interface exported by the server.
-    """
+    """Interface exported by the server."""
 
     def __init__(self, channel):
         """Constructor.
@@ -17,35 +16,35 @@ class MasterStub(object):
             channel: A grpc.Channel.
         """
         self.request_experiments = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_experiments',
-                request_serializer=master__pb2.ExperimentStatement.SerializeToString,
-                response_deserializer=master__pb2.MasterResponse.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/request_experiments",
+            request_serializer=master__pb2.ExperimentStatement.SerializeToString,
+            response_deserializer=master__pb2.MasterResponse.FromString,
+        )
         self.kill_task = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/kill_task',
-                request_serializer=master__pb2.Task.SerializeToString,
-                response_deserializer=master__pb2.TaskStatus.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/kill_task",
+            request_serializer=master__pb2.Task.SerializeToString,
+            response_deserializer=master__pb2.TaskStatus.FromString,
+        )
         self.get_task_status = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_status',
-                request_serializer=master__pb2.Task.SerializeToString,
-                response_deserializer=master__pb2.TaskStatus.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_status",
+            request_serializer=master__pb2.Task.SerializeToString,
+            response_deserializer=master__pb2.TaskStatus.FromString,
+        )
         self.get_task_log = channel.unary_stream(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_log',
-                request_serializer=master__pb2.Task.SerializeToString,
-                response_deserializer=master__pb2.TaskLogFile.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_log",
+            request_serializer=master__pb2.Task.SerializeToString,
+            response_deserializer=master__pb2.TaskLogFile.FromString,
+        )
         self.get_all_tasks = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks',
-                request_serializer=master__pb2.Experiment.SerializeToString,
-                response_deserializer=master__pb2.AllExperimentsStatus.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/get_all_tasks",
+            request_serializer=master__pb2.Experiment.SerializeToString,
+            response_deserializer=master__pb2.AllExperimentsStatus.FromString,
+        )
         self.halt_process_monitor = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/halt_process_monitor',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                )
+            "/experiment_scheduler.task_manager.grpc_task_manager.Master/halt_process_monitor",
+            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+        )
         self.edit_task = channel.unary_unary(
             "/experiment_scheduler.task_manager.grpc_task_manager.Master/edit_task",
             request_serializer=master__pb2.EditTask.SerializeToString,
