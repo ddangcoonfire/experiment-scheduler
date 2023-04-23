@@ -201,7 +201,7 @@ class Master(MasterServicer):
             )
         else:
             for response in self.process_monitor.get_task_log(
-                    task_manager_address, request.task_id, task_logfile_path
+                task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
