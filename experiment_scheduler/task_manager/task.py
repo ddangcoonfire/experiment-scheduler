@@ -84,4 +84,4 @@ class Task:
         Returns:
                 True if the pid is a pid of child of this process
         """
-        return pid in self._process.children(recursive=True)
+        return pid in [p.pid for p in self._process.children(recursive=True)]
