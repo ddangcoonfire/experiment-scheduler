@@ -43,22 +43,6 @@ class ResourceManager:
         self._available_resources = [True for _ in range(num_resource)]
         self.logger = get_logger(name="resource_manager")
 
-    def set_resource_as_idle(self, resource_idx: int):
-        """
-
-        :param resource_idx:
-        :return:
-        """
-        self._available_resources[resource_idx] = True
-
-    def set_resource_as_used(self, resource_idx: int):
-        """
-
-        :param resource_idx:
-        :return:
-        """
-        self._available_resources[resource_idx] = False
-
     def release_resource(self, task_id):
         """
 
@@ -78,6 +62,8 @@ class ResourceManager:
         :return:
         """
         resource_idx = None
+        if task_id in self._resource_rental_history:
+            raise RuntimeError(f"Resource is alreay assigned for {task_id}")
         for idx, resource_is_idle in enumerate(self._available_resources):
             if resource_is_idle:
                 resource_idx = idx

@@ -9,77 +9,60 @@ class TestResourceManager:
         initialize test
         contruct ResourceManager and set attributes which are required for tests below repeatedly
         """
-        num_resource = 4
+        num_resource = 2
         self.ResourceManager = ResourceManager(num_resource)
         self.test_task_id0, self.test_task_id1 = "test0", "test1"
-        self.ResourceManager._resource_rental_history[self.test_task_id0] = 0
-        self.ResourceManager._resource_rental_history[self.test_task_id1] = 1
-        self.ResourceManager._available_resources[0] = False
-        self.ResourceManager._available_resources[1] = False
-
-    def test_set_resource_as_idle(self):
-        """
-        test target: set_resource_as_idle()
-        """
-        test_idx = 0
-        assert self.ResourceManager._available_resources[test_idx] == False
-
-        self.ResourceManager.set_resource_as_idle(test_idx)
-        assert self.ResourceManager._available_resources[test_idx] == True
-
-    def test_set_resource_as_used(self):
-        """
-        test target: set_resource_as_used()
-        """
-
-        test_idx = 2
-        assert self.ResourceManager._available_resources[test_idx] == True
-
-        self.ResourceManager.set_resource_as_used(test_idx)
-        assert self.ResourceManager._available_resources[test_idx] == False
+        self.ResourceManager.get_resource(self.test_task_id0)
+        self.ResourceManager.get_resource(self.test_task_id1)
 
     def test_test_release_resource(self):
         """
         test target: test_release_resource()
         """
+        assert self.ResourceManager.has_available_resource() == False
 
         self.ResourceManager.release_resource(self.test_task_id0)
 
-        assert self.test_task_id0 not in self.ResourceManager._resource_rental_history
-        assert self.ResourceManager._available_resources[0] == True
-        assert self.test_task_id1 in self.ResourceManager._resource_rental_history
-        assert self.ResourceManager._available_resources[1] == False
+        assert self.ResourceManager.has_available_resource() == True
+
 
     def test_get_resource(self):
         """
         test target: test_get_resource()
         """
-        new_test_task_id0, new_test_task_id1, new_test_task_id2 = (
-            "new_test0",
-            "new_test1",
-            "new_test2",
-        )
-        new_resource_idx0 = self.ResourceManager.get_resource(new_test_task_id0)
-        new_resource_idx1 = self.ResourceManager.get_resource(new_test_task_id1)
 
-        assert (
-            self.ResourceManager._resource_rental_history[new_test_task_id0]
-            == new_resource_idx0
-        )
-        assert self.ResourceManager._available_resources[new_resource_idx0] == False
-        assert self.ResourceManager.get_resource(new_test_task_id2) == None
+        self.ResourceManager.release_resource(self.test_task_id0)
+        resource_idx = self.ResourceManager.get_resource(self.test_task_id0)
+
+        assert resource_idx is not None
+    
+    def test_get_resource_impossible(self):
+        """
+        test target: test_get_resource()
+        """
+
+        new_test_task_id0 = "new_test0"
+        resource_idx = self.ResourceManager.get_resource(new_test_task_id0)
+
+        assert resource_idx is None
+
+    def test_get_resource_twice(self):
+        """
+        test target: test_get_resource()
+        """
+
+        with pytest.raises(RuntimeError):
+            self.ResourceManager.get_resource(self.test_task_id0)
 
     def test_has_availabe_resource(self):
         """
         test target: test_has_available_resource()
         """
-        assert self.ResourceManager.has_available_resource() == True
-
-        new_test_task_id0, new_test_task_id1 = "new_test0", "new_test1"
-        self.ResourceManager.get_resource(new_test_task_id0)
-        self.ResourceManager.get_resource(new_test_task_id1)
-
-        assert self.ResourceManager.has_available_resource() == False
+        assert not self.ResourceManager.has_available_resource()
+        self.ResourceManager.release_resource(self.test_task_id0)
+        assert self.ResourceManager.has_available_resource()
+        self.ResourceManager.release_resource(self.test_task_id1)
+        assert self.ResourceManager.has_available_resource()
 
     def test_get_tasks_using_resource(self):
         """
