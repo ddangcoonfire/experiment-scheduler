@@ -44,7 +44,16 @@ class Experiment(_message.Message):
 
 class ExperimentStatement(_message.Message):
     __slots__ = ["name", "tasks"]
+    class Status(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    ABNORMAL: ExperimentStatement.Status
+    DONE: ExperimentStatement.Status
+    KILLED: ExperimentStatement.Status
     NAME_FIELD_NUMBER: _ClassVar[int]
+    NOTFOUND: ExperimentStatement.Status
+    NOTSTART: ExperimentStatement.Status
+    NO_RESOURCE: ExperimentStatement.Status
+    RUNNING: ExperimentStatement.Status
     TASKS_FIELD_NUMBER: _ClassVar[int]
     name: str
     tasks: _containers.RepeatedCompositeFieldContainer[MasterTaskStatement]
@@ -134,6 +143,7 @@ class TaskStatus(_message.Message):
     KILLED: TaskStatus.Status
     NOTFOUND: TaskStatus.Status
     NOTSTART: TaskStatus.Status
+    NO_RESOURCE: TaskStatus.Status
     RUNNING: TaskStatus.Status
     STATUS_FIELD_NUMBER: _ClassVar[int]
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
