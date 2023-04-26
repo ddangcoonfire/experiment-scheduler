@@ -27,6 +27,7 @@ class Task:
         self.name = name
 
 
+
 class TestRequest:
 
     def __init__(self, *args, **kwargs):
@@ -78,7 +79,6 @@ class MockTask:
 
     def __init__(self, task_id=mockTaskId(), run=True):
         self.task_id = task_id if run else mockTaskId(False)
-
 
 class MockTaskWithStatus:
 
@@ -203,7 +203,7 @@ class TestMaster(TestCase):
         # then
         self.assertEqual(test_request.task_id, test_return_value.task_id)
         self.assertEqual(TaskStatus.Status.NOTFOUND, test_return_value.status)
-
+    
     def test_get_status_not_start_task(self):
         # given
         test_request = MockTask(None, False)
@@ -282,3 +282,18 @@ class TestMaster(TestCase):
         self.assertEqual(mockTaskId(False), test_return_value.task_id)
         self.assertEqual(TaskStatus.Status.RUNNING, test_return_value.status)
         self.assertEqual(self.master.running_tasks[test_return_value.task_id]['task_manager'], "test_task_manager")
+
+
+    def test_request_anomaly_exited_tasks(self):
+        # given
+        test_request = [MockTask(task_id = "test0", run=True), MockTask(task_id = "test1",run=True)]
+
+        self.master.running_tasks.update(("test0", {"task": MockTask(task_id = "test0", run=True), "task_manager": "test_task_manager",
+                             "gpu_idx": 1}), ("test1", {"task":  MockTask(task_id = "test1",run=True), "task_manager": "test_task_manager",
+                             "gpu_idx": 1}))
+        
+        test_return_value = self.master.request_anomaly_exited_tasks(test_request, "context")
+
+        self.assertEqual(len(self.master.running_tasks), 1)
+        self.assertEqual(len(self.master.queued_tasks), 2)
+        
