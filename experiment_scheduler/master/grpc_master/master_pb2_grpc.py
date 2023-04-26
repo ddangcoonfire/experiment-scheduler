@@ -54,7 +54,7 @@ class MasterStub(object):
         self.request_anomaly_exited_tasks = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_anomaly_exited_tasks',
                 request_serializer=master__pb2.TaskList.SerializeToString,
-                response_deserializer=master__pb2.MasterResponse.FromString,
+                response_deserializer=master__pb2.RequestAbnormalExitedTasksResponse.FromString,
                 )
 
 
@@ -151,7 +151,7 @@ def add_MasterServicer_to_server(servicer, server):
             'request_anomaly_exited_tasks': grpc.unary_unary_rpc_method_handler(
                     servicer.request_anomaly_exited_tasks,
                     request_deserializer=master__pb2.TaskList.FromString,
-                    response_serializer=master__pb2.MasterResponse.SerializeToString,
+                    response_serializer=master__pb2.RequestAbnormalExitedTasksResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -296,6 +296,6 @@ class Master(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_anomaly_exited_tasks',
             master__pb2.TaskList.SerializeToString,
-            master__pb2.MasterResponse.FromString,
+            master__pb2.RequestAbnormalExitedTasksResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

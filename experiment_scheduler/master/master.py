@@ -24,6 +24,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskStatus,
     MasterTaskStatement,
     TaskLogFile,
+    TaskList,
+    RequestAbnormalExitedTasksResponse
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -145,17 +147,27 @@ class Master(MasterServicer):
         return MasterResponse(experiment_id=experiment_id, response=response)
     
     @start_end_logger
-    def request_anomaly_exited_tasks(self, request, context):
+    def request_abnormal_exited_tasks(self, request, context):
         """
         """
         task_list = request.task_list
+        failed_list = TaskList()
         for task_class in task_list:
-            task = self.running_tasks[task_class.task_id]["task"]
-            del self.running_tasks[task_class.task_id]
-            self.queued_tasks[task_class.task_id] = task
-            self.queued_tasks.move_to_end(task_class.task_id, False)
-        
-        return MasterResponse(experiment_id="", response=MasterResponse.ResponseStatus.SUCCESS)
+            if task_class.task_id in self.running_tasks:
+                task = self.running_tasks[task_class.task_id]["task"]
+                del self.running_tasks[task_class.task_id]
+                self.queued_tasks[task_class.task_id] = task
+                self.queued_tasks.move_to_end(task_class.task_id, False)
+            else:
+                self.logger.warning(
+                "├─abnormal exited task_id is not running: %s", task_class.task_id)
+                failed_list.task_list.append(task_class)
+                
+        if not failed_list.task_list:
+            response = RequestAbnormalExitedTasksResponse.ResponseStatus.SUCCESS
+        else:
+            response = RequestAbnormalExitedTasksResponse.ResponseStatus.FAIL
+        return RequestAbnormalExitedTasksResponse(response=response, not_running_tasks=failed_list)
     
         
 

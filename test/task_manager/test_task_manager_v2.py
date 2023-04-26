@@ -49,7 +49,7 @@ class TestTaskManager:
 
         # check
         assert "2" not in self.task_manger_server.tasks
-        mock_stub.request_anomaly_exited_tasks.assert_called_once_with(
+        mock_stub.request_abnormal_exited_tasks.assert_called_once_with(
             master_pb2.TaskList(task_list=[master_pb2.Task(task_id="2")])
         )
         self.mock_resource_manager.release_resource.assert_called_once()

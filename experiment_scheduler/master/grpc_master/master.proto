@@ -22,7 +22,7 @@ service Master {
 
       rpc edit_task(EditTask) returns (MasterResponse) {}
 
-      rpc request_anomaly_exited_tasks(TaskList) returns (MasterResponse) {}
+      rpc request_anomaly_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
 
 }
 
@@ -51,6 +51,7 @@ message MasterResponse {
     }
     ResponseStatus response = 2;
 }
+
 
 message TaskStatus {
     string task_id = 1;
@@ -97,4 +98,13 @@ message TaskLogFile {
 
 message TaskList {
     repeated Task task_list = 1;
+}
+
+message RequestAbnormalExitedTasksResponse {
+    enum ResponseStatus {
+        SUCCESS = 0;
+        FAIL = 1;
+    }
+    TaskList not_running_tasks = 1;
+    ResponseStatus response = 2;
 }

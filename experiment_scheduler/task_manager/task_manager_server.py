@@ -266,7 +266,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     ast.literal_eval(USER_CONFIG.get("default", "master_address"))
                 )
                 stub = master_pb2_grpc.MasterStub(channel)
-                stub.request_anomaly_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+                stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
             time.sleep(1)
 
 
