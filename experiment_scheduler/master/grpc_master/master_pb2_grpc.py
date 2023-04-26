@@ -51,8 +51,8 @@ class MasterStub(object):
                 request_serializer=master__pb2.EditTask.SerializeToString,
                 response_deserializer=master__pb2.MasterResponse.FromString,
                 )
-        self.request_anomaly_exited_tasks = channel.unary_unary(
-                '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_anomaly_exited_tasks',
+        self.request_abnormal_exited_tasks = channel.unary_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_abnormal_exited_tasks',
                 request_serializer=master__pb2.TaskList.SerializeToString,
                 response_deserializer=master__pb2.RequestAbnormalExitedTasksResponse.FromString,
                 )
@@ -104,7 +104,7 @@ class MasterServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def request_anomaly_exited_tasks(self, request, context):
+    def request_abnormal_exited_tasks(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -148,8 +148,8 @@ def add_MasterServicer_to_server(servicer, server):
                     request_deserializer=master__pb2.EditTask.FromString,
                     response_serializer=master__pb2.MasterResponse.SerializeToString,
             ),
-            'request_anomaly_exited_tasks': grpc.unary_unary_rpc_method_handler(
-                    servicer.request_anomaly_exited_tasks,
+            'request_abnormal_exited_tasks': grpc.unary_unary_rpc_method_handler(
+                    servicer.request_abnormal_exited_tasks,
                     request_deserializer=master__pb2.TaskList.FromString,
                     response_serializer=master__pb2.RequestAbnormalExitedTasksResponse.SerializeToString,
             ),
@@ -284,7 +284,7 @@ class Master(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def request_anomaly_exited_tasks(request,
+    def request_abnormal_exited_tasks(request,
             target,
             options=(),
             channel_credentials=None,
@@ -294,7 +294,7 @@ class Master(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_anomaly_exited_tasks',
+        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_abnormal_exited_tasks',
             master__pb2.TaskList.SerializeToString,
             master__pb2.RequestAbnormalExitedTasksResponse.FromString,
             options, channel_credentials,

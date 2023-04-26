@@ -22,7 +22,7 @@ service Master {
 
       rpc edit_task(EditTask) returns (MasterResponse) {}
 
-      rpc request_anomaly_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
+      rpc request_abnormal_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
 
 }
 
