@@ -76,7 +76,7 @@ class TestTask:
     def test_register_progress(self):
         task = Task(1234)
         progress = 30
-        
+
         task.register_progress(progress, 12.3)
 
         assert task.get_progress() == progress
@@ -108,7 +108,9 @@ class TestTask:
         self.mock_psutil.wait_procs.return_value = ("gone", "alive")
         timeout = 3
 
-        gone, alive = task.kill_process_tree(sig=signal.SIGINT, include_me=True, timeout=timeout)
+        gone, alive = task.kill_process_tree(
+            sig=signal.SIGINT, include_me=True, timeout=timeout
+        )
 
         assert gone == "gone"
         assert alive == "alive"
