@@ -250,8 +250,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 self._get_task_status_by_task_id(task_id)
             )
         return all_tasks_status
-    
+
     def get_dead_tasks(self):
+        """Check task runs well and if there are abnormally exited tasks, then request master to run them again."""
         while True:
             dead_tasks = []
             for task_id, task in self.tasks.items():
@@ -261,11 +262,11 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     dead_tasks.append(master_pb2.Task(task_id=task_id))
             if dead_tasks:
                 for dead_task in dead_tasks:
-                    del self.tasks[dead_task.task_id] 
+                    del self.tasks[dead_task.task_id]
                 channel = grpc.insecure_channel(
                     ast.literal_eval(USER_CONFIG.get("default", "master_address"))
                 )
-                stub = master_pb2_grpc.MasterStub(channel)  
+                stub = master_pb2_grpc.MasterStub(channel)
                 stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
             time.sleep(1)
 

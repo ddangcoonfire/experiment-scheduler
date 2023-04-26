@@ -114,7 +114,7 @@ class Master(MasterServicer):
                     task_manager = TaskManagerEntity.get(address=task_manager_address)
                     self.execute_task(task_manager.address, queue_task.id)
             time.sleep(interval)
-    
+
 
     def select_task_manager(self, selected=-1):
         """
@@ -172,11 +172,10 @@ class Master(MasterServicer):
         # [todo] add task_id
         ExperimentEntity.insert(exp)
         return MasterResponse(experiment_id=experiment_id, response=response)
-    
+
     @start_end_logger
     def request_abnormal_exited_tasks(self, request, context):
-        """
-        """
+        """Request to run abnormally exited task again."""
         task_list = request.task_list
         failed_list = TaskList()
         for task_class in task_list:
@@ -189,14 +188,14 @@ class Master(MasterServicer):
                 self.logger.warning(
                 "├─abnormal exited task_id is not running: %s", task_class.task_id)
                 failed_list.task_list.append(task_class)
-                
+
         if not failed_list.task_list:
             response = RequestAbnormalExitedTasksResponse.ResponseStatus.SUCCESS
         else:
             response = RequestAbnormalExitedTasksResponse.ResponseStatus.FAIL
         return RequestAbnormalExitedTasksResponse(response=response, not_running_tasks=failed_list)
-    
-        
+
+
 
     @start_end_logger
     def get_task_status(self, request, context):
