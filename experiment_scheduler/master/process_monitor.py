@@ -20,6 +20,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
 )
+from experiment_scheduler.db_util.task import Task as TaskEntity
 
 PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
@@ -66,7 +67,12 @@ class ProcessMonitor:
         while True:
             for task_manager in self.task_manager_address:
                 try:
-                    self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    server_status = self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    if len(server_status.task_id_array) > 0:
+                        for task_id in server_status.task_id_array:
+                            task = TaskEntity.get(id=task_id)
+                            task.status = 2
+                            TaskEntity.update(upd_id=task_id, upd_val=task)
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError as error:
                     thread_queue[f"is_{task_manager}_healthy"] = False

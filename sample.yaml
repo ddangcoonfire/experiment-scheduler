@@ -1,6 +1,6 @@
 name: smaple
 tasks:
 - cmd: echo test1
-  name: test1
+  name: test_tolerance_1
 - cmd: echo test2
-  name: test2
+  name: test_tolerance_2
