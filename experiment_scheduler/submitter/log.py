@@ -14,12 +14,14 @@ from experiment_scheduler.master.grpc_master import master_pb2_grpc
 
 # from experiment_scheduler.common.logging import get_logger
 
+
 class LogColor:
     """Provides colors setting for log"""
+
     INFO = "\u001b[32m [LOG] "
     WARNING = "\u001b[33m [WARN] "
     ERROR = "\u001b[31m [ERROR] "
-    END = '\033[0m'
+    END = "\033[0m"
 
 
 def parse_args():
@@ -39,7 +41,6 @@ def main():
     :return:
     """
     args = parse_args()
-    print(args)
     task_id = args.task
     file_download = args.file
     channel = grpc.insecure_channel(
@@ -52,7 +53,9 @@ def main():
     log_file_path = osp.join(f"{task_id}.txt")
     for response in responses:
         if response.error_message:
-            print(LogColor.ERROR + response.error_message.decode("utf-8") + LogColor.END)
+            print(
+                LogColor.ERROR + response.error_message.decode("utf-8") + LogColor.END
+            )
             return
         print(LogColor.INFO + f"Start Getting Log [{task_id}]:" + LogColor.END)
         print(LogColor.INFO + f"{str(response.log_file, 'utf-8')}" + LogColor.END)

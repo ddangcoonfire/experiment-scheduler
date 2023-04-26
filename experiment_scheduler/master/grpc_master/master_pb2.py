@@ -30,10 +30,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _EDITTASK._serialized_end=281
   _EDITTASK_TASKENVENTRY._serialized_start=235
   _EDITTASK_TASKENVENTRY._serialized_end=281
-  _EXPERIMENTSTATEMENT._serialized_start=283
-  _EXPERIMENTSTATEMENT._serialized_end=407
-  _MASTERTASKSTATEMENT._serialized_start=410
-  _MASTERTASKSTATEMENT._serialized_end=615
+  _EXPERIMENTSTATEMENT._serialized_start=284
+  _EXPERIMENTSTATEMENT._serialized_end=512
+  _EXPERIMENTSTATEMENT_STATUS._serialized_start=410
+  _EXPERIMENTSTATEMENT_STATUS._serialized_end=512
+  _MASTERTASKSTATEMENT._serialized_start=515
+  _MASTERTASKSTATEMENT._serialized_end=720
   _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=235
   _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=281
   _MASTERRESPONSE._serialized_start=618

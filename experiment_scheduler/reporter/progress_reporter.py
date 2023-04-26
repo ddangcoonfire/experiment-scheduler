@@ -1,5 +1,6 @@
 """
-[TODO]
+It enables the user to report the progress of the task currently being performed and
+the current time to the task manager along with the pid.
 """
 import time
 import ast
