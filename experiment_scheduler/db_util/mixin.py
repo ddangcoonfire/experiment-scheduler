@@ -1,11 +1,10 @@
 """
 DBCommonMixin class contains common column and method
 """
-
 from sqlalchemy import Column, DateTime
 from sqlalchemy.sql.functions import now
 from sqlalchemy.orm import declarative_mixin, Query
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import SQLAlchemyError
 from experiment_scheduler.db_util.connection import Session
 
 
@@ -69,25 +68,8 @@ class DbCommonMixin:
             try:
                 session.add(obj)
                 session.commit()
-            except Exception as exc:
+            except SQLAlchemyError:
                 session.rollback()
-                raise ArgumentError("SQL Insert Error") from exc
-
-    @classmethod
-    def update(cls, upd_id, upd_val):
-        """
-        update data having request id in certain table
-        this method is temporal for testing
-        :param request: id, instance of pre-defined class
-        :return: none
-        """
-        with Session() as session:
-            try:
-                session.query(cls).filter_by(id=upd_id).update(upd_val)
-                session.commit()
-            except Exception as exc:
-                session.rollback()
-                raise ArgumentError("SQL Select Error") from exc
 
     def commit(self):
         """
@@ -98,6 +80,5 @@ class DbCommonMixin:
         with Session.object_session(self) as session:
             try:
                 session.commit()
-            except Exception as exc:
+            except SQLAlchemyError:
                 session.rollback()
-                raise ArgumentError("SQL Commit Error") from exc
