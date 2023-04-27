@@ -71,7 +71,6 @@ class DbCommonMixin:
                 session.commit()
             except Exception as exc:
                 session.rollback()
-                raise ArgumentError("SQL Insert Error") from exc
 
     @classmethod
     def update(cls, upd_id, upd_val):
@@ -87,7 +86,6 @@ class DbCommonMixin:
                 session.commit()
             except Exception as exc:
                 session.rollback()
-                raise ArgumentError("SQL Select Error") from exc
 
     def commit(self):
         """
@@ -100,4 +98,3 @@ class DbCommonMixin:
                 session.commit()
             except Exception as exc:
                 session.rollback()
-                raise ArgumentError("SQL Commit Error") from exc
