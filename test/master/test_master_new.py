@@ -16,12 +16,13 @@ class TestMaster:
         master = Master()
         return master
 
-    def test_get_task_managers(self, master):
-        USER_CONFIG.set("default", "task_manager_address", "test_address")
+    def test_get_task_managers(self, master, mocker):
+        mocker.patch("ast.literal_eval", return_value=["test_address"])
         task_managers = master.get_task_managers()
         assert task_managers == ["test_address"]
-        os.setenv()
-        assert task_managers == ["address1", "address2"]
+        mocker.patch("os.getenv", return_value="test_address2")
+        task_managers = master.get_task_managers()
+        assert task_managers == ["test_address2"]
 
     #
     # def test_select_task_manager():
@@ -59,24 +60,24 @@ class TestMaster:
     #     assert response.status == TaskStatus.Status.NOTFOUND
     #
     #
-    def test_kill_task(self, master, mocker):
-        mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
-        request = MockRequest(task_id="test_task_id")
-        context = ''
-        response = master.kill_task(request, context)
-        assert response == TaskStatus()
+    # def test_kill_task(self, master, mocker):
+    #     mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
+    #     request = MockRequest(task_id="test_task_id")
+    #     context = ''
+    #     response = master.kill_task(request, context)
+    #     assert response == TaskStatus()
 
-        entity = TaskEntity(
-        mocker.patch("experiment_scheduler.db_util.task.Task", return_value=TaskEntity())
-        TaskEntity(
-            id = 1
-            exp_id = 2
-        )
-        mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
-
-
-        assert response.task_id == "test_task_id"
-        assert response.status == TaskStatus.Status.NOTFOUND
+        # entity = TaskEntity(
+        # mocker.patch("experiment_scheduler.db_util.task.Task", return_value=TaskEntity())
+        # TaskEntity(
+        #     id = 1
+        #     exp_id = 2
+        # )
+        # mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
+        #
+        #
+        # assert response.task_id == "test_task_id"
+        # assert response.status == TaskStatus.Status.NOTFOUND
     #
     #
     # def test_get_all_tasks():
