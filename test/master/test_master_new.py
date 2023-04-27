@@ -1,18 +1,23 @@
 import pytest
-import pytest_mock
 from experiment_scheduler.master.master import Master
-from experiment_scheduler.common.settings import USER_CONFIG
-import os
+from experiment_scheduler.master.grpc_master.master_pb2 import TaskStatus
+
 
 class MockRequest:
     def __init__(self, task_id):
         self.task_id = task_id
 
 
-class TestMaster:
+class MockThread:
+    @classmethod
+    def start(cls):
+        return
 
+
+class TestMaster:
     @pytest.fixture
-    def master(self):
+    def master(self, mocker):
+        mocker.patch("threading.Thread", return_value=MockThread)
         master = Master()
         return master
 
@@ -60,24 +65,15 @@ class TestMaster:
     #     assert response.status == TaskStatus.Status.NOTFOUND
     #
     #
-    # def test_kill_task(self, master, mocker):
-    #     mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
-    #     request = MockRequest(task_id="test_task_id")
-    #     context = ''
-    #     response = master.kill_task(request, context)
-    #     assert response == TaskStatus()
+    def test_kill_task(self, master, mocker):
+        mocker.patch("experiment_scheduler.db_util.task.Task.get", return_value=None)
+        request = MockRequest(task_id="test_task_id")
+        context = ""
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.NOTFOUND
+        )
 
-        # entity = TaskEntity(
-        # mocker.patch("experiment_scheduler.db_util.task.Task", return_value=TaskEntity())
-        # TaskEntity(
-        #     id = 1
-        #     exp_id = 2
-        # )
-        # mocker.patch("experiment_scheduler.db_util.task.Task", return_value=None)
-        #
-        #
-        # assert response.task_id == "test_task_id"
-        # assert response.status == TaskStatus.Status.NOTFOUND
     #
     #
     # def test_get_all_tasks():
