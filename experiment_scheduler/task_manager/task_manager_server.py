@@ -235,13 +235,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
     def health_check(self, request, context):
         """Return current server status"""
-        # task_id_list = []
-        # for task_id in self.tasks.keys():
-        #     task_status = self._get_task_status_by_task_id(task_id)
-        #     if task_status.status == TaskStatus.Status.DONE:
-        #         task_id_list.append(task_id)
-        # return ServerStatus(alive=True, task_id_array=task_id_list)
-        return ServerStatus(alive=True)
+        server_status = ServerStatus()
+        server_status.alive = True
+        task_id_list = self.tasks.keys()
+        if task_id_list:
+            for task_id in self.tasks.keys():
+                task_status = self._get_task_status_by_task_id(task_id)
+                if task_status.status == TaskStatus.Status.DONE:
+                    server_status.task_id_array.append(task_id)
+        return server_status
 
     @start_end_logger
     def run_task(self, request, context):

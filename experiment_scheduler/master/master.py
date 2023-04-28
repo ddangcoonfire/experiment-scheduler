@@ -96,8 +96,9 @@ class Master(MasterServicer):
 
     def _get_available_task_managers_execute_task(self, unhealthy_task_manager):
         """[TODO] Write Docs"""
+        task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
         task_id_list = TaskEntity.get(status=TaskStatus.Status.RUNNING,
-                                      task_manager_id=TaskManagerEntity.get(address=unhealthy_task_manager))
+                                      task_manager_id=task_manager.id)
         for task_id in task_id_list:
             available_task_managers = (
                 self.process_monitor.get_available_task_managers()
@@ -107,7 +108,7 @@ class Master(MasterServicer):
                 task_manager = available_task_managers[0]
                 self.execute_task(task_manager, task_id)
 
-    def _health_check(self, interval=60) -> None:
+    def _health_check(self, interval=5) -> None:
         """[TODO] Write Docs"""
         while True:
             unhealthy_task_manager_list = []

@@ -53,7 +53,7 @@ class ProcessMonitor:
 
     def _init_thread_queue(self) -> None:
         for task_manager in self.task_manager_address:
-            self.thread_queue[f"is_{task_manager}_healthy"] = False
+            self.thread_queue[f"is_{task_manager}_healthy"] = True
 
     def _get_stubs(self) -> Dict[str, Any]:
         stubs = {}
@@ -84,16 +84,6 @@ class ProcessMonitor:
             time.sleep(time_interval)
 
     # should run this code through a thread.
-
-    def _are_task_manager_healthy(self) -> bool:
-        """
-
-        :return:
-        """
-        for address in self.task_manager_address:
-            if not self.thread_queue[f"is_{address}_healthy"]:
-                return False
-        return True
 
     def run_task(self, task_id, task_manager, command, name, env):
         """
