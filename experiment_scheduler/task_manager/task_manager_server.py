@@ -243,6 +243,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 task_status = self._get_task_status_by_task_id(task_id)
                 if task_status.status == TaskStatus.Status.DONE:
                     server_status.task_id_array.append(task_id)
+                    del self.tasks[task_id] 
         return server_status
 
     @start_end_logger

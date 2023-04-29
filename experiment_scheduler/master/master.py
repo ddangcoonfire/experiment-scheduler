@@ -111,13 +111,14 @@ class Master(MasterServicer):
     def _health_check(self, interval=5) -> None:
         """[TODO] Write Docs"""
         while True:
-            unhealthy_task_manager_list = []
-            for task_manager in self.task_managers_address:
-                if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
-                    unhealthy_task_manager_list.append(task_manager)
-            if len(unhealthy_task_manager_list) > 0:
-                for unhealthy_task_manager in unhealthy_task_manager_list:
-                    self._get_available_task_managers_execute_task(unhealthy_task_manager)
+            if self.process_monitor.selected_task_manager !=-1: 
+                unhealthy_task_manager_list = []
+                for task_manager in self.task_managers_address:
+                    if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                        unhealthy_task_manager_list.append(task_manager)
+                if len(unhealthy_task_manager_list) > 0:
+                    for unhealthy_task_manager in unhealthy_task_manager_list:
+                        self._get_available_task_managers_execute_task(unhealthy_task_manager)
             time.sleep(interval)
 
     def _execute_command(self, interval=1) -> None:

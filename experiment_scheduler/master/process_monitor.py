@@ -33,6 +33,7 @@ class ProcessMonitor:
     """
 
     def __init__(self, task_managers: List[str]):
+        self.selected_task_manager = -1
         self.task_manager_address = task_managers
         self.task_manager_stubs = self._get_stubs()
         # connection initialization
@@ -68,19 +69,28 @@ class ProcessMonitor:
             for task_manager in self.task_manager_address:
                 try:
                     server_status = self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    if server_status.alive: 
+                        if self.selected_task_manager == -1:
+                            self.selected_task_manager = 1
+
                     if len(server_status.task_id_array) > 0:
                         for task_id in server_status.task_id_array:
                             task = TaskEntity.get(id=task_id)
                             task.status = 2
                             TaskEntity.update(upd_id=task_id, upd_val={"status": task.status})
-                    thread_queue[f"is_{task_manager}_healthy"] = True
+                    thread_queue[f"is_{task_manager}_healthy"] = True    
                 except RpcError as error:
-                    thread_queue[f"is_{task_manager}_healthy"] = False
-                    self.logger.error(
-                        "currently task manager %s is not available.\n error log : %s",
-                        task_manager,
-                        error,
-                    )
+                    if self.selected_task_manager != -1:
+                        thread_queue[f"is_{task_manager}_healthy"] = False
+                        self.logger.error(
+                            "currently task manager %s is not available.\n error log : %s",
+                            task_manager,
+                            error,
+                        )
+                    else: 
+                        self.logger.error(
+                            "task managers are not started yet"
+                        )
             time.sleep(time_interval)
 
     # should run this code through a thread.
