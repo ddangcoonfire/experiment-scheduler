@@ -72,7 +72,7 @@ class ProcessMonitor:
                         for task_id in server_status.task_id_array:
                             task = TaskEntity.get(id=task_id)
                             task.status = 2
-                            TaskEntity.update(upd_id=task_id, upd_val=task)
+                            TaskEntity.update(upd_id=task_id, upd_val={"status": task.status})
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError as error:
                     thread_queue[f"is_{task_manager}_healthy"] = False
@@ -120,7 +120,7 @@ class ProcessMonitor:
         """
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(
-            protobuf
+                protobuf
         ):
             yield task_log_chunk
 
