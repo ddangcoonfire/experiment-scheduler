@@ -212,7 +212,15 @@ class TestMaster:
         :param mocker:
         :return:
         """
-        mocker.patch("threading.Thread", return_value=MockThread)
+        # mocker.patch("threading.Thread", return_value=MockThread)
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor._health_check",
+            return_value=None,
+        )
+        mocker.patch(
+            "experiment_scheduler.master.master.Master._execute_command",
+            return_value=None,
+        )
         master = Master()
         return master
 
