@@ -167,6 +167,7 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         # [todo] add task_id
+        # [TODO] Add exception for failed state while requesting experiment.
         ExperimentEntity.insert(exp)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
@@ -275,7 +276,7 @@ class Master(MasterServicer):
                     )
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=request.experiment_id,
+                        experiment_id=exp.id,
                         task_status_array=all_tasks_status,
                     )
                 )
