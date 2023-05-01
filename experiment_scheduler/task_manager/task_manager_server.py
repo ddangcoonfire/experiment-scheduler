@@ -109,7 +109,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             pynvml.nvmlInit()
             num_resource = pynvml.nvmlDeviceGetCount()
             pynvml.nvmlShutdown()
-        except pynvml.nvml.NVMLError_LibraryNotFound:
+        except pynvml.nvml.NVMLError:
             logger.warning("GPU can't be found. Task will be executed without GPU.")
             num_resource = int(
                 USER_CONFIG.get("default", "max_task_without_gpu_simultaneously")
