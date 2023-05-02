@@ -69,7 +69,7 @@ class ProcessMonitor:
             for task_manager in self.task_manager_address:
                 try:
                     server_status = self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
-                    if server_status.alive: 
+                    if server_status.alive:
                         if self.selected_task_manager == -1:
                             self.selected_task_manager = 1
                     if len(server_status.task_id_array) > 0:
@@ -86,10 +86,8 @@ class ProcessMonitor:
                             task_manager,
                             error,
                         )
-                    else: 
-                        self.logger.warning(
-                            "task managers are not started yet"
-                        )
+                    else:
+                        self.logger.warning("task managers are not started yet")
             time.sleep(time_interval)
 
     # should run this code through a thread.

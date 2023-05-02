@@ -102,10 +102,8 @@ class Master(MasterServicer):
             if self.process_monitor.selected_task_manager != -1:
                 unhealthy_task_manager_list = []
                 for task_manager in self.task_managers_address:
-                    self.logger.info("check task manager")
                     if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
                         unhealthy_task_manager_list.append(task_manager)
-                        self.logger.info("check unhealthy task manager", unhealthy_task_manager_list)
                 if len(unhealthy_task_manager_list) > 0:
                     for unhealthy_task_manager in unhealthy_task_manager_list:
                         self._retry_execute_task(unhealthy_task_manager)
