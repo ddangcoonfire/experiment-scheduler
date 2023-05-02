@@ -76,8 +76,8 @@ class ProcessMonitor:
                         for task_id in server_status.task_id_array:
                             task = TaskEntity.get(id=task_id)
                             task.status = 2
-                            TaskEntity.update(upd_id=task_id, upd_val={"status": task.status})
-                    thread_queue[f"is_{task_manager}_healthy"] = True    
+                            task.commit()
+                    thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError as error:
                     if self.selected_task_manager != -1:
                         thread_queue[f"is_{task_manager}_healthy"] = False
@@ -87,7 +87,7 @@ class ProcessMonitor:
                             error,
                         )
                     else: 
-                        self.logger.error(
+                        self.logger.warning(
                             "task managers are not started yet"
                         )
             time.sleep(time_interval)
@@ -140,6 +140,6 @@ class ProcessMonitor:
         """
         available_task_managers = []
         for tm_address, tm_stub in self.task_manager_stubs.items():
-            if tm_stub.has_idle_resource(PROTO_EMPTY).exists:
+            if self.thread_queue[f"is_{tm_address}_healthy"] and tm_stub.has_idle_resource(PROTO_EMPTY).exists:
                 available_task_managers.append(tm_address)
         return available_task_managers
