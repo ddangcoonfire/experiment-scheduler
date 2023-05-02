@@ -63,7 +63,7 @@ class ProcessMonitor:
             stubs[address] = TaskManagerStub(channel)
         return stubs
 
-    def _health_check(self, thread_queue, time_interval=5):
+    def _health_check(self, thread_queue, time_interval=1):
         # move to decorator later
         while True:
             for task_manager in self.task_manager_address:
@@ -72,7 +72,6 @@ class ProcessMonitor:
                     if server_status.alive: 
                         if self.selected_task_manager == -1:
                             self.selected_task_manager = 1
-
                     if len(server_status.task_id_array) > 0:
                         for task_id in server_status.task_id_array:
                             task = TaskEntity.get(id=task_id)

@@ -237,13 +237,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         """Return current server status"""
         server_status = ServerStatus()
         server_status.alive = True
-        task_id_list = self.tasks.keys()
-        if task_id_list:
-            for task_id in self.tasks.keys():
+        task_id_list = list(self.tasks.keys())
+        done_task_id_list = []
+        if len(task_id_list) > 0:
+            for task_id in task_id_list:
                 task_status = self._get_task_status_by_task_id(task_id)
                 if task_status.status == TaskStatus.Status.DONE:
                     server_status.task_id_array.append(task_id)
-                    del self.tasks[task_id] 
+                    done_task_id_list.append(task_id)
+        for done_task_id in done_task_id_list:
+            del self.tasks[done_task_id]
         return server_status
 
     @start_end_logger
