@@ -12,17 +12,31 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ServerStatus,
     TaskStatement,
     TaskStatus,
+    Progress,
+    ProgressResponse,
+    IdleResources,
 )
 from experiment_scheduler.task_manager.task_manager_server import TaskManagerServicer, ResourceManager
 
 
 class MockTask:
-    def __init__(self, pid, return_code=0):
+    def __init__(self, pid, return_code=0, kill_flag=True):
         self.pid = pid
         self.return_code = return_code
+        self.kill_flag = kill_flag
 
     def get_return_code(self):
         return self.return_code
+    
+    def kill_process_tree(self, include_me=True):
+        if self.kill_flag:
+            return [1], []
+        else:
+            return [], [1]
+    
+    def is_child_pid(self, pid):
+        return False
+            
 
 
 class TestTaskManager:
@@ -71,13 +85,16 @@ class TestTaskManager:
         popen_call_args = mock_subprocess.Popen.call_args.kwargs
         assert popen_call_args["env"]["CUDA_VISIBLE_DEVICES"] == "0"
         assert popen_call_args["args"] == "command"
+    
+    def add_mock_tasks(self, task_manager_server):
+        task_manager_server.tasks.update([
+            ("1", MockTask(1)), ("2", MockTask(2, 1)), ("3", MockTask(3, None)), ("killed_abnormally", MockTask(4, None, False))
+        ])
 
     def test_get_dead_tasks(self, mocker, mock_resource_manager):
-        task_manger_server = TaskManagerServicer()
+        task_manager_server = TaskManagerServicer()
+        self.add_mock_tasks(task_manager_server)
 
-        task_manger_server.tasks.update([
-            ("1", MockTask(1)), ("2", MockTask(2, 1)), ("3", MockTask(3, None)),
-        ])
         mock_master_pb2_grpc = mocker.patch.object(task_manager_server, "master_pb2_grpc")
         mock_stub = mocker.MagicMock()
         mock_master_pb2_grpc.MasterStub.return_value = mock_stub
@@ -89,11 +106,106 @@ class TestTaskManager:
             raise RuntimeError
         mock_time.sleep = mock_time_sleep
         with pytest.raises(RuntimeError):
-            task_manger_server.get_dead_tasks()
+            task_manager_server.get_dead_tasks()
 
         # check
-        assert "2" not in task_manger_server.tasks
+        assert "2" not in task_manager_server.tasks
         mock_stub.request_abnormal_exited_tasks.assert_called_once_with(
             master_pb2.TaskList(task_list=[master_pb2.Task(task_id="2")])
         )
         self.mock_resource_manager_instance.release_resource.assert_called_once()
+
+    def test_kill_task(self, mocker):
+        task_manager_server = TaskManagerServicer()
+        self.add_mock_tasks(task_manager_server)
+        
+
+        task_statement1 = TaskStatement(
+            task_id="1", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement2 = TaskStatement(
+            task_id="2", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement3 = TaskStatement(
+            task_id="3", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement4 = TaskStatement(
+            task_id="4", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement_abnormal = TaskStatement(
+            task_id="killed_abnormally", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+
+        
+        task_status1 = task_manager_server.kill_task(task_statement1, mocker.MagicMock())
+        assert task_status1 == TaskStatus(task_id="1", status= TaskStatus.Status.DONE)
+        task_status2 = task_manager_server.kill_task(task_statement2, mocker.MagicMock())
+        assert task_status2 == TaskStatus(task_id="2", status= TaskStatus.Status.DONE)
+        task_status3 = task_manager_server.kill_task(task_statement3, mocker.MagicMock())
+        assert task_status3 == TaskStatus(task_id="3", status= TaskStatus.Status.KILLED)
+        task_status4 = task_manager_server.kill_task(task_statement4, mocker.MagicMock())
+        assert task_status4 == TaskStatus(task_id="4", status= TaskStatus.Status.NOTFOUND)
+        task_status_abnormal = task_manager_server.kill_task(task_statement_abnormal, mocker.MagicMock())
+        assert task_status_abnormal == TaskStatus(task_id="killed_abnormally", status= TaskStatus.Status.ABNORMAL)
+
+
+    def test_get_task_status(self, mocker):
+        task_manager_server = TaskManagerServicer()
+        self.add_mock_tasks(task_manager_server)
+
+        task_statement1 = TaskStatement(
+            task_id="1", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement2 = TaskStatement(
+            task_id="2", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement3 = TaskStatement(
+            task_id="3", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+        task_statement4 = TaskStatement(
+            task_id="4", command="command", name="name", task_env={"CUDA_VISIBLE_DEVICES" : "0"})
+
+        task_status1 = task_manager_server.get_task_status(task_statement1, mocker.MagicMock())
+        assert task_status1 == TaskStatus(task_id="1", status= TaskStatus.Status.DONE)
+
+        task_status2 = task_manager_server.get_task_status(task_statement2, mocker.MagicMock())
+        assert task_status2 == TaskStatus(task_id="2", status= TaskStatus.Status.ABNORMAL
+                                          )
+        task_status3 = task_manager_server.get_task_status(task_statement3, mocker.MagicMock())
+        assert task_status3 == TaskStatus(task_id="3", status= TaskStatus.Status.RUNNING
+                                          )
+        task_status4 = task_manager_server.get_task_status(task_statement4, mocker.MagicMock())
+        assert task_status4 == TaskStatus(task_id="4", status= TaskStatus.Status.NOTFOUND)
+
+    def test_get_all_tasks(self, mocker):
+        task_manager_server = TaskManagerServicer()
+        self.add_mock_tasks(task_manager_server)
+
+        all_task_status = task_manager_server.get_all_tasks(mocker.MagicMock(), mocker.MagicMock())
+
+        assert all_task_status.task_status_array == [
+            TaskStatus(task_id="1", status= TaskStatus.Status.DONE),
+            TaskStatus(task_id="2", status= TaskStatus.Status.ABNORMAL),
+            TaskStatus(task_id="3", status= TaskStatus.Status.RUNNING),
+            TaskStatus(task_id="killed_abnormally", status= TaskStatus.Status.RUNNING),
+            ]
+    
+    def test_has_idle_resource(self, mocker, mock_resource_manager):
+        task_manager_server = TaskManagerServicer()
+
+        self.mock_resource_manager_instance.has_available_resource.return_value = True
+        test_idle1 = task_manager_server.has_idle_resource(mocker.MagicMock(), mocker.MagicMock())
+        assert test_idle1 == IdleResources(exists=True)
+        
+        self.mock_resource_manager_instance.has_available_resource.return_value = False
+        test_idle2 = task_manager_server.has_idle_resource(mocker.MagicMock(), mocker.MagicMock())
+        assert test_idle2 == IdleResources(exists=False)
+
+    def test_report_progress(self, mocker):
+        task_manager_server = TaskManagerServicer()
+        self.add_mock_tasks(task_manager_server)
+
+        test_progress1 = Progress(progress=1., leap_second=0.1, pid=5)
+        test_response1 = task_manager_server.report_progress(test_progress1, mocker.MagicMock())
+        assert test_response1 == ProgressResponse(
+                                    received_status=ProgressResponse.ReceivedStatus.FAIL)
+
+        mock_task_instance = mocker.MagicMock()
+        task_manager_server.tasks.update([("mock", mock_task_instance)])
+        test_progress_mock = Progress(progress=1., leap_second=0.1, pid=1234)
+        test_response_mock = task_manager_server.report_progress(test_progress_mock, mocker.MagicMock())
+
+        assert mock_task_instance.register_progess.called_once_with(1., 0.1)
+        assert test_response_mock == ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
