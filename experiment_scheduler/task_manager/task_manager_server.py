@@ -43,22 +43,6 @@ class ResourceManager:
         self._available_resources = [True for _ in range(num_resource)]
         self.logger = get_logger(name="resource_manager")
 
-    def set_resource_as_idle(self, resource_idx: int):
-        """
-
-        :param resource_idx:
-        :return:
-        """
-        self._available_resources[resource_idx] = True
-
-    def set_resource_as_used(self, resource_idx: int):
-        """
-
-        :param resource_idx:
-        :return:
-        """
-        self._available_resources[resource_idx] = False
-
     def release_resource(self, task_id):
         """
 
@@ -78,6 +62,8 @@ class ResourceManager:
         :return:
         """
         resource_idx = None
+        if task_id in self._resource_rental_history:
+            raise RuntimeError(f"Resource is alreay assigned for {task_id}")
         for idx, resource_is_idle in enumerate(self._available_resources):
             if resource_is_idle:
                 resource_idx = idx
@@ -123,7 +109,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             pynvml.nvmlInit()
             num_resource = pynvml.nvmlDeviceGetCount()
             pynvml.nvmlShutdown()
-        except pynvml.nvml.NVMLError_LibraryNotFound:
+        except pynvml.nvml.NVMLError:
             logger.warning("GPU can't be found. Task will be executed without GPU.")
             num_resource = int(
                 USER_CONFIG.get("default", "max_task_without_gpu_simultaneously")
@@ -230,7 +216,8 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
-        if target_process.kill_process_tree(include_me=True):
+        _, alive = target_process.kill_process_tree(include_me=True)
+        if not alive:
             self.logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
         self.logger.info("Fail to kill %s", request.task_id)
