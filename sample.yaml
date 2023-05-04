@@ -2,5 +2,5 @@ name: smaple
 tasks:
 - cmd: echo test1
   name: test1
-- cmd: echo test2
+- cmd: python train.py
   name: test2
