@@ -33,9 +33,12 @@ _EXPERIMENTSSTATUS = DESCRIPTOR.message_types_by_name['ExperimentsStatus']
 _ALLEXPERIMENTSSTATUS = DESCRIPTOR.message_types_by_name['AllExperimentsStatus']
 _TASKLOG = DESCRIPTOR.message_types_by_name['TaskLog']
 _TASKLOGFILE = DESCRIPTOR.message_types_by_name['TaskLogFile']
+_TASKLIST = DESCRIPTOR.message_types_by_name['TaskList']
+_REQUESTABNORMALEXITEDTASKSRESPONSE = DESCRIPTOR.message_types_by_name['RequestAbnormalExitedTasksResponse']
 _EXPERIMENTSTATEMENT_STATUS = _EXPERIMENTSTATEMENT.enum_types_by_name['Status']
 _MASTERRESPONSE_RESPONSESTATUS = _MASTERRESPONSE.enum_types_by_name['ResponseStatus']
 _TASKSTATUS_STATUS = _TASKSTATUS.enum_types_by_name['Status']
+_REQUESTABNORMALEXITEDTASKSRESPONSE_RESPONSESTATUS = _REQUESTABNORMALEXITEDTASKSRESPONSE.enum_types_by_name['ResponseStatus']
 EditTask = _reflection.GeneratedProtocolMessageType('EditTask', (_message.Message,), {
 
   'TaskEnvEntry' : _reflection.GeneratedProtocolMessageType('TaskEnvEntry', (_message.Message,), {
@@ -135,6 +138,20 @@ TaskLogFile = _reflection.GeneratedProtocolMessageType('TaskLogFile', (_message.
   # @@protoc_insertion_point(class_scope:experiment_scheduler.task_manager.grpc_task_manager.TaskLogFile)
   })
 _sym_db.RegisterMessage(TaskLogFile)
+
+TaskList = _reflection.GeneratedProtocolMessageType('TaskList', (_message.Message,), {
+  'DESCRIPTOR' : _TASKLIST,
+  '__module__' : 'master_pb2'
+  # @@protoc_insertion_point(class_scope:experiment_scheduler.task_manager.grpc_task_manager.TaskList)
+  })
+_sym_db.RegisterMessage(TaskList)
+
+RequestAbnormalExitedTasksResponse = _reflection.GeneratedProtocolMessageType('RequestAbnormalExitedTasksResponse', (_message.Message,), {
+  'DESCRIPTOR' : _REQUESTABNORMALEXITEDTASKSRESPONSE,
+  '__module__' : 'master_pb2'
+  # @@protoc_insertion_point(class_scope:experiment_scheduler.task_manager.grpc_task_manager.RequestAbnormalExitedTasksResponse)
+  })
+_sym_db.RegisterMessage(RequestAbnormalExitedTasksResponse)
 
 _MASTER = DESCRIPTOR.services_by_name['Master']
 if _descriptor._USE_C_DESCRIPTORS == False:
