@@ -44,7 +44,7 @@ class DbCommonMixin:
         return query.all()
 
     @classmethod
-    def get(cls, *args, order_by: str = None, is_multiple: str = False,  **kwargs):
+    def get(cls, *args, order_by: str = None, is_multiple: bool = False,  **kwargs):
         """
         select a data conditionally in certain table
         :param request: condition, order
