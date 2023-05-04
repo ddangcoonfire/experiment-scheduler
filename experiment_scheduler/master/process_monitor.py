@@ -64,7 +64,12 @@ class ProcessMonitor:
         return stubs
 
     def _health_check(self, thread_queue, time_interval=1):
-        # move to decorator later
+        """
+        Check the status of task manager and task status.
+        If there are finished tasks, then update the status column of Task Table
+        :param thread_queue:
+        :param time_interval:
+        """
         while True:
             for task_manager in self.task_manager_address:
                 try:

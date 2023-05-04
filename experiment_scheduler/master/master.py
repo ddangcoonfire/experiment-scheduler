@@ -96,7 +96,12 @@ class Master(MasterServicer):
         return address
 
     def _health_check(self, interval=1) -> None:
-        """[TODO] Write Docs"""
+        """
+        This thread_running_function periodically checks status and tasks of task_manager
+        If some task managers are abnormal, tasks of the abnormal task manager are retried
+        :param interval: time interval
+        :return: None
+        """
         while True:
             self.logger.info("health check start")
             if self.process_monitor.selected_task_manager != -1:
@@ -128,6 +133,12 @@ class Master(MasterServicer):
             time.sleep(interval)
 
     def _allocate_task(self, task, retry=False):
+        """
+        Task is assigned to available task manager
+        :param task: task instance
+        :param retry: boolean
+        :return: None
+        """
         available_task_managers = (
             self.process_monitor.get_available_task_managers()
         )
@@ -140,7 +151,11 @@ class Master(MasterServicer):
                 self.retry_task_list.append(task)
 
     def _retry_execute_task(self, unhealthy_task_manager):
-        """[TODO] Write Docs"""
+        """
+        Get tasks which is assigned to abnormal task manager and
+        allocate tasks to another normal task manager again.
+        :param: unhealthy_task_manager instance
+        """
         task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
         task_list = TaskEntity.get(status=TaskStatus.Status.RUNNING,
                                    task_manager_id=task_manager.id, is_multiple=True)
