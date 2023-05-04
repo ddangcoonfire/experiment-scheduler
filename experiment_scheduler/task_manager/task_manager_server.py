@@ -3,14 +3,16 @@
 import os
 import subprocess
 import ast
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional
+from threading import Thread
 from concurrent import futures
 from os import path as osp
-
+import time
 import grpc
-import psutil
 import pynvml
 
+from experiment_scheduler.master.grpc_master import master_pb2
+from experiment_scheduler.master.grpc_master import master_pb2_grpc
 from experiment_scheduler.common.logging import get_logger, start_end_logger
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.task_manager.grpc_task_manager import task_manager_pb2_grpc
@@ -23,81 +25,12 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     ProgressResponse,
 )
 from experiment_scheduler.task_manager.return_code import ReturnCode
+from experiment_scheduler.task_manager.task import Task
 
 logger = get_logger(name="task_manager")
 
 KILL_CHILD_MAX_DEPTH = 2
 CHUNK_SIZE = 1024 * 5
-
-
-class ProcessUtil:
-    """Wrapper class for psutil.
-
-    Args:
-        pid (int): process id.
-    """
-
-    def __init__(self, pid: int):
-        self._pid = pid
-        try:
-            self._process = psutil.Process(self._pid)
-        except psutil.NoSuchProcess:
-            self._process = None
-        except psutil.AccessDenied:
-            logger.warning("Access to process(%d) is denied.", pid)
-            self._process = None
-
-    @property
-    def pid(self):
-        """
-        return process id
-        :return: pid
-        """
-        return self._pid
-
-    def kill_itself_with_child_process(self, max_depth: int) -> bool:
-        """kill self recursively up to max depth.
-
-        Args:
-            max_depth (int): max depth of child processes to find and kill.
-
-        Returns:
-            bool:
-                Whether success to kill process recursively.
-        """
-        if self._process is None:
-            logger.warning("Fail to get process(%d).", self._pid)
-            return False
-        return self.kill_process_recursively(self._process, max_depth, 0)
-
-    @staticmethod
-    def kill_process_recursively(
-        process: psutil.Process, max_depth: int, cur_depth: int = 0
-    ) -> bool:
-        """kill process recursively up to max depth.
-
-        Args:
-            max_depth (int): max depth of child processes to find and kill.
-            cur_depth (int): current depth.
-
-        Returns:
-            bool:
-                Whether success to kill process recursively.
-        """
-        if not process.is_running():
-            return True
-
-        if cur_depth < max_depth:
-            for child_process in process.children():
-                ProcessUtil.kill_process_recursively(
-                    child_process, max_depth, cur_depth + 1
-                )
-
-        if process.is_running():
-            process.terminate()
-            process.wait()
-
-        return True
 
 
 class ResourceManager:
@@ -176,32 +109,6 @@ class ResourceManager:
         return list(self._resource_rental_history.keys())
 
 
-class Task:
-    """Wrapper class for Task."""
-
-    def __init__(self, process: subprocess.Popen):
-        self._process = process
-        self._history: List[Dict[str, float]] = []
-
-    def get_return_code(self) -> Optional[int]:
-        """Get return code."""
-        return self._process.poll()
-
-    def register_progress(self, progress: Union[int, float], leap_second: float):
-        """Register progress."""
-        self._history.append({"progress": progress, "leap_second": leap_second})
-
-    def get_progress(self) -> Optional[Union[int, float]]:
-        """Get latest progress."""
-        if self._history:
-            return self._history[-1]["progress"]
-        return None
-
-    def get_pid(self) -> int:
-        """Get pid."""
-        return self._process.pid
-
-
 class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode):
     """Provides methods that implement functionality of task manager server."""
 
@@ -224,6 +131,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             self._use_gpu = False
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
+
+        checkthread = Thread(target=self.get_dead_tasks, daemon = True)
+        checkthread.start()
 
     @property
     def use_gpu(self):
@@ -274,7 +184,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             ),
             stderr=subprocess.STDOUT,
         )
-        self.tasks[task_id] = Task(task)
+        self.tasks[task_id] = Task(task.pid)
 
         self.logger.info("%s is now running!", task_id)
 
@@ -334,8 +244,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
-        p_util = ProcessUtil(target_process.get_pid())
-        if p_util.kill_itself_with_child_process(KILL_CHILD_MAX_DEPTH):
+        if target_process.kill_process_tree(include_me=True):
             self.logger.info("%s is killed!", request.task_id)
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.KILLED)
         self.logger.info("Fail to kill %s", request.task_id)
@@ -355,6 +264,26 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 self._get_task_status_by_task_id(task_id)
             )
         return all_tasks_status
+
+    def get_dead_tasks(self):
+        """Check task runs well and if there are abnormally exited tasks, then request master to run them again."""
+        while True:
+            dead_tasks = []
+            for task_id, task in self.tasks.items():
+                return_code = task.get_return_code()
+                if return_code not in [0, None]:
+                    self._resource_manager.release_resource(task_id)
+                    dead_tasks.append(master_pb2.Task(task_id=task_id))
+            if dead_tasks:
+                for dead_task in dead_tasks:
+                    del self.tasks[dead_task.task_id]
+                channel = grpc.insecure_channel(
+                    ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+                )
+                stub = master_pb2_grpc.MasterStub(channel)
+                stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+            time.sleep(1)
+
 
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)
@@ -397,20 +326,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
     def _find_which_task_report(self, current_pid: int) -> Optional[Task]:
         """find out all pids of task considering a case that pid is child process of task"""
-        tasks_pid = {task.get_pid(): task for task in self.tasks.values()}
-        pid_hierachy = [current_pid]
-
-        try:
-            current_process = psutil.Process(current_pid)
-        except psutil.NoSuchProcess:
-            return None
-
-        pid_hierachy += [process.pid for process in current_process.parents()]
-
-        for pid in pid_hierachy:
-            if pid in tasks_pid:
-                return tasks_pid[pid]
-
+        for task in self.tasks.values():
+            if current_pid == task.pid or task.is_child_pid(current_pid):
+                return task
         return None
 
 

@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from experiment_scheduler.master.grpc_master import master_pb2 as master__pb2
+import experiment_scheduler.master.grpc_master.master_pb2 as master__pb2
 
 
 class MasterStub(object):
@@ -50,6 +50,11 @@ class MasterStub(object):
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/edit_task',
                 request_serializer=master__pb2.EditTask.SerializeToString,
                 response_deserializer=master__pb2.MasterResponse.FromString,
+                )
+        self.request_abnormal_exited_tasks = channel.unary_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_abnormal_exited_tasks',
+                request_serializer=master__pb2.TaskList.SerializeToString,
+                response_deserializer=master__pb2.RequestAbnormalExitedTasksResponse.FromString,
                 )
 
 
@@ -99,6 +104,12 @@ class MasterServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def request_abnormal_exited_tasks(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -136,6 +147,11 @@ def add_MasterServicer_to_server(servicer, server):
                     servicer.edit_task,
                     request_deserializer=master__pb2.EditTask.FromString,
                     response_serializer=master__pb2.MasterResponse.SerializeToString,
+            ),
+            'request_abnormal_exited_tasks': grpc.unary_unary_rpc_method_handler(
+                    servicer.request_abnormal_exited_tasks,
+                    request_deserializer=master__pb2.TaskList.FromString,
+                    response_serializer=master__pb2.RequestAbnormalExitedTasksResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -264,5 +280,22 @@ class Master(object):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/edit_task',
             master__pb2.EditTask.SerializeToString,
             master__pb2.MasterResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def request_abnormal_exited_tasks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_abnormal_exited_tasks',
+            master__pb2.TaskList.SerializeToString,
+            master__pb2.RequestAbnormalExitedTasksResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

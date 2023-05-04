@@ -22,6 +22,8 @@ service Master {
 
       rpc edit_task(EditTask) returns (MasterResponse) {}
 
+      rpc request_abnormal_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
+
 }
 
 message EditTask {
@@ -58,6 +60,7 @@ message MasterResponse {
     }
     ResponseStatus response = 2;
 }
+
 
 message TaskStatus {
     string task_id = 1;
@@ -101,4 +104,17 @@ message TaskLog {
 message TaskLogFile {
     bytes log_file = 1;
     bytes error_message = 2;
+}
+
+message TaskList {
+    repeated Task task_list = 1;
+}
+
+message RequestAbnormalExitedTasksResponse {
+    enum ResponseStatus {
+        SUCCESS = 0;
+        FAIL = 1;
+    }
+    TaskList not_running_tasks = 1;
+    ResponseStatus response = 2;
 }

@@ -23,6 +23,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     MasterResponse,
     TaskStatus,
     TaskLogFile,
+    TaskList,
+    RequestAbnormalExitedTasksResponse,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -218,6 +220,35 @@ class Master(MasterServicer):
         # [todo] add task_id
         ExperimentEntity.insert(exp)
         return MasterResponse(experiment_id=experiment_id, response=response)
+
+    @start_end_logger
+    def request_abnormal_exited_tasks(self, request, context):
+        """Request to run abnormally exited task again."""
+        task_list = request.task_list
+        failed_list = TaskList()
+        running_tasks = TaskEntity.list(
+            status=TaskStatus.Status.RUNNING, order_by=TaskEntity.updated_at
+        )
+        running_tasks = {each_task.id: each_task for each_task in running_tasks}
+        for task_class in task_list:
+            if task_class.task_id in running_tasks:
+                task_to_rerun = running_tasks[task_class.task_id]
+                task_to_rerun.status = TaskStatus.Status.NOTSTART
+                task_to_rerun.updated_at = datetime.datetime.now()
+                task_to_rerun.commit()
+            else:
+                self.logger.warning(
+                    "├─abnormal exited task_id is not running: %s", task_class.task_id
+                )
+                failed_list.task_list.append(task_class)
+
+        if not failed_list.task_list:
+            response = RequestAbnormalExitedTasksResponse.ResponseStatus.SUCCESS
+        else:
+            response = RequestAbnormalExitedTasksResponse.ResponseStatus.FAIL
+        return RequestAbnormalExitedTasksResponse(
+            response=response, not_running_tasks=failed_list
+        )
 
     @start_end_logger
     def get_task_status(self, request, context):
