@@ -148,7 +148,7 @@ class Master(MasterServicer):
             self.execute_task(task_manager.address, task.id)
         elif retry:
             if task not in self.retry_task_list:
-                self.retry_task_list.append(task)
+                self.retry_task_list.insert(0, task)
 
     def _retry_execute_task(self, unhealthy_task_manager):
         """
