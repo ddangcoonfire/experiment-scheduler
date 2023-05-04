@@ -1,6 +1,7 @@
 """
 Unit Test Code for Master
 """
+
 import pytest
 from experiment_scheduler.master.master import Master
 from experiment_scheduler.master.grpc_master.master_pb2 import (
