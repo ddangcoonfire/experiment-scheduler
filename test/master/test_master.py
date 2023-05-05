@@ -1,284 +1,526 @@
-import random
-import uuid
-from collections import OrderedDict
-from unittest import TestCase
-from unittest.mock import Mock, patch
+"""
+Unit Test Code for Master
+"""
 
-import experiment_scheduler
-from experiment_scheduler.master.grpc_master import master_pb2
-from experiment_scheduler.master.grpc_master.master_pb2 import TaskStatus as TaskStatus
+import pytest
 from experiment_scheduler.master.master import Master
+from experiment_scheduler.master.grpc_master.master_pb2 import (
+    TaskStatus,
+    TaskLogFile,
+    ExperimentsStatus,
+    AllExperimentsStatus,
+    AllTasksStatus,
+    MasterResponse,
+)
+from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import (
+    TaskStatus as TMTaskStatus,
+)
 
 
-def mockGetTaskManagers():
-    return ["test_network"]
+class MockRequest:
+    """
+    Mock Simple Request (used commonly)
+    """
+
+    def __init__(self, task_id):
+        self.task_id = task_id
 
 
-def mockTaskId(run=True):
-    if run:
-        return "test_task_id"
-    else:
-        return "test_not_run_task_id"
+class MockEditRequest:
+    """
+    Mock class for edit_task
+    """
+
+    def __init__(self, task_id, cmd, task_env):
+        self.task_id = task_id
+        self.cmd = cmd
+        self.task_env = task_env
 
 
-class Task:
+class MockExperimentRequest:
+    """
+    Mock class for ExperimentRequest (protobuf format)
+    """
 
-    def __init__(self, name):
+    def __init__(self, experiment_id):
+        self.experiment_id = experiment_id
+
+
+class MockExperimentTasks:
+    """
+    Mock class for ORM ExperimentTasks
+    """
+
+    def __init__(self):
+        self.id = "TestID"  # pylint:disable=invalid-name
+        self.tasks = [
+            MockTask("1", TaskStatus.Status.RUNNING),
+            MockTask("2", TaskStatus.Status.RUNNING),
+        ]
+
+
+class MockRequestExperiments:
+    """
+    Mock class for request_experiments
+    """
+
+    def __init__(self, name, tasks):
         self.name = name
+        self.tasks = tasks
 
 
-class TestRequest:
+class MockExperiment:
+    """
+    Mock class for ORM Experiment
+    """
 
-    def __init__(self, *args, **kwargs):
-        self.name = "test_name"
-        self.tasks = [Task("task_name")]
+    def get(self):
+        """
+        ORM get Method
+        :return:
+        """
+        return MockExperimentTasks()
 
-
-class MockResourceMonitor:
-    def __init__(self, *args, **kwargs):
-        self.resource_monitor_address = "address"
-
-    def get_available_gpu_idx(self, resource_monitor):
-        if resource_monitor:
-            gpu_idx = random.randint(1, 10)
-            return gpu_idx, gpu_idx
-        elif resource_monitor == -1:
-            return -1, -1
-
-
-class MockProcess:
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-class MockProcessMonitor:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def start(self):
-        pass
-
-    @staticmethod
-    def run_task(task_id, task_manager, gpu_idx, command, name, env):
-        return master_pb2.TaskStatus(task_id=task_id, status=TaskStatus.Status.RUNNING)
-
-
-class MockThread:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def start(self):
-        pass
+    def list(self):
+        """
+        ORM list method
+        :return:
+        """
+        return [MockExperimentTasks(), MockExperimentTasks()]
 
 
 class MockTask:
-    name = "test"
-    command = "task"
-    task_env = {"test": "env"}
+    """
+    Mock class for Task object
+    """
 
-    def __init__(self, task_id=mockTaskId(), run=True):
-        self.task_id = task_id if run else mockTaskId(False)
-
-
-class MockTaskWithStatus:
-
-    def __init__(self, task_id, status):
-        self.task_id = task_id
+    def __init__(  # pylint:disable=too-many-arguments
+        self,
+        task_id="task_id",
+        status=None,
+        name="test",
+        task_manager_id="task_manager",
+        task_env=None,
+        command="python test.py",
+    ):
+        if task_env is None:
+            task_env = {"test_key": "test_val"}
+        self.id = task_id  # pylint:disable=invalid-name
+        self.name = name
         self.status = status
+        self.task_manager_id = task_manager_id
+        self.task_env = task_env
+        self.command = command
+
+    def list_success(self):
+        """
+        list mock for success case
+        :return:
+        """
+        return [
+            MockTask("test_task_id", TaskStatus.Status.RUNNING),
+            MockTask("2", TaskStatus.Status.RUNNING),
+            MockTask("3", TaskStatus.Status.RUNNING),
+        ]
+
+    def list_fail(self):
+        """
+        list mock for failed case
+        :return:
+        """
+        return [
+            MockTask("1", TaskStatus.Status.RUNNING),
+            MockTask("2", TaskStatus.Status.RUNNING),
+            MockTask("3", TaskStatus.Status.RUNNING),
+        ]
+
+    def commit(self):
+        """
+        commit should not do anything while test.
+        :return:
+        """
+        return None
 
 
-class MockTaskManagerAddress:
+class MockTaskManager:
+    """
+    Mock class for ORM TaskManager
+    """
 
-    def __init__(self, task_managers_address):
-        self.address_list = task_managers_address
+    def __init__(self, address, path=""):
+        self.address = address
+        self.log_file_path = path
+        self.id = "testID"  # pylint:disable=invalid-name
 
-    def get_address_list(self):
-        return self.address_list;
+
+class MockProcessMonitor:
+    """
+    Mock class for Process Monitor Class
+    """
+
+    def kill_task(self):
+        """
+        Mock mehtod for kill_task
+        :return:
+        """
+        return TaskStatus(task_id="test_task_id", status=TaskStatus.Status.KILLED)
+
+    def get_task_log(self):
+        """
+        Mock method for get_task_log
+        :return:
+        """
+        return "task completed"
+
+    def run_task_success(self):
+        """
+        Mock method for run_task in success case
+        :return:
+        """
+        return TMTaskStatus(task_id="test1", status=TaskStatus.Status.RUNNING)
+
+    def run_task_failed(self):
+        """
+        Mock method for run_task in failure case
+        :return:
+        """
+        return TMTaskStatus(task_id="test1", status=TaskStatus.Status.NOTSTART)
 
 
-class TestMaster(TestCase):
-    @patch.object(
-        experiment_scheduler.master.master, "get_task_managers", mockGetTaskManagers
-    )
-    @patch("threading.Thread", MockThread)
-    def setUp(self):
-        Master.get_task_managers = Mock(return_value=mockGetTaskManagers())
-        self.master = Master()
-        self.master.queued_tasks = OrderedDict([(mockTaskId(False), MockTask(None, False))])
-        self.master.running_tasks = OrderedDict(
-            [(mockTaskId(), {"task": MockTask(), "task_manager": "test_task_manager",
-                             "gpu_idx": 1})])
+class MockThread:
+    """
+    Make Thread not work during test
+    """
 
-    def tearDown(self):
-        patch.stopall()
+    @classmethod
+    def start(cls):
+        """
+        Thread's Start should do nothing
+        :return:
+        """
+        return
 
-    @patch("time.sleep", side_effect=Exception)
-    def test__execute_command(self, mock_time_sleep):
-        # given
-        self.master.execute_task = Mock()
-        mock_available_task_managers_address = MockTaskManagerAddress([1, 2, 3]);
-        self.master.process_monitor.get_available_task_managers = Mock(
-            return_value=(mock_available_task_managers_address.get_address_list())
+
+class TestMaster:
+    """
+    Master Test class
+    """
+
+    @pytest.fixture
+    def master(self, mocker):
+        """
+        Fixture for Master class
+        :param mocker:
+        :return:
+        """
+        # mocker.patch("threading.Thread", return_value=MockThread)
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor._health_check",
+            return_value=None,
+        )
+        mocker.patch(
+            "experiment_scheduler.master.master.Master._execute_command",
+            return_value=None,
+        )
+        master = Master()
+        return master
+
+    def test_get_task_managers(self, master, mocker):
+        """
+        Test for get_task_managers
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch("ast.literal_eval", return_value=["test_address"])
+        task_managers = master.get_task_managers()
+        assert task_managers == ["test_address"]
+        mocker.patch("os.getenv", return_value="test_address2")
+        task_managers = master.get_task_managers()
+        assert task_managers == ["test_address2"]
+
+    def test_select_task_manager(self, master, mocker):
+        """
+        Test for select_task_manager
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch("os.getenv", return_value="test_address1 test_address2")
+        master = Master()
+        selected_task_manager = master.select_task_manager()
+        assert selected_task_manager == "test_address1"
+
+        selected_task_manager = master.select_task_manager(1)
+        assert selected_task_manager == "test_address2"
+
+    def test_request_experiments(self, master):
+        """
+        Test for request_experiments
+        :param master:
+        :return:
+        """
+        master = Master()
+        request = MockRequestExperiments(
+            name="test_experiment",
+            tasks=[MockTask(name="test_task", command="test_command")],
+        )
+        context = ""
+        response = master.request_experiments(request, context)
+        assert response.experiment_id.startswith("test_experiment-")
+        assert response.response == MasterResponse.ResponseStatus.SUCCESS
+
+    def test_get_task_log(self, master, mocker):
+        """
+        Test for get_task_log
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.RUNNING
+            ),
+        )
+        mocker.patch(
+            "experiment_scheduler.db_util.task_manager.TaskManager.get",
+            return_value=MockTaskManager(address="test_address"),
+        )
+        master = Master()
+        request = MockRequest(task_id="test_task_id")
+        context = ""
+        response = master.get_task_log(request, context)
+        assert next(response) == TaskLogFile(
+            error_message=bytes("Check task id", "utf-8")
         )
 
-        # when
-        self.assertRaises(Exception, lambda: self.master._execute_command())
+        mocker.patch(
+            "experiment_scheduler.db_util.task_manager.TaskManager.get",
+            return_value=MockTaskManager(address="test_address", path="not empty"),
+        )
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor.get_task_log",
+            return_value=MockProcessMonitor().get_task_log(),
+        )
+        response = master.get_task_log(request, context)
+        assert "".join(response) == "task completed"
 
-        # then
-        self.master.execute_task.assert_called_with(mock_available_task_managers_address.get_address_list()[0])
+    def test_get_task_status(self, master, mocker):
+        """
+        test for get_task_status
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch("experiment_scheduler.db_util.task.Task.get", return_value=None)
+        request = MockRequest(task_id="test_task_id")
+        context = ""
+        response = master.get_task_status(request, context)
+        assert response.task_id == "test_task_id"
+        assert response.status == TaskStatus.Status.NOTFOUND
 
-    def test_select_task_manager(self):
-        # when
-        test_return_value = self.master.select_task_manager()
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.RUNNING
+            ),
+        )
+        response = master.get_task_status(request, context)
+        assert response.task_id == "test_task_id"
+        assert response.status == TaskStatus.Status.RUNNING
 
-        # then
-        self.assertEqual(test_return_value, "test_network")
-
-    @patch.object(uuid, "uuid1", (lambda: 123))
-    def test_request_experiments(self):
-        # given
-        test_request = TestRequest()
-
-        # when
-        test_return_value = self.master.request_experiments(test_request, "context")
-
-        # then
-        self.assertEqual(test_return_value.experiment_id, "test_name-123")
-        self.assertEqual(test_return_value.response, 0)
-
-    def test_get_task_managers(self):
-        # when
-        test_return_value = self.master.get_task_managers()
-
-        # then
-        self.assertEqual(test_return_value, ["test_network"])
-
-    def test_kill_not_start_task(self):
-        # given
-        test_request = MockTask(None, False)
-        self.master._wrap_by_task_status = Mock(
-            return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
-            )
+    def test_kill_task(self, master, mocker):
+        """
+        test for kill_task
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch("experiment_scheduler.db_util.task.Task.get", return_value=None)
+        request = MockRequest(task_id="test_task_id")
+        context = ""
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.NOTFOUND
         )
 
-        # when
-        test_return_value = self.master.kill_task(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.KILLED, test_return_value.status)
-
-    def test_kill_run_task(self):
-        # given
-        test_request = MockTask()
-        self.master.process_monitor.kill_task = Mock(
-            return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
-            )
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.NOTSTART
+            ),
+        )
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.KILLED
         )
 
-        # when
-        test_return_value = self.master.kill_task(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.KILLED, test_return_value.status)
-
-    def test_kill_not_found_task(self):
-        # given
-        test_request = MockTask("not_found_task_id")
-        self.master.process_monitor.kill_task = Mock(
-            return_value=master_pb2.TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.NOTFOUND
-            )
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id",
+                status=TaskStatus.Status.RUNNING,
+                task_manager_id=None,
+            ),
+        )
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.KILLED
         )
 
-        # when
-        test_return_value = self.master.kill_task(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.NOTFOUND, test_return_value.status)
-
-    def test_get_status_not_start_task(self):
-        # given
-        test_request = MockTask(None, False)
-        self.master._wrap_by_task_status = Mock(
-            return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.NOTSTART
-            )
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.RUNNING
+            ),
+        )
+        mocker.patch(
+            "experiment_scheduler.db_util.task_manager.TaskManager.get",
+            return_value=MockTaskManager(address="test_address"),
+        )
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor.kill_task",
+            return_value=MockProcessMonitor().kill_task(),
+        )
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.KILLED
         )
 
-        # when
-        test_return_value = self.master.get_task_status(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.NOTSTART, test_return_value.status)
-
-    def test_get__status_run_task(self):
-        # given
-        test_request = MockTask()
-        self.master.process_monitor.get_task_status = Mock(
-            return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.RUNNING
-            )
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.DONE
+            ),
+        )
+        response = master.kill_task(request, context)
+        assert response == TaskStatus(
+            task_id="test_task_id", status=TaskStatus.Status.DONE
         )
 
-        # when
-        test_return_value = self.master.get_task_status(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.RUNNING, test_return_value.status)
-
-    def test_get_status_killed_task(self):
-        # given
-        test_request = MockTask()
-        self.master.process_monitor.get_task_status = Mock(
-            return_value=TaskStatus(
-                task_id=test_request.task_id,
-                status=TaskStatus.Status.KILLED
-            )
+    def test_get_all_tasks(self, master, mocker):
+        """
+        Test for get_all_tasks
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch(
+            "experiment_scheduler.db_util.experiment.Experiment.get",
+            return_value=MockExperiment().get(),
+        )
+        master = Master()
+        request = MockExperimentRequest(experiment_id="test_experiment_id")
+        context = ""
+        response = master.get_all_tasks(request, context)
+        assert response == AllExperimentsStatus(
+            experiment_status_array=[
+                ExperimentsStatus(
+                    experiment_id="test_experiment_id",
+                    task_status_array=AllTasksStatus(
+                        task_status_array=[
+                            TaskStatus(task_id="1", status=TaskStatus.Status.RUNNING),
+                            TaskStatus(task_id="2", status=TaskStatus.Status.RUNNING),
+                        ]
+                    ),
+                )
+            ]
         )
 
-        # when
-        test_return_value = self.master.get_task_status(test_request, None)
-
-        # then
-        self.assertEqual(test_request.task_id, test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.KILLED, test_return_value.status)
-        self.assertEqual(None, self.master.running_tasks.get(test_request.task_id));
-
-    def test_get_status_not_found_task(self):
-        # given
-        test_request = MockTask("Not_Found_Task")
-
-        # when
-        test_return_value = self.master.get_task_status(test_request, None)
-
-        # then
-        self.assertEqual(test_return_value.task_id, test_request.task_id)
-        self.assertEqual(TaskStatus.Status.NOTFOUND, test_return_value.status)
-
-    def test_execute_task(self):
-        # given
-        self.master.process_monitor.run_task = Mock(
-            return_value=TaskStatus(
-                task_id=mockTaskId(False),
-                status=TaskStatus.Status.RUNNING
-            )
+        mocker.patch(
+            "experiment_scheduler.db_util.experiment.Experiment.list",
+            return_value=MockExperiment().list(),
         )
-        # when
-        test_return_value = self.master.execute_task(task_manager="test_task_manager")
+        request = MockExperimentRequest(experiment_id=None)
+        response = master.get_all_tasks(request, context)
 
-        # then
-        self.assertEqual(mockTaskId(False), test_return_value.task_id)
-        self.assertEqual(TaskStatus.Status.RUNNING, test_return_value.status)
-        self.assertEqual(self.master.running_tasks[test_return_value.task_id]['task_manager'], "test_task_manager")
+        assert response == AllExperimentsStatus(
+            experiment_status_array=[
+                ExperimentsStatus(
+                    experiment_id="TestID",
+                    task_status_array=AllTasksStatus(
+                        task_status_array=[
+                            TaskStatus(task_id="1", status=TaskStatus.Status.RUNNING),
+                            TaskStatus(task_id="2", status=TaskStatus.Status.RUNNING),
+                        ]
+                    ),
+                ),
+                ExperimentsStatus(
+                    experiment_id="TestID",
+                    task_status_array=AllTasksStatus(
+                        task_status_array=[
+                            TaskStatus(task_id="1", status=TaskStatus.Status.RUNNING),
+                            TaskStatus(task_id="2", status=TaskStatus.Status.RUNNING),
+                        ]
+                    ),
+                ),
+            ]
+        )
+
+    def test_execute_task(self, master, mocker):
+        """
+        test for execute_task
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask(
+                task_id="test_task_id", status=TaskStatus.Status.RUNNING
+            ),
+        )
+        mocker.patch(
+            "experiment_scheduler.db_util.task_manager.TaskManager.get",
+            return_value=MockTaskManager(address="test_task_manager_address"),
+        )
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor.run_task",
+            return_value=MockProcessMonitor().run_task_success(),
+        )
+
+        master = Master()
+        task_manager_address = "test_task_manager_address"
+        task_id = "test_task_id"
+        response = master.execute_task(task_manager_address, task_id)
+        assert response.status == TaskStatus.Status.RUNNING
+
+        mocker.patch(
+            "experiment_scheduler.master.process_monitor.ProcessMonitor.run_task",
+            return_value=MockProcessMonitor().run_task_failed(),
+        )
+        response = master.execute_task(task_manager_address, task_id)
+        assert response.status == TaskStatus.Status.NOTSTART
+
+    def test_edit_task(self, master, mocker):
+        """
+        Test for edit_task
+        :param master:
+        :param mocker:
+        :return:
+        """
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.list",
+            return_value=MockTask("1", TaskStatus.Status.RUNNING).list_success(),
+        )
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.get",
+            return_value=MockTask("1", TaskStatus.Status.RUNNING),
+        )
+        master = Master()
+        request = MockEditRequest(
+            task_id="test_task_id", cmd="test_cmd", task_env={"key": "val"}
+        )
+        context = ""
+        response = master.edit_task(request, context)
+        assert response.experiment_id == "0"
+        assert response.response == MasterResponse.ResponseStatus.SUCCESS
+
+        mocker.patch(
+            "experiment_scheduler.db_util.task.Task.list",
+            return_value=MockTask("1", TaskStatus.Status.RUNNING).list_fail(),
+        )
+        response = master.edit_task(request, context)
+        assert response.experiment_id == "0"
+        assert response.response == MasterResponse.ResponseStatus.FAIL

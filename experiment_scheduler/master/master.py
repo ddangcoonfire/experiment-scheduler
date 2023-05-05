@@ -159,8 +159,8 @@ class Master(MasterServicer):
         :param: unhealthy_task_manager instance
         """
         task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
-        task_list = TaskEntity.get(status=TaskStatus.Status.RUNNING,
-                                   task_manager_id=task_manager.id, is_multiple=True)
+        task_list = TaskEntity.list(status=TaskStatus.Status.RUNNING,
+                                    task_manager_id=task_manager.id)
         for task in task_list:
             self._allocate_task(task, retry=True)
 
@@ -218,6 +218,7 @@ class Master(MasterServicer):
             else response_status.FAIL
         )
         # [todo] add task_id
+        # [TODO] Add exception for failed state while requesting experiment.
         ExperimentEntity.insert(exp)
         return MasterResponse(experiment_id=experiment_id, response=response)
 
@@ -355,7 +356,7 @@ class Master(MasterServicer):
                     )
                 all_experiments_status.experiment_status_array.append(
                     ExperimentsStatus(
-                        experiment_id=request.experiment_id,
+                        experiment_id=exp.id,
                         task_status_array=all_tasks_status,
                     )
                 )

@@ -33,6 +33,9 @@ class DbCommonMixin:
         select all data conditionally in certain table
         :param request: condition, order
         :return: data(s)
+
+        ex)
+            Task.list(status=1, order_by=Task.created_at)
         """
         query: Query = Session().query(cls)
         query = query.filter(*args)
@@ -43,11 +46,14 @@ class DbCommonMixin:
         return query.all()
 
     @classmethod
-    def get(cls, *args, order_by: str = None, is_multiple: bool = False,  **kwargs):
+    def get(cls, *args, order_by: str = None, **kwargs):
         """
         select a data conditionally in certain table
         :param request: condition, order
         :return: data
+
+        ex)
+            Task.get(id=1)
         """
         query: Query = Session().query(cls)
         query = query.filter(*args)
@@ -55,11 +61,7 @@ class DbCommonMixin:
 
         if order_by:
             query = query.order_by(order_by)
-        return (
-            query.all()
-            if is_multiple
-            else query.first()
-        )
+        return query.first()
 
     @classmethod
     def insert(cls, obj):
@@ -67,6 +69,9 @@ class DbCommonMixin:
         insert data in certain table
         :param request: instance of pre-defined class
         :return: none
+
+        ex)
+            Task.insert(Task(id='task_id', experiment_id='exp_id', name='name' ...))
         """
         with Session() as session:
             try:
@@ -78,8 +83,12 @@ class DbCommonMixin:
     def commit(self):
         """
         for using orm update, need to commit at update
-        :param request: id, instance of pre-defined class
         :return: none
+
+        ex)
+            obj = Task.get(id=1)
+            obj.status = 2
+            obj.commit()
         """
         with Session.object_session(self) as session:
             try:
