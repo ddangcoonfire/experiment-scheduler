@@ -28,8 +28,7 @@ def _run_as_default_process(command, target):
         print(f"now {target} is running")
         try:
             for line in iter(task.stdout.readline, b""):
-                # print(line.decode("utf-8"))
-                print(line.decode("cp949"))
+                print(line.decode("utf-8"))
         except KeyboardInterrupt:
             os.kill(task.pid, signal.SIGINT)
             task.wait()

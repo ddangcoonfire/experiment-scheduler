@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import task_manager_pb2 as task__manager__pb2
+import experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 as task__manager__pb2
 
 
 class TaskManagerStub(object):
