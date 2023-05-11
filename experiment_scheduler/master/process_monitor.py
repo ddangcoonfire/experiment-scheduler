@@ -20,6 +20,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
 )
+from experiment_scheduler.db_util.task import Task as TaskEntity
 
 PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
 
@@ -32,6 +33,7 @@ class ProcessMonitor:
     """
 
     def __init__(self, task_managers: List[str]):
+        self.selected_task_manager = -1
         self.task_manager_address = task_managers
         self.task_manager_stubs = self._get_stubs()
         # connection initialization
@@ -52,7 +54,7 @@ class ProcessMonitor:
 
     def _init_thread_queue(self) -> None:
         for task_manager in self.task_manager_address:
-            self.thread_queue[f"is_{task_manager}_healthy"] = False
+            self.thread_queue[f"is_{task_manager}_healthy"] = True
 
     def _get_stubs(self) -> Dict[str, Any]:
         stubs = {}
@@ -61,33 +63,39 @@ class ProcessMonitor:
             stubs[address] = TaskManagerStub(channel)
         return stubs
 
-    def _health_check(self, thread_queue, time_interval=5):
-        # move to decorator later
+    def _health_check(self, thread_queue, time_interval=1):
+        """
+        Check the status of task manager and task status.
+        If there are finished tasks, then update the status column of Task Table
+        :param thread_queue:
+        :param time_interval:
+        """
         while True:
             for task_manager in self.task_manager_address:
                 try:
-                    self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    server_status = self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    if server_status.alive:
+                        if self.selected_task_manager == -1:
+                            self.selected_task_manager = 1
+                    if len(server_status.task_id_array) > 0:
+                        for task_id in server_status.task_id_array:
+                            task = TaskEntity.get(id=task_id)
+                            task.status = 2
+                            task.commit()
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError as error:
-                    thread_queue[f"is_{task_manager}_healthy"] = False
-                    self.logger.error(
-                        "currently task manager %s is not available.\n error log : %s",
-                        task_manager,
-                        error,
-                    )
+                    if self.selected_task_manager != -1:
+                        thread_queue[f"is_{task_manager}_healthy"] = False
+                        self.logger.error(
+                            "currently task manager %s is not available.\n error log : %s",
+                            task_manager,
+                            error,
+                        )
+                    else:
+                        self.logger.warning("task managers are not started yet")
             time.sleep(time_interval)
 
     # should run this code through a thread.
-
-    def _are_task_manager_healthy(self) -> bool:
-        """
-
-        :return:
-        """
-        for address in self.task_manager_address:
-            if not self.thread_queue[f"is_{address}_healthy"]:
-                return False
-        return True
 
     def run_task(self, task_id, task_manager, command, name, env):
         """
@@ -124,7 +132,7 @@ class ProcessMonitor:
         """
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(
-            protobuf
+                protobuf
         ):
             yield task_log_chunk
 
@@ -135,6 +143,6 @@ class ProcessMonitor:
         """
         available_task_managers = []
         for tm_address, tm_stub in self.task_manager_stubs.items():
-            if tm_stub.has_idle_resource(PROTO_EMPTY).exists:
+            if self.thread_queue[f"is_{tm_address}_healthy"] and tm_stub.has_idle_resource(PROTO_EMPTY).exists:
                 available_task_managers.append(tm_address)
         return available_task_managers

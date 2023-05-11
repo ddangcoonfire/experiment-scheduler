@@ -70,10 +70,13 @@ class Master(MasterServicer):
         # [Todo] Logging required
         # [TODO] need discussion about path and env vars
         self.task_managers_address: list = self.get_task_managers()
+        self.retry_task_list = []
+        self.logger = get_logger(name="master class")
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
-        self.logger = get_logger(name="master class")
+        self.health_check_thread = threading.Thread(target=self._health_check, daemon=True)
+        self.health_check_thread.start()
 
     @staticmethod
     def get_task_managers() -> List[str]:
@@ -94,6 +97,25 @@ class Master(MasterServicer):
             )
         return address
 
+    def _health_check(self, interval=1) -> None:
+        """
+        This thread_running_function periodically checks status and tasks of task_manager
+        If some task managers are abnormal, tasks of the abnormal task manager are retried
+        :param interval: time interval
+        :return: None
+        """
+        while True:
+            self.logger.info("health check start")
+            if self.process_monitor.selected_task_manager != -1:
+                unhealthy_task_manager_list = []
+                for task_manager in self.task_managers_address:
+                    if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                        unhealthy_task_manager_list.append(task_manager)
+                if len(unhealthy_task_manager_list) > 0:
+                    for unhealthy_task_manager in unhealthy_task_manager_list:
+                        self._retry_execute_task(unhealthy_task_manager)
+            time.sleep(interval)
+
     def _execute_command(self, interval=1) -> None:
         """
         this thread_running_function periodically checks queued_task and available task_managers.
@@ -102,18 +124,45 @@ class Master(MasterServicer):
         :return: None
         """
         while True:
-            queue_task = TaskEntity.get(
-                status=TaskStatus.Status.NOTSTART, order_by=TaskEntity.updated_at
-            )
-            if queue_task is not None:
-                available_task_managers = (
-                    self.process_monitor.get_available_task_managers()
+            if len(self.retry_task_list) == 0:
+                queue_task = TaskEntity.get(
+                    status=TaskStatus.Status.NOTSTART, order_by=TaskEntity.updated_at
                 )
-                if available_task_managers:
-                    task_manager_address = available_task_managers[0]
-                    task_manager = TaskManagerEntity.get(address=task_manager_address)
-                    self.execute_task(task_manager.address, queue_task.id)
+                if queue_task is not None:
+                    self._allocate_task(queue_task)
+            else:
+                self._allocate_task(self.retry_task_list.pop(0), retry=True)
             time.sleep(interval)
+
+    def _allocate_task(self, task, retry=False):
+        """
+        Task is assigned to available task manager
+        :param task: task instance
+        :param retry: boolean
+        :return: None
+        """
+        available_task_managers = (
+            self.process_monitor.get_available_task_managers()
+        )
+        if available_task_managers:
+            task_manager_address = available_task_managers[0]
+            task_manager = TaskManagerEntity.get(address=task_manager_address)
+            self.execute_task(task_manager.address, task.id)
+        elif retry:
+            if task not in self.retry_task_list:
+                self.retry_task_list.insert(0, task)
+
+    def _retry_execute_task(self, unhealthy_task_manager):
+        """
+        Get tasks which is assigned to abnormal task manager and
+        allocate tasks to another normal task manager again.
+        :param: unhealthy_task_manager instance
+        """
+        task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
+        task_list = TaskEntity.list(status=TaskStatus.Status.RUNNING,
+                                    task_manager_id=task_manager.id)
+        for task in task_list:
+            self._allocate_task(task, retry=True)
 
     def select_task_manager(self, selected=-1):
         """
@@ -238,7 +287,7 @@ class Master(MasterServicer):
             )
         else:
             for response in self.process_monitor.get_task_log(
-                task_manager_address, request.task_id, task_logfile_path
+                    task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
@@ -317,8 +366,8 @@ class Master(MasterServicer):
     def execute_task(self, task_manager_address, task_id):
         """
         run certain task
-        :param task_manager:
-        :param gpu_idx:
+        :param task_manager_address:
+        :param task_id:
         :return: task's status
         """
         task = TaskEntity.get(id=task_id)

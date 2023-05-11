@@ -130,8 +130,22 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return self._use_gpu
 
     def health_check(self, request, context):
-        """Return current server status"""
-        return ServerStatus(alive=True)
+        """
+        Return current server status and finished task id list which are finished
+        """
+        server_status = ServerStatus()
+        server_status.alive = True
+        task_id_list = list(self.tasks.keys())
+        done_task_id_list = []
+        if len(task_id_list) > 0:
+            for task_id in task_id_list:
+                task_status = self._get_task_status_by_task_id(task_id)
+                if task_status.status == TaskStatus.Status.DONE:
+                    server_status.task_id_array.append(task_id)
+                    done_task_id_list.append(task_id)
+        for done_task_id in done_task_id_list:
+            del self.tasks[done_task_id]
+        return server_status
 
     @start_end_logger
     def run_task(self, request, context):
