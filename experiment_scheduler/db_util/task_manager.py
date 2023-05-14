@@ -19,7 +19,7 @@ class TaskManager(Base, DbCommonMixin):
 
     id = Column(String(100), primary_key=True)
     address = Column(String(100))
-    log_file_path = Column(String(100), server_default="/")
+    log_file_path = Column(String(100), server_default="./")
     status = Column(Integer)
     spec = Column(JSON)
 

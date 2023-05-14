@@ -277,15 +277,15 @@ class Master(MasterServicer):
         :return: log_file which is byte format and sent by streaming
         """
         task = TaskEntity.get(id=request.task_id)
-        task_manager = TaskManagerEntity.get(id=task.task_manager_id)
-
-        task_manager_address = task_manager.address
-        task_logfile_path = task_manager.log_file_path
-        if task_logfile_path == "":
+        if task is None:
             yield TaskLogFile(
                 log_file=None, error_message=bytes("Check task id", "utf-8")
             )
         else:
+            task_manager = TaskManagerEntity.get(id=task.task_manager_id)
+            task_manager_address = task_manager.address
+            task_logfile_path = task_manager.log_file_path
+            self.logger.info(task_logfile_path)
             for response in self.process_monitor.get_task_log(
                     task_manager_address, request.task_id, task_logfile_path
             ):
