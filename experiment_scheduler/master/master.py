@@ -75,7 +75,9 @@ class Master(MasterServicer):
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
-        self.health_check_thread = threading.Thread(target=self._health_check, daemon=True)
+        self.health_check_thread = threading.Thread(
+            target=self._health_check, daemon=True
+        )
         self.health_check_thread.start()
 
     @staticmethod
@@ -109,7 +111,9 @@ class Master(MasterServicer):
             if self.process_monitor.selected_task_manager != -1:
                 unhealthy_task_manager_list = []
                 for task_manager in self.task_managers_address:
-                    if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                    if not self.process_monitor.thread_queue[
+                        f"is_{task_manager}_healthy"
+                    ]:
                         unhealthy_task_manager_list.append(task_manager)
                 if len(unhealthy_task_manager_list) > 0:
                     for unhealthy_task_manager in unhealthy_task_manager_list:
@@ -141,9 +145,7 @@ class Master(MasterServicer):
         :param retry: boolean
         :return: None
         """
-        available_task_managers = (
-            self.process_monitor.get_available_task_managers()
-        )
+        available_task_managers = self.process_monitor.get_available_task_managers()
         if available_task_managers:
             task_manager_address = available_task_managers[0]
             task_manager = TaskManagerEntity.get(address=task_manager_address)
@@ -159,8 +161,9 @@ class Master(MasterServicer):
         :param: unhealthy_task_manager instance
         """
         task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
-        task_list = TaskEntity.list(status=TaskStatus.Status.RUNNING,
-                                    task_manager_id=task_manager.id)
+        task_list = TaskEntity.list(
+            status=TaskStatus.Status.RUNNING, task_manager_id=task_manager.id
+        )
         for task in task_list:
             self._allocate_task(task, retry=True)
 
@@ -287,7 +290,7 @@ class Master(MasterServicer):
             )
         else:
             for response in self.process_monitor.get_task_log(
-                    task_manager_address, request.task_id, task_logfile_path
+                task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
@@ -396,11 +399,9 @@ class Master(MasterServicer):
     def upload_file(self, request_iterator, context):
         for request in request_iterator:
             self.process_monitor.upload_file(request)
-        
         return MasterResponse(
-                experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
-            )
-        
+            experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
+        )
 
     def _wrap_by_task_status(self, task_id, status):
         return TaskStatus(

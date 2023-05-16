@@ -14,6 +14,7 @@ from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 CHUNK_SIZE = 1024 * 5
 
+
 def parse_args():
     """
     Parse file name option argument.
@@ -33,7 +34,9 @@ def parse_input_file(parsed_yaml):
         name=parsed_yaml["name"],
         tasks=[
             master_pb2.MasterTaskStatement(
-                command=task["cmd"], name=task["name"], task_env=os.environ.copy(),
+                command=task["cmd"],
+                name=task["name"],
+                task_env=os.environ.copy(),
             )
             for task in parsed_yaml["tasks"]
         ],
@@ -60,25 +63,23 @@ def main():
     files = [task["files"] if "files" in task else [] for task in parsed_yaml["tasks"]]
     for task_files in files:
         for task_file in task_files:
-            with open(task_file, mode="rb") as fp:
+            with open(task_file, mode="rb") as file_pointer:
+
                 def request_iterator():
-                    yield master_pb2.MasterFileUploadRequest(name=task_file)
                     while True:
-                        data = fp.read(CHUNK_SIZE)
+                        data = file_pointer.read(
+                            CHUNK_SIZE
+                        )  # pylint:disable=cell-var-from-loop
                         if not data:
                             break
-                        yield master_pb2.MasterFileUploadRequest(file=data)
+                        yield master_pb2.MasterFileUploadRequest(
+                            name=task_file.split(  # pylint:disable=cell-var-from-loop
+                                "/"
+                            )[-1],
+                            file=data,
+                        )
 
-                stream = stub.upload_file(request_iterator())
-                    # while True:
-                    #     chunk = fp.read(CHUNK_SIZE)
-                    #     if chunk:
-                    #         yield master_pb2.MasterFileUploadRequest(file=chunk)
-                    #     else:
-                    #         return
-            # except OSError:
-            #     error_message = "file not exists"
-            #     raise RuntimeError(error_message)
+                stub.upload_file(request_iterator())
 
     response = stub.request_experiments(request)
 

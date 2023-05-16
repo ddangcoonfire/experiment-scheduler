@@ -118,7 +118,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
 
-        checkthread = Thread(target=self.get_dead_tasks, daemon = True)
+        checkthread = Thread(target=self.get_dead_tasks, daemon=True)
         checkthread.start()
 
     @property
@@ -219,20 +219,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
     @start_end_logger
     def upload_file(self, request_iterator, context):
-        request = next(request_iterator)
-
-        # Get the file name
-        file_name = request.name
-
-        # Create a new file
-        with open(file_name, "wb") as f:
-            # Receive data from the client and write it to the file
-            for request in request_iterator:
-                f.write(request.file)
-
-        return ProgressResponse(
-                received_status=ProgressResponse.ReceivedStatus.SUCCESS
-            )
+        for request in request_iterator:
+            with open(request.name, "ab+") as file_pointer:
+                file_pointer.write(request.file)
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
     @start_end_logger
     def kill_task(self, request, context):
@@ -285,9 +275,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     ast.literal_eval(USER_CONFIG.get("default", "master_address"))
                 )
                 stub = master_pb2_grpc.MasterStub(channel)
-                stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+                stub.request_abnormal_exited_tasks(
+                    master_pb2.TaskList(task_list=dead_tasks)
+                )
             time.sleep(1)
-
 
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)

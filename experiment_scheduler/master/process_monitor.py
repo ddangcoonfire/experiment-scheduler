@@ -16,7 +16,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     TaskLogInfo,
     TaskStatement,
     google_dot_protobuf_dot_empty__pb2,
-    TaskManagerFileUploadRequest
+    TaskManagerFileUploadRequest,
 )
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
@@ -74,7 +74,9 @@ class ProcessMonitor:
         while True:
             for task_manager in self.task_manager_address:
                 try:
-                    server_status = self.task_manager_stubs[task_manager].health_check(PROTO_EMPTY)
+                    server_status = self.task_manager_stubs[task_manager].health_check(
+                        PROTO_EMPTY
+                    )
                     if server_status.alive:
                         if self.selected_task_manager == -1:
                             self.selected_task_manager = 1
@@ -133,7 +135,7 @@ class ProcessMonitor:
         """
         protobuf = TaskLogInfo(task_id=task_id, log_file_path=log_file_path)
         for task_log_chunk in self.task_manager_stubs[task_manager].get_task_log(
-                protobuf
+            protobuf
         ):
             yield task_log_chunk
 
@@ -144,17 +146,22 @@ class ProcessMonitor:
         """
         available_task_managers = []
         for tm_address, tm_stub in self.task_manager_stubs.items():
-            if self.thread_queue[f"is_{tm_address}_healthy"] and tm_stub.has_idle_resource(PROTO_EMPTY).exists:
+            if (
+                self.thread_queue[f"is_{tm_address}_healthy"]
+                and tm_stub.has_idle_resource(PROTO_EMPTY).exists
+            ):
                 available_task_managers.append(tm_address)
         return available_task_managers
-    
+
     def upload_file(self, request):
-        
-        for tm_address, tm_stub in self.task_manager_stubs.items():
+        """
+        upload one file to all task_managers
+        :param request:
+        :return:
+        """
+        for tm_stub in self.task_manager_stubs.values():
+
             def request_iterator():
-                yield TaskManagerFileUploadRequest(file_name=request.name,
-                file=request.file)
+                yield TaskManagerFileUploadRequest(name=request.name, file=request.file)
+
             tm_stub.upload_file(request_iterator())
-
-
-
