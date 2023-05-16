@@ -56,6 +56,11 @@ class TaskManagerStub(object):
                 request_serializer=task__manager__pb2.Progress.SerializeToString,
                 response_deserializer=task__manager__pb2.ProgressResponse.FromString,
                 )
+        self.upload_file = channel.stream_unary(
+                '/TaskManager/upload_file',
+                request_serializer=task__manager__pb2.TaskManagerFileUploadRequest.SerializeToString,
+                response_deserializer=task__manager__pb2.ProgressResponse.FromString,
+                )
 
 
 class TaskManagerServicer(object):
@@ -110,6 +115,12 @@ class TaskManagerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def upload_file(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TaskManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -151,6 +162,11 @@ def add_TaskManagerServicer_to_server(servicer, server):
             'report_progress': grpc.unary_unary_rpc_method_handler(
                     servicer.report_progress,
                     request_deserializer=task__manager__pb2.Progress.FromString,
+                    response_serializer=task__manager__pb2.ProgressResponse.SerializeToString,
+            ),
+            'upload_file': grpc.stream_unary_rpc_method_handler(
+                    servicer.upload_file,
+                    request_deserializer=task__manager__pb2.TaskManagerFileUploadRequest.FromString,
                     response_serializer=task__manager__pb2.ProgressResponse.SerializeToString,
             ),
     }
@@ -296,6 +312,23 @@ class TaskManager(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/TaskManager/report_progress',
             task__manager__pb2.Progress.SerializeToString,
+            task__manager__pb2.ProgressResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def upload_file(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/TaskManager/upload_file',
+            task__manager__pb2.TaskManagerFileUploadRequest.SerializeToString,
             task__manager__pb2.ProgressResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

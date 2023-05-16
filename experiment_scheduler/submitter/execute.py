@@ -12,6 +12,7 @@ import yaml
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
+CHUNK_SIZE = 1024 * 5
 
 def parse_args():
     """
@@ -32,7 +33,7 @@ def parse_input_file(parsed_yaml):
         name=parsed_yaml["name"],
         tasks=[
             master_pb2.MasterTaskStatement(
-                command=task["cmd"], name=task["name"], task_env=os.environ.copy()
+                command=task["cmd"], name=task["name"], task_env=os.environ.copy(),
             )
             for task in parsed_yaml["tasks"]
         ],
@@ -41,7 +42,7 @@ def parse_input_file(parsed_yaml):
 
 
 def main():
-    """
+    """f
     exs execute command calls this function.
     when this func called, open yaml with '-f' option and convert yaml shape to experiment statement shape for grpc
     """
@@ -56,6 +57,29 @@ def main():
     stub = master_pb2_grpc.MasterStub(channel)
 
     request = parse_input_file(parsed_yaml)
+    files = [task["files"] if "files" in task else [] for task in parsed_yaml["tasks"]]
+    for task_files in files:
+        for task_file in task_files:
+            with open(task_file, mode="rb") as fp:
+                def request_iterator():
+                    yield master_pb2.MasterFileUploadRequest(name=task_file)
+                    while True:
+                        data = fp.read(CHUNK_SIZE)
+                        if not data:
+                            break
+                        yield master_pb2.MasterFileUploadRequest(file=data)
+
+                stream = stub.upload_file(request_iterator())
+                    # while True:
+                    #     chunk = fp.read(CHUNK_SIZE)
+                    #     if chunk:
+                    #         yield master_pb2.MasterFileUploadRequest(file=chunk)
+                    #     else:
+                    #         return
+            # except OSError:
+            #     error_message = "file not exists"
+            #     raise RuntimeError(error_message)
+
     response = stub.request_experiments(request)
 
     if response.response == master_pb2.MasterResponse.ResponseStatus.SUCCESS:

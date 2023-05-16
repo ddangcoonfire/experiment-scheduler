@@ -40,10 +40,12 @@ class ProgressResponse(_message.Message):
     def __init__(self, received_status: _Optional[_Union[ProgressResponse.ReceivedStatus, str]] = ...) -> None: ...
 
 class ServerStatus(_message.Message):
-    __slots__ = ["alive"]
+    __slots__ = ["alive", "task_id_array"]
     ALIVE_FIELD_NUMBER: _ClassVar[int]
+    TASK_ID_ARRAY_FIELD_NUMBER: _ClassVar[int]
     alive: bool
-    def __init__(self, alive: bool = ...) -> None: ...
+    task_id_array: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, alive: bool = ..., task_id_array: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class Task(_message.Message):
     __slots__ = ["task_id"]
@@ -66,6 +68,14 @@ class TaskLogInfo(_message.Message):
     log_file_path: str
     task_id: str
     def __init__(self, task_id: _Optional[str] = ..., log_file_path: _Optional[str] = ...) -> None: ...
+
+class TaskManagerFileUploadRequest(_message.Message):
+    __slots__ = ["file", "name"]
+    FILE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    file: bytes
+    name: str
+    def __init__(self, name: _Optional[str] = ..., file: _Optional[bytes] = ...) -> None: ...
 
 class TaskStatement(_message.Message):
     __slots__ = ["command", "name", "task_env", "task_id"]

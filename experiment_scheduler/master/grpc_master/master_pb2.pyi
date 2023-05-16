@@ -67,6 +67,14 @@ class ExperimentsStatus(_message.Message):
     task_status_array: AllTasksStatus
     def __init__(self, experiment_id: _Optional[str] = ..., task_status_array: _Optional[_Union[AllTasksStatus, _Mapping]] = ...) -> None: ...
 
+class MasterFileUploadRequest(_message.Message):
+    __slots__ = ["file", "name"]
+    FILE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    file: bytes
+    name: str
+    def __init__(self, name: _Optional[str] = ..., file: _Optional[bytes] = ...) -> None: ...
+
 class MasterResponse(_message.Message):
     __slots__ = ["experiment_id", "response"]
     class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):

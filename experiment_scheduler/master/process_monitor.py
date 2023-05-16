@@ -16,6 +16,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2 import
     TaskLogInfo,
     TaskStatement,
     google_dot_protobuf_dot_empty__pb2,
+    TaskManagerFileUploadRequest
 )
 from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc import (
     TaskManagerStub,
@@ -146,3 +147,14 @@ class ProcessMonitor:
             if self.thread_queue[f"is_{tm_address}_healthy"] and tm_stub.has_idle_resource(PROTO_EMPTY).exists:
                 available_task_managers.append(tm_address)
         return available_task_managers
+    
+    def upload_file(self, request):
+        
+        for tm_address, tm_stub in self.task_manager_stubs.items():
+            def request_iterator():
+                yield TaskManagerFileUploadRequest(file_name=request.name,
+                file=request.file)
+            tm_stub.upload_file(request_iterator())
+
+
+

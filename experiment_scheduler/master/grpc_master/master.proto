@@ -24,6 +24,8 @@ service Master {
 
       rpc request_abnormal_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
 
+      rpc upload_file(stream MasterFileUploadRequest) returns (MasterResponse) {} 
+
 }
 
 message EditTask {
@@ -49,7 +51,12 @@ message ExperimentStatement {
 message MasterTaskStatement {
     string command = 1;
     string name = 2;
-    map<string, string> task_env = 4;
+    map<string, string> task_env = 3;
+}
+
+message MasterFileUploadRequest {
+    string name = 1;
+    bytes file = 2;
 }
 
 message MasterResponse {

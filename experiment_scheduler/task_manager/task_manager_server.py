@@ -218,6 +218,23 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             )
 
     @start_end_logger
+    def upload_file(self, request_iterator, context):
+        request = next(request_iterator)
+
+        # Get the file name
+        file_name = request.name
+
+        # Create a new file
+        with open(file_name, "wb") as f:
+            # Receive data from the client and write it to the file
+            for request in request_iterator:
+                f.write(request.file)
+
+        return ProgressResponse(
+                received_status=ProgressResponse.ReceivedStatus.SUCCESS
+            )
+
+    @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self.tasks.get(request.task_id)

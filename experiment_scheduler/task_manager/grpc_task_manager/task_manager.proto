@@ -35,6 +35,8 @@ service TaskManager {
   rpc has_idle_resource(google.protobuf.Empty) returns (IdleResources) {}
 
   rpc report_progress(Progress) returns (ProgressResponse) {}
+
+  rpc upload_file(stream TaskManagerFileUploadRequest) returns (ProgressResponse) {}
 }
 
 message ServerStatus {
@@ -69,6 +71,11 @@ message TaskStatus {
 
 message Task {
     string task_id = 1;
+}
+
+message TaskManagerFileUploadRequest {
+    string name = 1;
+    bytes file = 2;
 }
 
 message TaskLogInfo {

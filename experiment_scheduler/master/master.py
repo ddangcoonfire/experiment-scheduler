@@ -392,6 +392,16 @@ class Master(MasterServicer):
             task.commit()
         return response
 
+    @start_end_logger
+    def upload_file(self, request_iterator, context):
+        for request in request_iterator:
+            self.process_monitor.upload_file(request)
+        
+        return MasterResponse(
+                experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
+            )
+        
+
     def _wrap_by_task_status(self, task_id, status):
         return TaskStatus(
             task_id=task_id,
