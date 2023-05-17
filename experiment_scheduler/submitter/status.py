@@ -16,7 +16,7 @@ def parse_args():
     :return:
     """
     parser = argparse.ArgumentParser(description="Search status for specific Task.")
-    parser.add_argument("-t", "--task")
+    parser.add_argument("-t", "--task", required=True)
     return parser.parse_args()
 
 
@@ -35,5 +35,6 @@ def main():
 
     request = master_pb2.Task(task_id=task_id)
     response = stub.get_task_status(request)
+    breakpoint()
 
     print(response)

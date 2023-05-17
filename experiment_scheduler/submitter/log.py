@@ -30,7 +30,7 @@ def parse_args():
     :return:
     """
     parser = argparse.ArgumentParser(description="Search Log for specific Task.")
-    parser.add_argument("-t", "--task")
+    parser.add_argument("-t", "--task", required=True)
     parser.add_argument("-f", "--file")
     return parser.parse_args()
 
