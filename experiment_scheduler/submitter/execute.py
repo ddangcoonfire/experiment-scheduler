@@ -8,7 +8,7 @@ import os
 
 import grpc
 import yaml
-import json
+
 
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
@@ -66,3 +66,5 @@ def main():
         print("experiment id is", response.experiment_id)
     else:
         print("fail to request experiments")
+
+    return 0

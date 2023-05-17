@@ -35,6 +35,5 @@ def main():
 
     request = master_pb2.Task(task_id=task_id)
     response = stub.get_task_status(request)
-    breakpoint()
 
     print(response)
