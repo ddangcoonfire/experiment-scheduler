@@ -1,6 +1,7 @@
 """This file is in charge of server code run as daemon process."""
 
 import os
+import argparse
 import subprocess
 import ast
 from typing import Dict, Optional
@@ -323,13 +324,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return None
 
 
-def serve():
+def serve(server_ip: Optional[str] = None):
     """run task manager server"""
+    if server_ip is None:
+        server_ip = "localhost"
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
         local_port = ast.literal_eval(USER_CONFIG.get("task_manager", "local_port"))
-        local_address = ":".join(["0.0.0.0", str(local_port)])
+        local_address = ":".join([server_ip, str(local_port)])
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server
@@ -340,5 +343,17 @@ def serve():
         print("Interrupt Occurs. Now closing...")
 
 
+def parse_args():
+    """
+    Parse file name option argument.
+    - ex) if exs command includes "-f sample.yaml", return "sample.yaml"
+    """
+
+    parser = argparse.ArgumentParser(description="Run task_manager_server.")
+    parser.add_argument("-i", "--ip")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    serve()
+    args = parse_args()
+    serve(args.ip)

@@ -88,8 +88,9 @@ class Master(MasterServicer):
         if address_string is not None:
             address = address_string.split(" ")
         else:
+            mode = "docker" if os.environ.get("EXS_DOCKER_MODE") == "true" else "default"
             address = ast.literal_eval(
-                USER_CONFIG.get("default", "task_manager_address")
+                USER_CONFIG.get(mode, "task_manager_address")
             )
         for idx, task_manager in enumerate(address):
             TaskManagerEntity.insert(
@@ -450,7 +451,8 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        mode = "docker" if os.environ.get("EXS_DOCKER_MODE") == "true" else "default"
+        master_address = ast.literal_eval(USER_CONFIG.get(mode, "master_address"))
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
