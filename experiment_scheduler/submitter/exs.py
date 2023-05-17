@@ -46,14 +46,28 @@ HELP_MESSAGE = {
 }
 
 
+class CustomArgumentParser(argparse.ArgumentParser):
+    """
+    When a "command not found" error occurs, it displays a help message.
+    """
+
+    def error(self, message):
+        """
+        Custom error function
+        """
+        print(f"command not found: {message}")
+        self.print_help()
+        self.exit(2)
+
+
 def parse_args():
     """
     Parse user's arguments.
     """
-
-    parser = argparse.ArgumentParser(
+    parser = CustomArgumentParser(
         add_help=True, formatter_class=argparse.RawTextHelpFormatter
     )
+
     parser.add_argument(
         "operation",
         choices=COMMAND_LIST,
@@ -69,6 +83,8 @@ def parse_args():
         action="store_true",
         help="Run servers as daemon state. Only valid at init_* commands",
     )
+
+    print()
     return parser.parse_known_args()[0]
 
 
