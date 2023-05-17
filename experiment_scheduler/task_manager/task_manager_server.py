@@ -169,6 +169,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
+            cwd=request.cwd,
         )
         self.tasks[task_id] = Task(task.pid)
 

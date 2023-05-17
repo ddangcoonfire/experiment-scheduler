@@ -24,6 +24,7 @@ class Task(Base, DbCommonMixin):
     status = Column(Integer)
     task_env = Column(JSON)
     logfile_name = Column(String(100))
+    cwd = Column(String(100))
 
 
 if not sqlalchemy.inspect(engine).has_table(Task.get_table_name()):

@@ -40,10 +40,12 @@ class ProgressResponse(_message.Message):
     def __init__(self, received_status: _Optional[_Union[ProgressResponse.ReceivedStatus, str]] = ...) -> None: ...
 
 class ServerStatus(_message.Message):
-    __slots__ = ["alive"]
+    __slots__ = ["alive", "task_id_array"]
     ALIVE_FIELD_NUMBER: _ClassVar[int]
+    TASK_ID_ARRAY_FIELD_NUMBER: _ClassVar[int]
     alive: bool
-    def __init__(self, alive: bool = ...) -> None: ...
+    task_id_array: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, alive: bool = ..., task_id_array: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class Task(_message.Message):
     __slots__ = ["task_id"]
@@ -68,7 +70,7 @@ class TaskLogInfo(_message.Message):
     def __init__(self, task_id: _Optional[str] = ..., log_file_path: _Optional[str] = ...) -> None: ...
 
 class TaskStatement(_message.Message):
-    __slots__ = ["command", "name", "task_env", "task_id"]
+    __slots__ = ["command", "cwd", "name", "task_env", "task_id"]
     class TaskEnvEntry(_message.Message):
         __slots__ = ["key", "value"]
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -77,14 +79,16 @@ class TaskStatement(_message.Message):
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
+    CWD_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_ENV_FIELD_NUMBER: _ClassVar[int]
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
     command: str
+    cwd: str
     name: str
     task_env: _containers.ScalarMap[str, str]
     task_id: str
-    def __init__(self, task_id: _Optional[str] = ..., command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, task_id: _Optional[str] = ..., command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ..., cwd: _Optional[str] = ...) -> None: ...
 
 class TaskStatus(_message.Message):
     __slots__ = ["status", "task_id"]
