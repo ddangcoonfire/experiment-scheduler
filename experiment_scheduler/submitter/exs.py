@@ -84,7 +84,6 @@ def parse_args():
         help="Run servers as daemon state. Only valid at init_* commands",
     )
 
-    print()
     return parser.parse_known_args()[0]
 
 
