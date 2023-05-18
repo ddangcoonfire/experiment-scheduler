@@ -49,7 +49,7 @@ def main():
     file_path = args.file
 
     if not os.path.exists(file_path):
-        print(f"file not exsits : {file_path}")
+        print(f"file does not exist : {file_path}")
         return 1
 
     with open(file_path, "r", encoding="utf-8") as file_pointer:
