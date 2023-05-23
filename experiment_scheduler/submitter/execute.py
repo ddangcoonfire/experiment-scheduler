@@ -9,6 +9,7 @@ import os
 import grpc
 import yaml
 
+
 from experiment_scheduler.common.settings import USER_CONFIG
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
@@ -18,9 +19,8 @@ def parse_args():
     Parse file name option argument.
     - ex) if exs command includes "-f sample.yaml", return "sample.yaml"
     """
-
     parser = argparse.ArgumentParser(description="Execute exeperiments.")
-    parser.add_argument("-f", "--file")
+    parser.add_argument("-f", "--file", required=True)
     return parser.parse_args()
 
 
@@ -48,6 +48,10 @@ def main():
     args = parse_args()
     file_path = args.file
 
+    if not os.path.exists(file_path):
+        print(f"file does not exist : {file_path}")
+        return 1
+
     with open(file_path, "r", encoding="utf-8") as file_pointer:
         parsed_yaml = yaml.load(file_pointer, Loader=yaml.FullLoader)
     channel = grpc.insecure_channel(
@@ -62,3 +66,5 @@ def main():
         print("experiment id is", response.experiment_id)
     else:
         print("fail to request experiments")
+
+    return 0

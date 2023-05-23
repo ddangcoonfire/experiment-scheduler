@@ -16,7 +16,7 @@ def parse_args():
     :return:
     """
     parser = argparse.ArgumentParser(description="Delete exeperiments.")
-    parser.add_argument("-t", "--task")
+    parser.add_argument("-t", "--task", required=True)
     return parser.parse_args()
 
 
