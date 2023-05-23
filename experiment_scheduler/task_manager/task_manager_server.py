@@ -32,7 +32,6 @@ logger = get_logger(name="task_manager")
 KILL_CHILD_MAX_DEPTH = 2
 CHUNK_SIZE = 1024 * 5
 
-
 class ResourceManager:
     """
     Resource Manager checks task manager's status.
@@ -204,11 +203,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
         try:
             with open(log_file_path, mode="rb") as file:
+                is_read = -1
                 while True:
                     chunk = file.read(CHUNK_SIZE)
                     if chunk:
+                        is_read = 1
                         yield TaskLogFile(log_file=chunk)
                     else:
+                        if is_read == -1:
+                            error_message = f"There is no log in {request.task_id}"
+                            yield TaskLogFile(log_file=None, error_message=bytes(error_message, "utf-8"))
                         return
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
