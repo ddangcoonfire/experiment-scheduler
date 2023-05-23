@@ -453,6 +453,14 @@ def serve():
         master = grpc.server(pool)
         mode = "docker" if os.environ.get("EXS_DOCKER_MODE") == "true" else "default"
         master_address = ast.literal_eval(USER_CONFIG.get(mode, "master_address"))
+        if master_address is None:
+            raise ValueError
+
+        address, port = master_address.split(":")
+
+        if address != "localhost" and mode == "docker":
+            master_address = ':'.join('0.0.0.0',port)
+        
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
