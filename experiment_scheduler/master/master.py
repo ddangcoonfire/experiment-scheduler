@@ -285,7 +285,6 @@ class Master(MasterServicer):
             task_manager = TaskManagerEntity.get(id=task.task_manager_id)
             task_manager_address = task_manager.address
             task_logfile_path = task_manager.log_file_path
-            self.logger.info(task_logfile_path)
             for response in self.process_monitor.get_task_log(
                     task_manager_address, request.task_id, task_logfile_path
             ):
