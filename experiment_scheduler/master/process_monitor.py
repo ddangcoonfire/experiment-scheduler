@@ -97,7 +97,7 @@ class ProcessMonitor:
 
     # should run this code through a thread.
 
-    def run_task(self, task_id, task_manager, command, name, env, cwd):
+    def run_task(self, task_id, task_manager, command, name, env, cwd):  # pylint: disable=too-many-arguments
         """
         :param task_id
         :param task_manager:
