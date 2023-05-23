@@ -91,10 +91,7 @@ class Master(MasterServicer):
         if address_string is not None:
             address = address_string.split(" ")
         else:
-            mode = (
-                "docker" if os.environ.get("EXS_DOCKER_MODE") == "true" else "default"
-            )
-            address = ast.literal_eval(USER_CONFIG.get(mode, "task_manager_address"))
+            address = ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
         for idx, task_manager in enumerate(address):
             TaskManagerEntity.insert(
                 TaskManagerEntity(id="tm_" + str(idx), address=task_manager)
@@ -455,9 +452,8 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        mode = "docker" if os.environ.get("EXS_DOCKER_MODE") == "true" else "default"
         try:
-            master_address = ast.literal_eval(USER_CONFIG.get(mode, "master_address"))
+            master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
         except configparser.NoOptionError as err:
             raise ValueError(
                 "There is no option 'master_address' in experiment_scheduler.cfg. "
@@ -466,7 +462,7 @@ def serve():
 
         address, port = master_address.split(":")
 
-        if address != "localhost" and mode == "docker":
+        if address == "localhost" and os.environ.get("EXS_DOCKER_MODE") == "true":
             master_address = ":".join(["0.0.0.0", port])
 
         add_MasterServicer_to_server(Master(), master)
