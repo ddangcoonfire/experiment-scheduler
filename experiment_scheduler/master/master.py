@@ -450,10 +450,7 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        config_system = "default"
-        if platform.system() == 'Windows':
-            config_system = "windows"
-        master_address = ast.literal_eval(USER_CONFIG.get(config_system, "master_address"))
+        master_address = ast.literal_eval(USER_CONFIG.get(USER_SYSTEM, "master_address"))
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
