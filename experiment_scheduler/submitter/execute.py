@@ -10,7 +10,7 @@ import grpc
 import yaml
 
 
-from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.common.settings import USER_CONFIG, USER_SYSTEM
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 
@@ -55,7 +55,7 @@ def main():
     with open(file_path, "r", encoding="utf-8") as file_pointer:
         parsed_yaml = yaml.load(file_pointer, Loader=yaml.FullLoader)
     channel = grpc.insecure_channel(
-        ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        ast.literal_eval(USER_CONFIG.get(USER_SYSTEM, "master_address"))
     )
     stub = master_pb2_grpc.MasterStub(channel)
 

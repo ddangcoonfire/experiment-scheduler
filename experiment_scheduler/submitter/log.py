@@ -7,7 +7,7 @@ from os import path as osp
 
 import grpc
 
-from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.common.settings import USER_CONFIG, USER_SYSTEM
 from experiment_scheduler.master.grpc_master import master_pb2
 from experiment_scheduler.master.grpc_master import master_pb2_grpc
 
@@ -44,7 +44,7 @@ def main():
     task_id = args.task
     file_download = args.file
     channel = grpc.insecure_channel(
-        ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        ast.literal_eval(USER_CONFIG.get(USER_SYSTEM, "master_address"))
     )
     stub = master_pb2_grpc.MasterStub(channel)
 

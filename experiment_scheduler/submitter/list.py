@@ -7,7 +7,7 @@ import os
 
 import grpc
 
-from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.common.settings import USER_CONFIG, USER_SYSTEM
 from experiment_scheduler.master.grpc_master import master_pb2, master_pb2_grpc
 
 TASK_STATUS = ["waiting", "running", "done", "killed", "abnormal", "not found"]
@@ -34,7 +34,7 @@ def main():
     ter_col_size = os.get_terminal_size().columns
 
     channel = grpc.insecure_channel(
-        ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        ast.literal_eval(USER_CONFIG.get(USER_SYSTEM, "master_address"))
     )
     stub = master_pb2_grpc.MasterStub(channel)
     request = master_pb2.Experiment(experiment_id=args.experiment)

@@ -4,6 +4,7 @@ In package, these variables work like constant, but they need initial setting.
 """
 import configparser
 import os
+import platform
 
 import experiment_scheduler
 
@@ -20,6 +21,14 @@ def _set_user_config():
     return parser
 
 
+def _get_system():
+    """
+    get USER OS system
+    :return: USER OS System
+    """
+    return "default" if platform.system() != 'Windows' else "windows"
+
+
 HEADER = "\n".join(
     [
         "┌────────────────────────────────────┐",
@@ -29,3 +38,4 @@ HEADER = "\n".join(
 )
 DEFAULT_EXS_HOME = os.getenv("EXS_HOME", experiment_scheduler.__path__[0])
 USER_CONFIG = _set_user_config()
+USER_SYSTEM = _get_system()

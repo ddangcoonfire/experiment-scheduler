@@ -1,6 +1,7 @@
 """This file is in charge of server code run as daemon process."""
 
 import os
+import platform
 import subprocess
 import ast
 from typing import Dict, Optional
@@ -329,7 +330,8 @@ def serve():
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
         local_port = ast.literal_eval(USER_CONFIG.get("task_manager", "local_port"))
-        local_address = ":".join(["0.0.0.0", str(local_port)])
+        local_address = ":".join(["localhost" if platform.system() == "Windows"
+                                  else "0.0.0.0", str(local_port)])
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server

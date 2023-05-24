@@ -14,7 +14,7 @@ import datetime
 import grpc
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
-from experiment_scheduler.common.settings import USER_CONFIG
+from experiment_scheduler.common.settings import USER_CONFIG, USER_SYSTEM
 from experiment_scheduler.master.grpc_master.master_pb2 import (
     AllExperimentsStatus,
     AllTasksStatus,
@@ -89,7 +89,7 @@ class Master(MasterServicer):
             address = address_string.split(" ")
         else:
             address = ast.literal_eval(
-                USER_CONFIG.get("default", "task_manager_address")
+                USER_CONFIG.get(USER_SYSTEM, "task_manager_address")
             )
         for idx, task_manager in enumerate(address):
             TaskManagerEntity.insert(
@@ -450,7 +450,10 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        config_system = "default"
+        if platform.system() == 'Windows':
+            config_system = "windows"
+        master_address = ast.literal_eval(USER_CONFIG.get(config_system, "master_address"))
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
