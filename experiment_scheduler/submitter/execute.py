@@ -45,7 +45,7 @@ def parse_input_file(parsed_yaml):
 
 
 def main():
-    """f
+    """
     exs execute command calls this function.
     when this func called, open yaml with '-f' option and convert yaml shape to experiment statement shape for grpc
     """
