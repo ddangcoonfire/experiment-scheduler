@@ -88,7 +88,7 @@ class MasterResponse(_message.Message):
     def __init__(self, experiment_id: _Optional[str] = ..., response: _Optional[_Union[MasterResponse.ResponseStatus, str]] = ...) -> None: ...
 
 class MasterTaskStatement(_message.Message):
-    __slots__ = ["command", "name", "task_env"]
+    __slots__ = ["command", "files", "name", "task_env"]
     class TaskEnvEntry(_message.Message):
         __slots__ = ["key", "value"]
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -97,12 +97,14 @@ class MasterTaskStatement(_message.Message):
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_ENV_FIELD_NUMBER: _ClassVar[int]
     command: str
+    files: _containers.RepeatedScalarFieldContainer[str]
     name: str
     task_env: _containers.ScalarMap[str, str]
-    def __init__(self, command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ..., files: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class RequestAbnormalExitedTasksResponse(_message.Message):
     __slots__ = ["not_running_tasks", "response"]

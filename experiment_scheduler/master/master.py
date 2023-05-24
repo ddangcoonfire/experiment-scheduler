@@ -212,6 +212,7 @@ class Master(MasterServicer):
                 task_env=task_env,
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
+                files=",".join(task.files)
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -378,6 +379,7 @@ class Master(MasterServicer):
         task_env = {  # pylint: disable=R1721
             key: val for key, val in task.task_env.items()
         }
+        self.process_monitor.upload_file(task_manager_address, task.files)
         response = self.process_monitor.run_task(
             task.id,
             task_manager_address,
@@ -398,7 +400,8 @@ class Master(MasterServicer):
     @start_end_logger
     def upload_file(self, request_iterator, context):
         for request in request_iterator:
-            self.process_monitor.upload_file(request)
+            with open(request.name, "ab+") as file_pointer:
+                file_pointer.write(request.file)
         return MasterResponse(
             experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
         )

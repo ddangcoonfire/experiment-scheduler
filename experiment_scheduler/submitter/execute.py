@@ -37,6 +37,7 @@ def parse_input_file(parsed_yaml):
                 command=task["cmd"],
                 name=task["name"],
                 task_env=os.environ.copy(),
+                files = list(map(lambda x: x.split("/")[-1], task["files"])) if "files" in task else []
             )
             for task in parsed_yaml["tasks"]
         ],
@@ -76,6 +77,7 @@ def main():
                             name=task_file.split(  # pylint:disable=cell-var-from-loop
                                 "/"
                             )[-1],
+                            # name=task_file,
                             file=data,
                         )
 

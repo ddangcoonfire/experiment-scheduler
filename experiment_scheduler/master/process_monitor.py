@@ -24,7 +24,7 @@ from experiment_scheduler.task_manager.grpc_task_manager.task_manager_pb2_grpc i
 from experiment_scheduler.db_util.task import Task as TaskEntity
 
 PROTO_EMPTY = google_dot_protobuf_dot_empty__pb2.Empty()
-
+CHUNK_SIZE = 1024 * 5
 
 class ProcessMonitor:
     """
@@ -153,15 +153,28 @@ class ProcessMonitor:
                 available_task_managers.append(tm_address)
         return available_task_managers
 
-    def upload_file(self, request):
+    def upload_file(self, task_manager_address, file_list):
         """
         upload one file to all task_managers
-        :param request:
+        :param file_list:
         :return:
         """
-        for tm_stub in self.task_manager_stubs.values():
+        tm_stub = self.task_manager_stubs[task_manager_address]
+        files = file_list.split(",") if len(file_list) > 0 else []
+        for file in files:
+             with open(file, mode="rb") as file_pointer:
 
-            def request_iterator():
-                yield TaskManagerFileUploadRequest(name=request.name, file=request.file)
-
-            tm_stub.upload_file(request_iterator())
+                def request_iterator():
+                    while True:
+                        data = file_pointer.read(
+                            CHUNK_SIZE
+                        )  # pylint:disable=cell-var-from-loop
+                        if not data:
+                            break
+                        yield TaskManagerFileUploadRequest(
+                            name=file.split(  # pylint:disable=cell-var-from-loop
+                                "/"
+                            )[-1],
+                            file=data,
+                        )
+                tm_stub.upload_file(request_iterator())

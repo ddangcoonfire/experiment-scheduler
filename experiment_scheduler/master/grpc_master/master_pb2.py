@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\x12\x33\x65xperiment_scheduler.task_manager.grpc_task_manager\x1a\x1bgoogle/protobuf/empty.proto\"\xb6\x01\n\x08\x45\x64itTask\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0b\n\x03\x63md\x18\x02 \x01(\t\x12\\\n\x08task_env\x18\x04 \x03(\x0b\x32J.experiment_scheduler.task_manager.grpc_task_manager.EditTask.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xe4\x01\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12W\n\x05tasks\x18\x02 \x03(\x0b\x32H.experiment_scheduler.task_manager.grpc_task_manager.MasterTaskStatement\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\xcd\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12g\n\x08task_env\x18\x03 \x03(\x0b\x32U.experiment_scheduler.task_manager.grpc_task_manager.MasterTaskStatement.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"5\n\x17MasterFileUploadRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x66ile\x18\x02 \x01(\x0c\"\xb6\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x64\n\x08response\x18\x02 \x01(\x0e\x32R.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\"\xdd\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12V\n\x06status\x18\x02 \x01(\x0e\x32\x46.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus.Status\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"#\n\nExperiment\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\"l\n\x0e\x41llTasksStatus\x12Z\n\x11task_status_array\x18\x01 \x03(\x0b\x32?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x8a\x01\n\x11\x45xperimentsStatus\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12^\n\x11task_status_array\x18\x02 \x01(\x0b\x32\x43.experiment_scheduler.task_manager.grpc_task_manager.AllTasksStatus\"\x7f\n\x14\x41llExperimentsStatus\x12g\n\x17\x65xperiment_status_array\x18\x01 \x03(\x0b\x32\x46.experiment_scheduler.task_manager.grpc_task_manager.ExperimentsStatus\"\x1f\n\x07TaskLog\x12\x14\n\x0clogfile_path\x18\x01 \x01(\t\"6\n\x0bTaskLogFile\x12\x10\n\x08log_file\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\x0c\"X\n\x08TaskList\x12L\n\ttask_list\x18\x01 \x03(\x0b\x32\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\"\xa1\x02\n\"RequestAbnormalExitedTasksResponse\x12X\n\x11not_running_tasks\x18\x01 \x01(\x0b\x32=.experiment_scheduler.task_manager.grpc_task_manager.TaskList\x12x\n\x08response\x18\x02 \x01(\x0e\x32\x66.experiment_scheduler.task_manager.grpc_task_manager.RequestAbnormalExitedTasksResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32\xc2\n\n\x06Master\x12\xa6\x01\n\x13request_experiments\x12H.experiment_scheduler.task_manager.grpc_task_manager.ExperimentStatement\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00\x12\x89\x01\n\tkill_task\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x00\x12\x8f\x01\n\x0fget_task_status\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x00\x12\x8f\x01\n\x0cget_task_log\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a@.experiment_scheduler.task_manager.grpc_task_manager.TaskLogFile\"\x00\x30\x01\x12\x9d\x01\n\rget_all_tasks\x12?.experiment_scheduler.task_manager.grpc_task_manager.Experiment\x1aI.experiment_scheduler.task_manager.grpc_task_manager.AllExperimentsStatus\"\x00\x12H\n\x14halt_process_monitor\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12\x91\x01\n\tedit_task\x12=.experiment_scheduler.task_manager.grpc_task_manager.EditTask\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00\x12\xb9\x01\n\x1drequest_abnormal_exited_tasks\x12=.experiment_scheduler.task_manager.grpc_task_manager.TaskList\x1aW.experiment_scheduler.task_manager.grpc_task_manager.RequestAbnormalExitedTasksResponse\"\x00\x12\xa4\x01\n\x0bupload_file\x12L.experiment_scheduler.task_manager.grpc_task_manager.MasterFileUploadRequest\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00(\x01\x42\x06\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cmaster.proto\x12\x33\x65xperiment_scheduler.task_manager.grpc_task_manager\x1a\x1bgoogle/protobuf/empty.proto\"\xb6\x01\n\x08\x45\x64itTask\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x0b\n\x03\x63md\x18\x02 \x01(\t\x12\\\n\x08task_env\x18\x04 \x03(\x0b\x32J.experiment_scheduler.task_manager.grpc_task_manager.EditTask.TaskEnvEntry\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xe4\x01\n\x13\x45xperimentStatement\x12\x0c\n\x04name\x18\x01 \x01(\t\x12W\n\x05tasks\x18\x02 \x03(\x0b\x32H.experiment_scheduler.task_manager.grpc_task_manager.MasterTaskStatement\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\xdc\x01\n\x13MasterTaskStatement\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12g\n\x08task_env\x18\x03 \x03(\x0b\x32U.experiment_scheduler.task_manager.grpc_task_manager.MasterTaskStatement.TaskEnvEntry\x12\r\n\x05\x66iles\x18\x04 \x03(\t\x1a.\n\x0cTaskEnvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"5\n\x17MasterFileUploadRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x66ile\x18\x02 \x01(\x0c\"\xb6\x01\n\x0eMasterResponse\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12\x64\n\x08response\x18\x02 \x01(\x0e\x32R.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\"\xdd\x01\n\nTaskStatus\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12V\n\x06status\x18\x02 \x01(\x0e\x32\x46.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus.Status\"f\n\x06Status\x12\x0c\n\x08NOTSTART\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\x08\n\x04\x44ONE\x10\x02\x12\n\n\x06KILLED\x10\x03\x12\x0c\n\x08\x41\x42NORMAL\x10\x04\x12\x0c\n\x08NOTFOUND\x10\x05\x12\x0f\n\x0bNO_RESOURCE\x10\x06\"\x17\n\x04Task\x12\x0f\n\x07task_id\x18\x01 \x01(\t\"#\n\nExperiment\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\"l\n\x0e\x41llTasksStatus\x12Z\n\x11task_status_array\x18\x01 \x03(\x0b\x32?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x8a\x01\n\x11\x45xperimentsStatus\x12\x15\n\rexperiment_id\x18\x01 \x01(\t\x12^\n\x11task_status_array\x18\x02 \x01(\x0b\x32\x43.experiment_scheduler.task_manager.grpc_task_manager.AllTasksStatus\"\x7f\n\x14\x41llExperimentsStatus\x12g\n\x17\x65xperiment_status_array\x18\x01 \x03(\x0b\x32\x46.experiment_scheduler.task_manager.grpc_task_manager.ExperimentsStatus\"\x1f\n\x07TaskLog\x12\x14\n\x0clogfile_path\x18\x01 \x01(\t\"6\n\x0bTaskLogFile\x12\x10\n\x08log_file\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\x0c\"X\n\x08TaskList\x12L\n\ttask_list\x18\x01 \x03(\x0b\x32\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\"\xa1\x02\n\"RequestAbnormalExitedTasksResponse\x12X\n\x11not_running_tasks\x18\x01 \x01(\x0b\x32=.experiment_scheduler.task_manager.grpc_task_manager.TaskList\x12x\n\x08response\x18\x02 \x01(\x0e\x32\x66.experiment_scheduler.task_manager.grpc_task_manager.RequestAbnormalExitedTasksResponse.ResponseStatus\"\'\n\x0eResponseStatus\x12\x0b\n\x07SUCCESS\x10\x00\x12\x08\n\x04\x46\x41IL\x10\x01\x32\xc2\n\n\x06Master\x12\xa6\x01\n\x13request_experiments\x12H.experiment_scheduler.task_manager.grpc_task_manager.ExperimentStatement\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00\x12\x89\x01\n\tkill_task\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x00\x12\x8f\x01\n\x0fget_task_status\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a?.experiment_scheduler.task_manager.grpc_task_manager.TaskStatus\"\x00\x12\x8f\x01\n\x0cget_task_log\x12\x39.experiment_scheduler.task_manager.grpc_task_manager.Task\x1a@.experiment_scheduler.task_manager.grpc_task_manager.TaskLogFile\"\x00\x30\x01\x12\x9d\x01\n\rget_all_tasks\x12?.experiment_scheduler.task_manager.grpc_task_manager.Experiment\x1aI.experiment_scheduler.task_manager.grpc_task_manager.AllExperimentsStatus\"\x00\x12H\n\x14halt_process_monitor\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12\x91\x01\n\tedit_task\x12=.experiment_scheduler.task_manager.grpc_task_manager.EditTask\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00\x12\xb9\x01\n\x1drequest_abnormal_exited_tasks\x12=.experiment_scheduler.task_manager.grpc_task_manager.TaskList\x1aW.experiment_scheduler.task_manager.grpc_task_manager.RequestAbnormalExitedTasksResponse\"\x00\x12\xa4\x01\n\x0bupload_file\x12L.experiment_scheduler.task_manager.grpc_task_manager.MasterFileUploadRequest\x1a\x43.experiment_scheduler.task_manager.grpc_task_manager.MasterResponse\"\x00(\x01\x42\x06\xa2\x02\x03RTGb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'master_pb2', globals())
@@ -35,39 +35,39 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _EXPERIMENTSTATEMENT_STATUS._serialized_start=410
   _EXPERIMENTSTATEMENT_STATUS._serialized_end=512
   _MASTERTASKSTATEMENT._serialized_start=515
-  _MASTERTASKSTATEMENT._serialized_end=720
+  _MASTERTASKSTATEMENT._serialized_end=735
   _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_start=235
   _MASTERTASKSTATEMENT_TASKENVENTRY._serialized_end=281
-  _MASTERFILEUPLOADREQUEST._serialized_start=722
-  _MASTERFILEUPLOADREQUEST._serialized_end=775
-  _MASTERRESPONSE._serialized_start=778
-  _MASTERRESPONSE._serialized_end=960
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=921
-  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=960
-  _TASKSTATUS._serialized_start=963
-  _TASKSTATUS._serialized_end=1184
+  _MASTERFILEUPLOADREQUEST._serialized_start=737
+  _MASTERFILEUPLOADREQUEST._serialized_end=790
+  _MASTERRESPONSE._serialized_start=793
+  _MASTERRESPONSE._serialized_end=975
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_start=936
+  _MASTERRESPONSE_RESPONSESTATUS._serialized_end=975
+  _TASKSTATUS._serialized_start=978
+  _TASKSTATUS._serialized_end=1199
   _TASKSTATUS_STATUS._serialized_start=410
   _TASKSTATUS_STATUS._serialized_end=512
-  _TASK._serialized_start=1186
-  _TASK._serialized_end=1209
-  _EXPERIMENT._serialized_start=1211
-  _EXPERIMENT._serialized_end=1246
-  _ALLTASKSSTATUS._serialized_start=1248
-  _ALLTASKSSTATUS._serialized_end=1356
-  _EXPERIMENTSSTATUS._serialized_start=1359
-  _EXPERIMENTSSTATUS._serialized_end=1497
-  _ALLEXPERIMENTSSTATUS._serialized_start=1499
-  _ALLEXPERIMENTSSTATUS._serialized_end=1626
-  _TASKLOG._serialized_start=1628
-  _TASKLOG._serialized_end=1659
-  _TASKLOGFILE._serialized_start=1661
-  _TASKLOGFILE._serialized_end=1715
-  _TASKLIST._serialized_start=1717
-  _TASKLIST._serialized_end=1805
-  _REQUESTABNORMALEXITEDTASKSRESPONSE._serialized_start=1808
-  _REQUESTABNORMALEXITEDTASKSRESPONSE._serialized_end=2097
-  _REQUESTABNORMALEXITEDTASKSRESPONSE_RESPONSESTATUS._serialized_start=921
-  _REQUESTABNORMALEXITEDTASKSRESPONSE_RESPONSESTATUS._serialized_end=960
-  _MASTER._serialized_start=2100
-  _MASTER._serialized_end=3446
+  _TASK._serialized_start=1201
+  _TASK._serialized_end=1224
+  _EXPERIMENT._serialized_start=1226
+  _EXPERIMENT._serialized_end=1261
+  _ALLTASKSSTATUS._serialized_start=1263
+  _ALLTASKSSTATUS._serialized_end=1371
+  _EXPERIMENTSSTATUS._serialized_start=1374
+  _EXPERIMENTSSTATUS._serialized_end=1512
+  _ALLEXPERIMENTSSTATUS._serialized_start=1514
+  _ALLEXPERIMENTSSTATUS._serialized_end=1641
+  _TASKLOG._serialized_start=1643
+  _TASKLOG._serialized_end=1674
+  _TASKLOGFILE._serialized_start=1676
+  _TASKLOGFILE._serialized_end=1730
+  _TASKLIST._serialized_start=1732
+  _TASKLIST._serialized_end=1820
+  _REQUESTABNORMALEXITEDTASKSRESPONSE._serialized_start=1823
+  _REQUESTABNORMALEXITEDTASKSRESPONSE._serialized_end=2112
+  _REQUESTABNORMALEXITEDTASKSRESPONSE_RESPONSESTATUS._serialized_start=936
+  _REQUESTABNORMALEXITEDTASKSRESPONSE_RESPONSESTATUS._serialized_end=975
+  _MASTER._serialized_start=2115
+  _MASTER._serialized_end=3461
 # @@protoc_insertion_point(module_scope)
