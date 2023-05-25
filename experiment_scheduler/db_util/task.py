@@ -24,6 +24,7 @@ class Task(Base, DbCommonMixin):
     status = Column(Integer)
     task_env = Column(JSON)
     logfile_name = Column(String(100))
+    files = Column(String(500))
     cwd = Column(String(100))
 
 

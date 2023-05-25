@@ -33,6 +33,7 @@ logger = get_logger(name="task_manager")
 KILL_CHILD_MAX_DEPTH = 2
 CHUNK_SIZE = 1024 * 5
 
+
 class ResourceManager:
     """
     Resource Manager checks task manager's status.
@@ -214,7 +215,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     else:
                         if is_read == -1:
                             error_message = f"There is no log in {request.task_id}"
-                            yield TaskLogFile(log_file=None, error_message=bytes(error_message, "utf-8"))
+                            yield TaskLogFile(
+                                log_file=None,
+                                error_message=bytes(error_message, "utf-8"),
+                            )
                         return
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
@@ -222,6 +226,22 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             yield TaskLogFile(
                 log_file=None, error_message=bytes(error_message, "utf-8")
             )
+
+    @start_end_logger
+    def upload_file(self, request_iterator, context):
+        for request in request_iterator:
+            with open(request.name, "ab+") as file_pointer:
+                file_pointer.write(request.file)
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
+    @start_end_logger
+    def delete_file(self, request, context):
+        file_name = request.name
+        try:
+            os.remove(file_name)
+        except FileNotFoundError:
+            pass
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
     @start_end_logger
     def kill_task(self, request, context):
