@@ -212,6 +212,7 @@ class Master(MasterServicer):
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
                 cwd=task.cwd,
+                num_retry=0, 
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -230,14 +231,16 @@ class Master(MasterServicer):
         """Request to run abnormally exited task again."""
         task_list = request.task_list
         failed_list = TaskList()
-        running_tasks = TaskEntity.list(
-            status=TaskStatus.Status.RUNNING, order_by=TaskEntity.updated_at
-        )
+        running_tasks = TaskEntity.list(order_by=TaskEntity.updated_at)
         running_tasks = {each_task.id: each_task for each_task in running_tasks}
         for task_class in task_list:
             if task_class.task_id in running_tasks:
                 task_to_rerun = running_tasks[task_class.task_id]
-                task_to_rerun.status = TaskStatus.Status.NOTSTART
+                if task_to_rerun.num_retry >= 3:
+                    task_to_rerun.status = TaskStatus.Status.ABNORMAL
+                else:
+                    task_to_rerun.status = TaskStatus.Status.NOTSTART
+                    task_to_rerun.num_retry += 1
                 task_to_rerun.updated_at = datetime.datetime.now()
                 task_to_rerun.commit()
             else:
