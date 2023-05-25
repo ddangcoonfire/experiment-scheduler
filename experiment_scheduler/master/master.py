@@ -11,6 +11,7 @@ import uuid
 from concurrent import futures
 from typing import List
 import datetime
+import configparser
 import grpc
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
@@ -75,7 +76,9 @@ class Master(MasterServicer):
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
-        self.health_check_thread = threading.Thread(target=self._health_check, daemon=True)
+        self.health_check_thread = threading.Thread(
+            target=self._health_check, daemon=True
+        )
         self.health_check_thread.start()
 
     @staticmethod
@@ -88,9 +91,7 @@ class Master(MasterServicer):
         if address_string is not None:
             address = address_string.split(" ")
         else:
-            address = ast.literal_eval(
-                USER_CONFIG.get("default", "task_manager_address")
-            )
+            address = ast.literal_eval(USER_CONFIG.get("default", "task_manager_address"))
         for idx, task_manager in enumerate(address):
             TaskManagerEntity.insert(
                 TaskManagerEntity(id="tm_" + str(idx), address=task_manager)
@@ -109,7 +110,9 @@ class Master(MasterServicer):
             if self.process_monitor.selected_task_manager != -1:
                 unhealthy_task_manager_list = []
                 for task_manager in self.task_managers_address:
-                    if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                    if not self.process_monitor.thread_queue[
+                        f"is_{task_manager}_healthy"
+                    ]:
                         unhealthy_task_manager_list.append(task_manager)
                 if len(unhealthy_task_manager_list) > 0:
                     for unhealthy_task_manager in unhealthy_task_manager_list:
@@ -141,9 +144,7 @@ class Master(MasterServicer):
         :param retry: boolean
         :return: None
         """
-        available_task_managers = (
-            self.process_monitor.get_available_task_managers()
-        )
+        available_task_managers = self.process_monitor.get_available_task_managers()
         if available_task_managers:
             task_manager_address = available_task_managers[0]
             task_manager = TaskManagerEntity.get(address=task_manager_address)
@@ -159,8 +160,9 @@ class Master(MasterServicer):
         :param: unhealthy_task_manager instance
         """
         task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
-        task_list = TaskEntity.list(status=TaskStatus.Status.RUNNING,
-                                    task_manager_id=task_manager.id)
+        task_list = TaskEntity.list(
+            status=TaskStatus.Status.RUNNING, task_manager_id=task_manager.id
+        )
         for task in task_list:
             self._allocate_task(task, retry=True)
 
@@ -286,7 +288,7 @@ class Master(MasterServicer):
             task_manager_address = task_manager.address
             task_logfile_path = task_manager.log_file_path
             for response in self.process_monitor.get_task_log(
-                    task_manager_address, request.task_id, task_logfile_path
+                task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
@@ -450,7 +452,19 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        try:
+            master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        except configparser.NoOptionError as err:
+            raise ValueError(
+                "There is no option 'master_address' in experiment_scheduler.cfg. "
+                + "Please fill in this option."
+            ) from err
+
+        address, port = master_address.split(":")
+
+        if address == "localhost" and os.environ.get("EXS_DOCKER_MODE") == "true":
+            master_address = ":".join(["0.0.0.0", port])
+
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
