@@ -17,8 +17,8 @@ def parse_args():
     :return: parsed_arguments
     """
     parser = argparse.ArgumentParser(description="Execute exeperiments.")
-    parser.add_argument("-t", "--task-id")
-    parser.add_argument("-c", "--cmd")
+    parser.add_argument("-t", "--task-id", required=True)
+    parser.add_argument("-c", "--cmd", required=True)
     return parser.parse_args()
 
 

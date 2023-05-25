@@ -55,6 +55,7 @@ message MasterTaskStatement {
     string name = 2;
     map<string, string> task_env = 3;
     repeated string files = 4;
+    string cwd = 5;
 }
 
 message MasterFileUploadRequest {

@@ -56,6 +56,7 @@ message TaskStatement {
     string command = 2;
     string name = 3;
     map<string, string> task_env = 4;
+    string cwd = 5;
 }
 
 message TaskStatus {

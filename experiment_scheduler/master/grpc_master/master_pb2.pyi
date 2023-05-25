@@ -162,7 +162,7 @@ class MasterResponse(_message.Message):
     ) -> None: ...
 
 class MasterTaskStatement(_message.Message):
-    __slots__ = ["command", "files", "name", "task_env"]
+    __slots__ = ["command", "files", "cwd", "name", "task_env"]
 
     class TaskEnvEntry(_message.Message):
         __slots__ = ["key", "value"]
@@ -175,10 +175,13 @@ class MasterTaskStatement(_message.Message):
         ) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
     FILES_FIELD_NUMBER: _ClassVar[int]
+    CWD_FIELD_NUMBER: _ClassVar[int]
+
     NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_ENV_FIELD_NUMBER: _ClassVar[int]
     command: str
     files: _containers.RepeatedScalarFieldContainer[str]
+    cwd: str
     name: str
     task_env: _containers.ScalarMap[str, str]
     def __init__(
@@ -187,6 +190,7 @@ class MasterTaskStatement(_message.Message):
         name: _Optional[str] = ...,
         task_env: _Optional[_Mapping[str, str]] = ...,
         files: _Optional[_Iterable[str]] = ...,
+        cwd: _Optional[str] = ...,
     ) -> None: ...
 
 class RequestAbnormalExitedTasksResponse(_message.Message):

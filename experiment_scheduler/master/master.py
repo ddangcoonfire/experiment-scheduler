@@ -11,6 +11,7 @@ import uuid
 from concurrent import futures
 from typing import List
 import datetime
+import configparser
 import grpc
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
@@ -215,6 +216,7 @@ class Master(MasterServicer):
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
                 files=",".join(task.files),
+                cwd=task.cwd,
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -283,15 +285,14 @@ class Master(MasterServicer):
         :return: log_file which is byte format and sent by streaming
         """
         task = TaskEntity.get(id=request.task_id)
-        task_manager = TaskManagerEntity.get(id=task.task_manager_id)
-
-        task_manager_address = task_manager.address
-        task_logfile_path = task_manager.log_file_path
-        if task_logfile_path == "":
+        if task is None:
             yield TaskLogFile(
                 log_file=None, error_message=bytes("Check task id", "utf-8")
             )
         else:
+            task_manager = TaskManagerEntity.get(id=task.task_manager_id)
+            task_manager_address = task_manager.address
+            task_logfile_path = task_manager.log_file_path
             for response in self.process_monitor.get_task_log(
                 task_manager_address, request.task_id, task_logfile_path
             ):
@@ -389,6 +390,7 @@ class Master(MasterServicer):
             task.command,
             task.name,
             task_env,
+            task.cwd,
         )
         if response.status == TaskStatus.Status.RUNNING:
             task.status = TaskStatus.Status.RUNNING
@@ -475,7 +477,21 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        try:
+            master_address = ast.literal_eval(
+                USER_CONFIG.get("default", "master_address")
+            )
+        except configparser.NoOptionError as err:
+            raise ValueError(
+                "There is no option 'master_address' in experiment_scheduler.cfg. "
+                + "Please fill in this option."
+            ) from err
+
+        address, port = master_address.split(":")
+
+        if address == "localhost" and os.environ.get("EXS_DOCKER_MODE") == "true":
+            master_address = ":".join(["0.0.0.0", port])
+
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()

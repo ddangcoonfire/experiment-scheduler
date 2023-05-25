@@ -102,7 +102,9 @@ class ProcessMonitor:
 
     # should run this code through a thread.
 
-    def run_task(self, task_id, task_manager, command, name, env):
+    def run_task(
+        self, task_id, task_manager, command, name, env, cwd
+    ):  # pylint: disable=too-many-arguments
         """
         :param task_id
         :param task_manager:
@@ -112,7 +114,7 @@ class ProcessMonitor:
         :return:
         """
         protobuf = TaskStatement(
-            task_id=task_id, command=command, name=name, task_env=env
+            task_id=task_id, command=command, name=name, task_env=env, cwd=cwd
         )
         response = self.task_manager_stubs[task_manager].run_task(protobuf)
         return response

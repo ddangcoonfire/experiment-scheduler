@@ -110,7 +110,7 @@ class TaskManagerFileUploadRequest(_message.Message):
     ) -> None: ...
 
 class TaskStatement(_message.Message):
-    __slots__ = ["command", "name", "task_env", "task_id"]
+    __slots__ = ["command", "cwd", "name", "task_env", "task_id"]
 
     class TaskEnvEntry(_message.Message):
         __slots__ = ["key", "value"]
@@ -122,10 +122,12 @@ class TaskStatement(_message.Message):
             self, key: _Optional[str] = ..., value: _Optional[str] = ...
         ) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
+    CWD_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_ENV_FIELD_NUMBER: _ClassVar[int]
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
     command: str
+    cwd: str
     name: str
     task_env: _containers.ScalarMap[str, str]
     task_id: str
@@ -135,6 +137,7 @@ class TaskStatement(_message.Message):
         command: _Optional[str] = ...,
         name: _Optional[str] = ...,
         task_env: _Optional[_Mapping[str, str]] = ...,
+        cwd: _Optional[str] = ...,
     ) -> None: ...
 
 class TaskStatus(_message.Message):

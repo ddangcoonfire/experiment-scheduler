@@ -1,6 +1,7 @@
 """This file is in charge of server code run as daemon process."""
 
 import os
+import argparse
 import subprocess
 import ast
 from typing import Dict, Optional
@@ -169,6 +170,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
+            cwd=request.cwd,
         )
         self.tasks[task_id] = Task(task.pid)
 
@@ -204,11 +206,19 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
         try:
             with open(log_file_path, mode="rb") as file:
+                is_read = -1
                 while True:
                     chunk = file.read(CHUNK_SIZE)
                     if chunk:
+                        is_read = 1
                         yield TaskLogFile(log_file=chunk)
                     else:
+                        if is_read == -1:
+                            error_message = f"There is no log in {request.task_id}"
+                            yield TaskLogFile(
+                                log_file=None,
+                                error_message=bytes(error_message, "utf-8"),
+                            )
                         return
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
@@ -336,13 +346,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return None
 
 
-def serve():
+def serve(server_ip: Optional[str] = None):
     """run task manager server"""
+    if server_ip is None:
+        server_ip = "localhost"
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
         local_port = ast.literal_eval(USER_CONFIG.get("task_manager", "local_port"))
-        local_address = ":".join(["0.0.0.0", str(local_port)])
+        local_address = ":".join([server_ip, str(local_port)])
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server
@@ -353,5 +365,17 @@ def serve():
         print("Interrupt Occurs. Now closing...")
 
 
+def parse_args():
+    """
+    Parse file name option argument.
+    - ex) if exs command includes "-f sample.yaml", return "sample.yaml"
+    """
+
+    parser = argparse.ArgumentParser(description="Run task_manager_server.")
+    parser.add_argument("-i", "--ip")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    serve()
+    args = parse_args()
+    serve(args.ip)

@@ -12,6 +12,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - EXS_TASK_MANAGER_ADDRESS=task_manager:50051
+      - EXS_DOCKER_MODE=true
   task_manager:
     image: experiment_scheduler:latest
     container_name: task_manager
@@ -22,6 +23,8 @@ services:
     entrypoint:
       - exs
       - init_task_manager
+      - --ip
+      - "0.0.0.0"
     environment:
       - PYTHONUNBUFFERED=1
 
