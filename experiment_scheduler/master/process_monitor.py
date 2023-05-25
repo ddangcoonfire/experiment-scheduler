@@ -49,8 +49,8 @@ class ProcessMonitor:
         self.health_checker = threading.Thread(
             target=self._health_check, args=(self.thread_queue,)
         )
-        self.health_checker.start()
         self.logger = get_logger("process_monitor")
+        self.health_checker.start()
         # health_checking_thread_on
 
         # shared with master memory
@@ -84,7 +84,6 @@ class ProcessMonitor:
                             self.selected_task_manager = 1
 
                     for task_msg in server_status.task_status_array:
-                        self.logger.warning(task_msg.task_id, task_msg.status)
                         task = TaskEntity.get(id=task_msg.task_id)
                         task.status = task_msg.status
                         task.commit()
