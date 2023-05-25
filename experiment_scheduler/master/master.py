@@ -211,6 +211,7 @@ class Master(MasterServicer):
                 task_env=task_env,
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
+                cwd=task.cwd,
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -382,6 +383,7 @@ class Master(MasterServicer):
             task.command,
             task.name,
             task_env,
+            task.cwd,
         )
         if response.status == TaskStatus.Status.RUNNING:
             task.status = TaskStatus.Status.RUNNING

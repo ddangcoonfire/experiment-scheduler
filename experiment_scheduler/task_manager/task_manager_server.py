@@ -118,7 +118,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
 
-        checkthread = Thread(target=self.get_dead_tasks, daemon = True)
+        checkthread = Thread(target=self.get_dead_tasks, daemon=True)
         checkthread.start()
 
     @property
@@ -169,6 +169,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
+            cwd=request.cwd,
         )
         self.tasks[task_id] = Task(task.pid)
 
@@ -273,9 +274,10 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     ast.literal_eval(USER_CONFIG.get("default", "master_address"))
                 )
                 stub = master_pb2_grpc.MasterStub(channel)
-                stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+                stub.request_abnormal_exited_tasks(
+                    master_pb2.TaskList(task_list=dead_tasks)
+                )
             time.sleep(1)
-
 
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)

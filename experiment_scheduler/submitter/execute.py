@@ -32,7 +32,8 @@ def parse_input_file(parsed_yaml):
         name=parsed_yaml["name"],
         tasks=[
             master_pb2.MasterTaskStatement(
-                command=task["cmd"], name=task["name"], task_env=os.environ.copy()
+                command=task["cmd"], name=task["name"], task_env=os.environ.copy(),
+                cwd=(os.getcwd() if task.get("execute_here") else ".")
             )
             for task in parsed_yaml["tasks"]
         ],
