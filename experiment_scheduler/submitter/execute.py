@@ -37,7 +37,9 @@ def parse_input_file(parsed_yaml):
                 command=task["cmd"],
                 name=task["name"],
                 task_env=os.environ.copy(),
-                files = list(map(lambda x: x.split("/")[-1], task["files"])) if "files" in task else []
+                files=list(map(lambda x: x.split("/")[-1], task["files"]))
+                if "files" in task
+                else [],
             )
             for task in parsed_yaml["tasks"]
         ],
@@ -62,8 +64,11 @@ def main():
 
     request = parse_input_file(parsed_yaml)
     files = [task["files"] if "files" in task else [] for task in parsed_yaml["tasks"]]
+
     for task_files in files:
         for task_file in task_files:
+            file_name = task_file.split("/")[-1]
+            stub.delete_file(master_pb2.MasterFileDeleteRequest(name=file_name))
             with open(task_file, mode="rb") as file_pointer:
 
                 def request_iterator():
@@ -74,10 +79,7 @@ def main():
                         if not data:
                             break
                         yield master_pb2.MasterFileUploadRequest(
-                            name=task_file.split(  # pylint:disable=cell-var-from-loop
-                                "/"
-                            )[-1],
-                            # name=task_file,
+                            name=file_name,  # pylint:disable=cell-var-from-loop
                             file=data,
                         )
 

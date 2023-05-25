@@ -37,6 +37,9 @@ service TaskManager {
   rpc report_progress(Progress) returns (ProgressResponse) {}
 
   rpc upload_file(stream TaskManagerFileUploadRequest) returns (ProgressResponse) {}
+
+  rpc delete_file(TaskManagerFileDeleteRequest) returns (ProgressResponse) {}
+
 }
 
 message ServerStatus {
@@ -78,6 +81,11 @@ message TaskManagerFileUploadRequest {
     bytes file = 2;
 }
 
+message TaskManagerFileDeleteRequest {
+    string name = 1;
+}
+
+
 message TaskLogInfo {
     string task_id = 1;
     string log_file_path = 2;
@@ -86,6 +94,7 @@ message TaskLogInfo {
 message AllTasksStatus {
     repeated TaskStatus task_status_array = 1;
 }
+
 
 message TaskLogFile {
     bytes log_file = 1;

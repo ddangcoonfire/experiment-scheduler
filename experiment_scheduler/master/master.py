@@ -212,7 +212,7 @@ class Master(MasterServicer):
                 task_env=task_env,
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
-                files=",".join(task.files)
+                files=",".join(task.files),
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -379,6 +379,7 @@ class Master(MasterServicer):
         task_env = {  # pylint: disable=R1721
             key: val for key, val in task.task_env.items()
         }
+        self.process_monitor.delete_file(task_manager_address, task.files)
         self.process_monitor.upload_file(task_manager_address, task.files)
         response = self.process_monitor.run_task(
             task.id,
@@ -454,6 +455,17 @@ class Master(MasterServicer):
             )
 
         return response
+
+    @start_end_logger
+    def delete_file(self, request, context):
+        file_name = request.name
+        try:
+            os.remove(file_name)
+        except FileNotFoundError:
+            pass
+        return MasterResponse(
+            experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
+        )
 
 
 def serve():

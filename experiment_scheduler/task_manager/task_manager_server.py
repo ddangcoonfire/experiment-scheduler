@@ -225,6 +225,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
 
     @start_end_logger
+    def delete_file(self, request, context):
+        file_name = request.name
+        try:
+            os.remove(file_name)
+        except FileNotFoundError:
+            pass
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
+    @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
         target_process = self.tasks.get(request.task_id)
