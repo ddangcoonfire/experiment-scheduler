@@ -47,6 +47,23 @@ def parse_input_file(parsed_yaml):
     return input_file
 
 
+def request_iterator(file_pointer, file_name):
+    """
+    Create stream for uploading files
+    :param file_pointer:
+    :param file_name:
+    :return:
+    """
+    while True:
+        data = file_pointer.read(CHUNK_SIZE)  # pylint:disable=cell-var-from-loop
+        if not data:
+            break
+        yield master_pb2.MasterFileUploadRequest(
+            name=file_name,  # pylint:disable=cell-var-from-loop
+            file=data,
+        )
+
+
 def main():
     """
     exs execute command calls this function.
@@ -70,20 +87,7 @@ def main():
             file_name = task_file.split("/")[-1]
             stub.delete_file(master_pb2.MasterFileDeleteRequest(name=file_name))
             with open(task_file, mode="rb") as file_pointer:
-
-                def request_iterator():
-                    while True:
-                        data = file_pointer.read(
-                            CHUNK_SIZE
-                        )  # pylint:disable=cell-var-from-loop
-                        if not data:
-                            break
-                        yield master_pb2.MasterFileUploadRequest(
-                            name=file_name,  # pylint:disable=cell-var-from-loop
-                            file=data,
-                        )
-
-                stub.upload_file(request_iterator())
+                stub.upload_file(request_iterator(file_pointer, file_name))
 
     response = stub.request_experiments(request)
 

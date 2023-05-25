@@ -58,12 +58,12 @@ class MasterStub(object):
         self.upload_file = channel.stream_unary(
             "/experiment_scheduler.task_manager.grpc_task_manager.Master/upload_file",
             request_serializer=master__pb2.MasterFileUploadRequest.SerializeToString,
-            response_deserializer=master__pb2.MasterResponse.FromString,
+            response_deserializer=master__pb2.MasterFileUploadResponse.FromString,
         )
         self.delete_file = channel.unary_unary(
             "/experiment_scheduler.task_manager.grpc_task_manager.Master/delete_file",
             request_serializer=master__pb2.MasterFileDeleteRequest.SerializeToString,
-            response_deserializer=master__pb2.MasterResponse.FromString,
+            response_deserializer=master__pb2.MasterFileDeleteResponse.FromString,
         )
 
 
@@ -176,12 +176,12 @@ def add_MasterServicer_to_server(servicer, server):
         "upload_file": grpc.stream_unary_rpc_method_handler(
             servicer.upload_file,
             request_deserializer=master__pb2.MasterFileUploadRequest.FromString,
-            response_serializer=master__pb2.MasterResponse.SerializeToString,
+            response_serializer=master__pb2.MasterFileUploadResponse.SerializeToString,
         ),
         "delete_file": grpc.unary_unary_rpc_method_handler(
             servicer.delete_file,
             request_deserializer=master__pb2.MasterFileDeleteRequest.FromString,
-            response_serializer=master__pb2.MasterResponse.SerializeToString,
+            response_serializer=master__pb2.MasterFileDeleteResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -445,7 +445,7 @@ class Master(object):
             target,
             "/experiment_scheduler.task_manager.grpc_task_manager.Master/upload_file",
             master__pb2.MasterFileUploadRequest.SerializeToString,
-            master__pb2.MasterResponse.FromString,
+            master__pb2.MasterFileUploadResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -474,7 +474,7 @@ class Master(object):
             target,
             "/experiment_scheduler.task_manager.grpc_task_manager.Master/delete_file",
             master__pb2.MasterFileDeleteRequest.SerializeToString,
-            master__pb2.MasterResponse.FromString,
+            master__pb2.MasterFileDeleteResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -106,6 +106,20 @@ class MasterFileDeleteRequest(_message.Message):
     name: str
     def __init__(self, name: _Optional[str] = ...) -> None: ...
 
+class MasterFileDeleteResponse(_message.Message):
+    __slots__ = ["response"]
+
+    class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    FAIL: MasterFileDeleteResponse.ResponseStatus
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS: MasterFileDeleteResponse.ResponseStatus
+    response: MasterFileDeleteResponse.ResponseStatus
+    def __init__(
+        self,
+        response: _Optional[_Union[MasterFileDeleteResponse.ResponseStatus, str]] = ...,
+    ) -> None: ...
+
 class MasterFileUploadRequest(_message.Message):
     __slots__ = ["file", "name"]
     FILE_FIELD_NUMBER: _ClassVar[int]
@@ -114,6 +128,20 @@ class MasterFileUploadRequest(_message.Message):
     name: str
     def __init__(
         self, name: _Optional[str] = ..., file: _Optional[bytes] = ...
+    ) -> None: ...
+
+class MasterFileUploadResponse(_message.Message):
+    __slots__ = ["response"]
+
+    class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    FAIL: MasterFileUploadResponse.ResponseStatus
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS: MasterFileUploadResponse.ResponseStatus
+    response: MasterFileUploadResponse.ResponseStatus
+    def __init__(
+        self,
+        response: _Optional[_Union[MasterFileUploadResponse.ResponseStatus, str]] = ...,
     ) -> None: ...
 
 class MasterResponse(_message.Message):

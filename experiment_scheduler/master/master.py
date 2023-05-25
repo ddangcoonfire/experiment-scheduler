@@ -25,6 +25,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskLogFile,
     TaskList,
     RequestAbnormalExitedTasksResponse,
+    MasterFileUploadResponse,
+    MasterFileDeleteResponse,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -403,9 +405,7 @@ class Master(MasterServicer):
         for request in request_iterator:
             with open(request.name, "ab+") as file_pointer:
                 file_pointer.write(request.file)
-        return MasterResponse(
-            experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
-        )
+        return MasterFileUploadResponse(response=MasterResponse.ResponseStatus.SUCCESS)
 
     def _wrap_by_task_status(self, task_id, status):
         return TaskStatus(
@@ -463,9 +463,7 @@ class Master(MasterServicer):
             os.remove(file_name)
         except FileNotFoundError:
             pass
-        return MasterResponse(
-            experiment_id="0", response=MasterResponse.ResponseStatus.SUCCESS
-        )
+        return MasterFileDeleteResponse(response=MasterResponse.ResponseStatus.SUCCESS)
 
 
 def serve():

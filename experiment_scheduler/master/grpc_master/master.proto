@@ -24,9 +24,9 @@ service Master {
 
       rpc request_abnormal_exited_tasks(TaskList) returns (RequestAbnormalExitedTasksResponse) {}
 
-      rpc upload_file(stream MasterFileUploadRequest) returns (MasterResponse) {}
+      rpc upload_file(stream MasterFileUploadRequest) returns (MasterFileUploadResponse) {}
 
-      rpc delete_file(MasterFileDeleteRequest) returns (MasterResponse) {}
+      rpc delete_file(MasterFileDeleteRequest) returns (MasterFileDeleteResponse) {}
 
 }
 
@@ -64,6 +64,22 @@ message MasterFileUploadRequest {
 
 message MasterFileDeleteRequest {
     string name = 1;
+}
+
+message MasterFileUploadResponse {
+    enum ResponseStatus {
+        SUCCESS = 0;
+        FAIL = 1;
+    }
+    ResponseStatus response = 1;
+}
+
+message MasterFileDeleteResponse {
+    enum ResponseStatus {
+        SUCCESS = 0;
+        FAIL = 1;
+    }
+    ResponseStatus response = 1;
 }
 
 message MasterResponse {
