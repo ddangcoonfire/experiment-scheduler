@@ -22,7 +22,7 @@ def compile_proto_file(proto_file: Union[str, Path]):
     proto_file = Path(proto_file)
     subprocess.run(
         [
-            "python",
+            "python3",
             "-m",
             "grpc_tools.protoc",
             f"--proto_path={proto_file.parent}",

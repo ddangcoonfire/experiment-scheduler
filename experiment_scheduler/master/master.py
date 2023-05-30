@@ -300,22 +300,21 @@ class Master(MasterServicer):
 
     @start_end_logger
     def kill_task(self, request, context):
+        return self._kill_task(request.task_id)
+
+    def _kill_task(self, task_id):
         """
         delete certain task
         :param request:
         :param context:
         :return: task's status
         """
-        task = TaskEntity.get(id=request.task_id)
+        task = TaskEntity.get(id=task_id)
         response = None
         if task is None:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTFOUND
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.NOTFOUND)
         elif task.status == TaskStatus.Status.NOTSTART or task.task_manager_id is None:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.KILLED
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.KILLED)
             task.status = TaskStatus.Status.KILLED
             task.commit()
         elif task.status == TaskStatus.Status.RUNNING:
@@ -324,10 +323,27 @@ class Master(MasterServicer):
             task.status = TaskStatus.Status.KILLED
             task.commit()
         elif task.status == TaskStatus.Status.DONE:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.DONE
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.DONE)
         return response
+
+    @start_end_logger
+    def kill_experiment(self, request, context):
+        """
+        delete certain experiment
+        :param request:
+        :param context:
+        :return: task's status
+        """
+
+        all_tasks_status = AllTasksStatus()
+        exp = ExperimentEntity.get(id=request.experiment_id)
+        for task in exp.tasks:
+            all_tasks_status.task_status_array.append(self._kill_task(task.id))
+
+        return ExperimentsStatus(
+            experiment_id=request.experiment_id,
+            task_status_array=all_tasks_status,
+        )
 
     @start_end_logger
     def get_all_tasks(self, request, context):
