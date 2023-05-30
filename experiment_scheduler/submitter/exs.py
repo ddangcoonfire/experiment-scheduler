@@ -5,6 +5,9 @@
 
 import argparse
 import sys
+
+import grpc
+
 from experiment_scheduler.submitter.execute import main as exs_execute
 from experiment_scheduler.submitter.delete import main as exs_delete
 from experiment_scheduler.submitter.edit import main as exs_edit
@@ -93,8 +96,13 @@ def main():
     """
     name = parse_args().operation
     del sys.argv[sys.argv.index(name)]
-    COMMAND_LIST[name]()
-
+    try:
+        COMMAND_LIST[name]()
+    except grpc.RpcError as err:
+        if err.code() == grpc.StatusCode.UNAVAILABLE:
+            print(">>> Cannot connect to master.... Check connection status")
+        else:
+            print(err.details())
 
 if __name__ == "__main__":
     main()
