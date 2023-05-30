@@ -176,7 +176,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             stderr=subprocess.STDOUT,
             cwd=request.cwd,
         )
-        self.tasks[task_id] = Task(task.pid)
+        self.tasks[task_id] = Task(task)
 
         self.logger.info("%s is now running!", task_id)
 
