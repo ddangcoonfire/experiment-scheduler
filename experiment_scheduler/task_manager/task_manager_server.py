@@ -138,7 +138,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
 
         server_status = ServerStatus()
         server_status.alive = True
-        server_status.task_status_array.extend([])
         task_id_list = list(self.tasks.keys())
         task_to_delete = []
         if len(task_id_list) > 0:
