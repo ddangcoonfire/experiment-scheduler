@@ -12,6 +12,8 @@ service Master {
 
       rpc kill_task(Task) returns (TaskStatus) {}
 
+      rpc kill_experiment(Experiment) returns (ExperimentsStatus) {}
+
       rpc get_task_status(Task) returns (TaskStatus) {}
 
       rpc get_task_log(Task) returns (stream TaskLogFile) {}
