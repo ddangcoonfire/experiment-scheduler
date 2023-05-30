@@ -82,11 +82,13 @@ class ProcessMonitor:
                     if server_status.alive:
                         if self.selected_task_manager == -1:
                             self.selected_task_manager = 1
-                    if len(server_status.task_id_array) > 0:
-                        for task_id in server_status.task_id_array:
-                            task = TaskEntity.get(id=task_id)
-                            task.status = 2
-                            task.commit()
+
+                    for task_msg in server_status.task_status_array:
+                        self.logger.warning(task_msg.task_id, task_msg.status)
+                        task = TaskEntity.get(id=task_msg.task_id)
+                        task.status = task_msg.status
+                        task.commit()
+
                     thread_queue[f"is_{task_manager}_healthy"] = True
                 except RpcError as error:
                     if self.selected_task_manager != -1:

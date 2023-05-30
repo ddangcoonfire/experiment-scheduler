@@ -40,12 +40,12 @@ class ProgressResponse(_message.Message):
     def __init__(self, received_status: _Optional[_Union[ProgressResponse.ReceivedStatus, str]] = ...) -> None: ...
 
 class ServerStatus(_message.Message):
-    __slots__ = ["alive", "task_id_array"]
+    __slots__ = ["alive", "task_status_array"]
     ALIVE_FIELD_NUMBER: _ClassVar[int]
-    TASK_ID_ARRAY_FIELD_NUMBER: _ClassVar[int]
+    TASK_STATUS_ARRAY_FIELD_NUMBER: _ClassVar[int]
     alive: bool
-    task_id_array: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, alive: bool = ..., task_id_array: _Optional[_Iterable[str]] = ...) -> None: ...
+    task_status_array: _containers.RepeatedCompositeFieldContainer[TaskStatus]
+    def __init__(self, alive: bool = ..., task_status_array: _Optional[_Iterable[_Union[TaskStatus, _Mapping]]] = ...) -> None: ...
 
 class Task(_message.Message):
     __slots__ = ["task_id"]

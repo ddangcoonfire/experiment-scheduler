@@ -44,7 +44,7 @@ service TaskManager {
 
 message ServerStatus {
     bool alive = 1;
-    repeated string task_id_array =2;
+    repeated TaskStatus task_status_array =2;
 }
 
 message IdleResources {
