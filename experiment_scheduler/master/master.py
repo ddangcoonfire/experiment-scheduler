@@ -236,23 +236,19 @@ class Master(MasterServicer):
         """Request to run abnormally exited task again."""
         task_list = request.task_list
         failed_list = TaskList()
-        running_tasks = TaskEntity.list(order_by=TaskEntity.updated_at)
-        running_tasks = {each_task.id: each_task for each_task in running_tasks}
         for task_class in task_list:
-            if task_class.task_id in running_tasks:
-                task_to_rerun = running_tasks[task_class.task_id]
-                if task_to_rerun.num_retry >= 3:
-                    task_to_rerun.status = TaskStatus.Status.ABNORMAL
-                else:
-                    task_to_rerun.status = TaskStatus.Status.NOTSTART
-                    task_to_rerun.num_retry += 1
-                task_to_rerun.updated_at = datetime.datetime.now()
-                task_to_rerun.commit()
-            else:
+            task = TaskEntity.get(id=task_class.task_id)
+            if task.num_retry >= 3:
+                task.status = TaskStatus.Status.ABNORMAL
                 self.logger.warning(
                     "├─abnormal exited task_id is not running: %s", task_class.task_id
                 )
                 failed_list.task_list.append(task_class)
+            else:
+                task.status = TaskStatus.Status.NOTSTART
+                task.num_retry += 1
+            task.updated_at = datetime.datetime.now()
+            task.commit()
 
         if not failed_list.task_list:
             response = RequestAbnormalExitedTasksResponse.ResponseStatus.SUCCESS
