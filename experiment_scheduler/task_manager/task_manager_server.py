@@ -130,22 +130,26 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         """
         return self._use_gpu
 
+    @start_end_logger
     def health_check(self, request, context):
         """
         Return current server status and finished task id list which are finished
         """
+
         server_status = ServerStatus()
         server_status.alive = True
         task_id_list = list(self.tasks.keys())
-        done_task_id_list = []
+        task_to_delete = []
         if len(task_id_list) > 0:
             for task_id in task_id_list:
                 task_status = self._get_task_status_by_task_id(task_id)
-                if task_status.status == TaskStatus.Status.DONE:
-                    server_status.task_id_array.append(task_id)
-                    done_task_id_list.append(task_id)
-        for done_task_id in done_task_id_list:
-            del self.tasks[done_task_id]
+                server_status.task_status_array.append(task_status)
+                if task_status.status != TaskStatus.Status.RUNNING:
+                    self._resource_manager.release_resource(task_id)
+                    task_to_delete.append(task_id)
+        for task_id in task_to_delete:
+            del self.tasks[task_id]
+
         return server_status
 
     @start_end_logger
@@ -172,7 +176,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             stderr=subprocess.STDOUT,
             cwd=request.cwd,
         )
-        self.tasks[task_id] = Task(task.pid)
+        self.tasks[task_id] = Task(task)
 
         self.logger.info("%s is now running!", task_id)
 
@@ -246,13 +250,14 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
     @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
-        target_process = self.tasks.get(request.task_id)
+        target_process = self.tasks.pop(request.task_id)
         self.logger.info("kill task with id : %s", request.task_id)
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
             )
         sign = self._get_process_return_code(request.task_id)
+        self._resource_manager.release_resource(request.task_id)
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
@@ -299,6 +304,16 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 )
             time.sleep(1)
 
+    def _convert_to_task_status(self, return_code):
+        """Make task_manager_pb2.TaskStatus using return code of task."""
+        if return_code is self.get_return_code("RUNNING"):
+            return TaskStatus.Status.RUNNING
+        if return_code == self.get_return_code("DONE"):
+            return TaskStatus.Status.DONE
+        if return_code == self.get_return_code("KILLED"):
+            return TaskStatus.Status.KILLED
+        return TaskStatus.Status.ABNORMAL
+
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)
 
@@ -309,16 +324,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return TaskStatus(
             task_id=task_id, status=self._convert_to_task_status(result_return_code)
         )
-
-    def _convert_to_task_status(self, return_code):
-        """Make task_manager_pb2.TaskStatus using return code of task."""
-        if return_code is self.get_return_code("RUNNING"):
-            return TaskStatus.Status.RUNNING
-        if return_code == self.get_return_code("DONE"):
-            return TaskStatus.Status.DONE
-        if return_code == self.get_return_code("KILLED"):
-            return TaskStatus.Status.KILLED
-        return TaskStatus.Status.ABNORMAL
 
     def has_idle_resource(self, request, context):
         """Check there is available resource."""

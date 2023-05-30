@@ -1,5 +1,6 @@
 """Task class for task manager server."""
 import signal
+import subprocess
 from typing import Dict, List, Optional, Union
 
 import psutil
@@ -12,11 +13,9 @@ logger = get_logger(name="task_manger.task")
 class Task:
     """Task class which includes helpful functions to task manager server."""
 
-    def __init__(self, pid: int):
-        if pid < 0:
-            raise ValueError
-
-        self._process = psutil.Process(pid)
+    def __init__(self, task: subprocess.Popen):
+        self._process = psutil.Process(task.pid)
+        self._subprocess_instance = task  # if it's not saved anywhere, exitcode isn't returned rightly
         self._history: List[Dict[str, float]] = []
 
     @property
