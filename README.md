@@ -11,6 +11,9 @@ Our goal is to make you only concentrate on experiment by providing easily, fast
 ![image](https://user-images.githubusercontent.com/17878758/216975570-f302f017-d9c8-43b4-a6ee-1ffbb054c1d2.png)
 
 
+![image](https://user-images.githubusercontent.com/17878758/216975570-f302f017-d9c8-43b4-a6ee-1ffbb054c1d2.png)
+
+
 # Quick Start
 ## Installation
 ```shell
@@ -64,6 +67,40 @@ tasks : list of tasks
 
 # How to set experiment_scheduler.cfg
 Each server needs addresses to communicate with other servers. Although default setting exists, you can modify them.
+Currently, two elements are available:
+
+  - master_address : "IP:port"
+  - task_manager_address : ["IP:port", "IP:port", ...]
+
+Experiement scheduler uses [ConfigParser](https://docs.python.org/3/library/configparser.html). So, you should write `[default]` at head. `task_manager_addresses` should be wrapped by square brackets even if you use a single node.
+
+Below is default setting.
+
+```
+[default]
+master_address = "localhost:50052"
+task_manager_address = ["localhost:50051"]
+```
+# How to write your own yaml file
+Currently we support only a few reserved words. You can refer all of them in below example.
+
+```
+name : This is an experiment name
+tasks : list of tasks
+    - cmd : sh command you want to run
+      name : task name
+```
+
+# exs [command] explanation
+  - exs execute -f(--file) : Request experiments to run. You should execute it with `-f(--file)` argument which is the yaml file depicting experiments.
+  - exs delete -t(--task) : Delete a single task. It needs `-t(--task)` argument.
+  - exs list : list all experiment. To list specific experiment, use `-e(--experiment)` argument with experiment id. Id values are truncated by default. For non-truncated value, use `-v(--verbose)` argument.
+  - exs status : Get status of tasks. It needs `-t(--task)` argument with task id.
+  - exs init_master : Run master server. When executing the command, master server logs are printed continously. To run it as daemon, use `-d(--daemon)` argument.
+  - exs init_task_manager : Run a task manager server. If there are more than one server, you need to execute it on each of them. Same as master, task manager server logs are printed as default. To run it as daemon, use `-d(--daemon)` argument.
+
+# How to set experiment_scheduler.cfg
+Each server needs address to communicate with other servers. Although default setting exists, you can modify them.
 Currently, two elements are available:
 
   - master_address : "IP:port"
