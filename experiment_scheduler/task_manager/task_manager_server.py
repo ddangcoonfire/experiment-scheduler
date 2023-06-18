@@ -1,6 +1,7 @@
 """This file is in charge of server code run as daemon process."""
 
 import os
+import argparse
 import subprocess
 import ast
 from typing import Dict, Optional
@@ -118,7 +119,7 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         self._resource_manager = ResourceManager(num_resource)
         self.logger = get_logger(name="task_manager")
 
-        checkthread = Thread(target=self.get_dead_tasks, daemon = True)
+        checkthread = Thread(target=self.get_dead_tasks, daemon=True)
         checkthread.start()
 
     @property
@@ -129,22 +130,26 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         """
         return self._use_gpu
 
+    @start_end_logger
     def health_check(self, request, context):
         """
         Return current server status and finished task id list which are finished
         """
+
         server_status = ServerStatus()
         server_status.alive = True
         task_id_list = list(self.tasks.keys())
-        done_task_id_list = []
+        task_to_delete = []
         if len(task_id_list) > 0:
             for task_id in task_id_list:
                 task_status = self._get_task_status_by_task_id(task_id)
-                if task_status.status == TaskStatus.Status.DONE:
-                    server_status.task_id_array.append(task_id)
-                    done_task_id_list.append(task_id)
-        for done_task_id in done_task_id_list:
-            del self.tasks[done_task_id]
+                server_status.task_status_array.append(task_status)
+                if task_status.status != TaskStatus.Status.RUNNING:
+                    self._resource_manager.release_resource(task_id)
+                    task_to_delete.append(task_id)
+        for task_id in task_to_delete:
+            del self.tasks[task_id]
+
         return server_status
 
     @start_end_logger
@@ -169,8 +174,9 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                 osp.join(self.log_dir, f"{task_id}_log.txt"), "w", encoding="utf-8"
             ),
             stderr=subprocess.STDOUT,
+            cwd=request.cwd,
         )
-        self.tasks[task_id] = Task(task.pid)
+        self.tasks[task_id] = Task(task)
 
         self.logger.info("%s is now running!", task_id)
 
@@ -204,11 +210,19 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         log_file_path = osp.join(request.log_file_path, f"{request.task_id}_log.txt")
         try:
             with open(log_file_path, mode="rb") as file:
+                is_read = -1
                 while True:
                     chunk = file.read(CHUNK_SIZE)
                     if chunk:
+                        is_read = 1
                         yield TaskLogFile(log_file=chunk)
                     else:
+                        if is_read == -1:
+                            error_message = f"There is no log in {request.task_id}"
+                            yield TaskLogFile(
+                                log_file=None,
+                                error_message=bytes(error_message, "utf-8"),
+                            )
                         return
         except OSError:
             error_message = f"Getting the log for {request.task_id} fail"
@@ -218,15 +232,32 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
             )
 
     @start_end_logger
+    def upload_file(self, request_iterator, context):
+        for request in request_iterator:
+            with open(request.name, "ab+") as file_pointer:
+                file_pointer.write(request.file)
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
+    @start_end_logger
+    def delete_file(self, request, context):
+        file_name = request.name
+        try:
+            os.remove(file_name)
+        except FileNotFoundError:
+            pass
+        return ProgressResponse(received_status=ProgressResponse.ReceivedStatus.SUCCESS)
+
+    @start_end_logger
     def kill_task(self, request, context):
         """Kill a requsted task if the task is running"""
-        target_process = self.tasks.get(request.task_id)
+        target_process = self.tasks.pop(request.task_id)
         self.logger.info("kill task with id : %s", request.task_id)
         if target_process is None:
             return TaskStatus(
                 task_id=request.task_id, status=TaskStatus.Status.NOTFOUND
             )
         sign = self._get_process_return_code(request.task_id)
+        self._resource_manager.release_resource(request.task_id)
 
         if sign is not None:
             return TaskStatus(task_id=request.task_id, status=TaskStatus.Status.DONE)
@@ -268,9 +299,20 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
                     ast.literal_eval(USER_CONFIG.get("default", "master_address"))
                 )
                 stub = master_pb2_grpc.MasterStub(channel)
-                stub.request_abnormal_exited_tasks(master_pb2.TaskList(task_list=dead_tasks))
+                stub.request_abnormal_exited_tasks(
+                    master_pb2.TaskList(task_list=dead_tasks)
+                )
             time.sleep(1)
 
+    def _convert_to_task_status(self, return_code):
+        """Make task_manager_pb2.TaskStatus using return code of task."""
+        if return_code is self.get_return_code("RUNNING"):
+            return TaskStatus.Status.RUNNING
+        if return_code == self.get_return_code("DONE"):
+            return TaskStatus.Status.DONE
+        if return_code == self.get_return_code("KILLED"):
+            return TaskStatus.Status.KILLED
+        return TaskStatus.Status.ABNORMAL
 
     def _get_task_status_by_task_id(self, task_id):
         target_process = self.tasks.get(task_id)
@@ -282,16 +324,6 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return TaskStatus(
             task_id=task_id, status=self._convert_to_task_status(result_return_code)
         )
-
-    def _convert_to_task_status(self, return_code):
-        """Make task_manager_pb2.TaskStatus using return code of task."""
-        if return_code is self.get_return_code("RUNNING"):
-            return TaskStatus.Status.RUNNING
-        if return_code == self.get_return_code("DONE"):
-            return TaskStatus.Status.DONE
-        if return_code == self.get_return_code("KILLED"):
-            return TaskStatus.Status.KILLED
-        return TaskStatus.Status.ABNORMAL
 
     def has_idle_resource(self, request, context):
         """Check there is available resource."""
@@ -319,13 +351,15 @@ class TaskManagerServicer(task_manager_pb2_grpc.TaskManagerServicer, ReturnCode)
         return None
 
 
-def serve():
+def serve(server_ip: Optional[str] = None):
     """run task manager server"""
+    if server_ip is None:
+        server_ip = "localhost"
 
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         server = grpc.server(pool)
         local_port = ast.literal_eval(USER_CONFIG.get("task_manager", "local_port"))
-        local_address = ":".join(["0.0.0.0", str(local_port)])
+        local_address = ":".join([server_ip, str(local_port)])
 
         task_manager_pb2_grpc.add_TaskManagerServicer_to_server(
             TaskManagerServicer(), server
@@ -336,5 +370,17 @@ def serve():
         print("Interrupt Occurs. Now closing...")
 
 
+def parse_args():
+    """
+    Parse file name option argument.
+    - ex) if exs command includes "-f sample.yaml", return "sample.yaml"
+    """
+
+    parser = argparse.ArgumentParser(description="Run task_manager_server.")
+    parser.add_argument("-i", "--ip")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    serve()
+    args = parse_args()
+    serve(args.ip)

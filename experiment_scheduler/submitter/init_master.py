@@ -11,5 +11,9 @@ def main():
     run master grpc server on
     :return:
     """
-    print(Figlet(font='slant', width=200, justify='center').renderText('Experiment Scheduler'))
+    print(
+        Figlet(font="slant", width=200, justify="center").renderText(
+            "Experiment Scheduler"
+        )
+    )
     server_on("master", "master/master.py")

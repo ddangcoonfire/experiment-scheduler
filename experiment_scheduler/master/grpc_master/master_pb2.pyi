@@ -67,6 +67,40 @@ class ExperimentsStatus(_message.Message):
     task_status_array: AllTasksStatus
     def __init__(self, experiment_id: _Optional[str] = ..., task_status_array: _Optional[_Union[AllTasksStatus, _Mapping]] = ...) -> None: ...
 
+class MasterFileDeleteRequest(_message.Message):
+    __slots__ = ["name"]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    def __init__(self, name: _Optional[str] = ...) -> None: ...
+
+class MasterFileDeleteResponse(_message.Message):
+    __slots__ = ["response"]
+    class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    FAIL: MasterFileDeleteResponse.ResponseStatus
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS: MasterFileDeleteResponse.ResponseStatus
+    response: MasterFileDeleteResponse.ResponseStatus
+    def __init__(self, response: _Optional[_Union[MasterFileDeleteResponse.ResponseStatus, str]] = ...) -> None: ...
+
+class MasterFileUploadRequest(_message.Message):
+    __slots__ = ["file", "name"]
+    FILE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    file: bytes
+    name: str
+    def __init__(self, name: _Optional[str] = ..., file: _Optional[bytes] = ...) -> None: ...
+
+class MasterFileUploadResponse(_message.Message):
+    __slots__ = ["response"]
+    class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    FAIL: MasterFileUploadResponse.ResponseStatus
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS: MasterFileUploadResponse.ResponseStatus
+    response: MasterFileUploadResponse.ResponseStatus
+    def __init__(self, response: _Optional[_Union[MasterFileUploadResponse.ResponseStatus, str]] = ...) -> None: ...
+
 class MasterResponse(_message.Message):
     __slots__ = ["experiment_id", "response"]
     class ResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -80,7 +114,7 @@ class MasterResponse(_message.Message):
     def __init__(self, experiment_id: _Optional[str] = ..., response: _Optional[_Union[MasterResponse.ResponseStatus, str]] = ...) -> None: ...
 
 class MasterTaskStatement(_message.Message):
-    __slots__ = ["command", "name", "task_env"]
+    __slots__ = ["command", "cwd", "files", "name", "task_env"]
     class TaskEnvEntry(_message.Message):
         __slots__ = ["key", "value"]
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -89,12 +123,16 @@ class MasterTaskStatement(_message.Message):
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     COMMAND_FIELD_NUMBER: _ClassVar[int]
+    CWD_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_ENV_FIELD_NUMBER: _ClassVar[int]
     command: str
+    cwd: str
+    files: _containers.RepeatedScalarFieldContainer[str]
     name: str
     task_env: _containers.ScalarMap[str, str]
-    def __init__(self, command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, command: _Optional[str] = ..., name: _Optional[str] = ..., task_env: _Optional[_Mapping[str, str]] = ..., files: _Optional[_Iterable[str]] = ..., cwd: _Optional[str] = ...) -> None: ...
 
 class RequestAbnormalExitedTasksResponse(_message.Message):
     __slots__ = ["not_running_tasks", "response"]

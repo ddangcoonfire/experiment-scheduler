@@ -5,6 +5,9 @@
 
 import argparse
 import sys
+
+import grpc
+
 from experiment_scheduler.submitter.execute import main as exs_execute
 from experiment_scheduler.submitter.delete import main as exs_delete
 from experiment_scheduler.submitter.edit import main as exs_edit
@@ -46,14 +49,28 @@ HELP_MESSAGE = {
 }
 
 
+class CustomArgumentParser(argparse.ArgumentParser):
+    """
+    When a "command not found" error occurs, it displays a help message.
+    """
+
+    def error(self, message):
+        """
+        Custom error function
+        """
+        print(f"command not found: {message}")
+        self.print_help()
+        self.exit(2)
+
+
 def parse_args():
     """
     Parse user's arguments.
     """
-
-    parser = argparse.ArgumentParser(
+    parser = CustomArgumentParser(
         add_help=True, formatter_class=argparse.RawTextHelpFormatter
     )
+
     parser.add_argument(
         "operation",
         choices=COMMAND_LIST,
@@ -69,6 +86,7 @@ def parse_args():
         action="store_true",
         help="Run servers as daemon state. Only valid at init_* commands",
     )
+
     return parser.parse_known_args()[0]
 
 
@@ -78,8 +96,13 @@ def main():
     """
     name = parse_args().operation
     del sys.argv[sys.argv.index(name)]
-    COMMAND_LIST[name]()
-
+    try:
+        COMMAND_LIST[name]()
+    except grpc.RpcError as err:
+        if err.code() == grpc.StatusCode.UNAVAILABLE:
+            print(">>> Cannot connect to master.... Check connection status")
+        else:
+            print(err.details())
 
 if __name__ == "__main__":
     main()

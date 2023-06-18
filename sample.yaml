@@ -1,4 +1,4 @@
-name: smaple
+name: sample
 tasks:
 - cmd: echo test1
   name: test1

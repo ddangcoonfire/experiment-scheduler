@@ -26,6 +26,11 @@ class MasterStub(object):
                 request_serializer=master__pb2.Task.SerializeToString,
                 response_deserializer=master__pb2.TaskStatus.FromString,
                 )
+        self.kill_experiment = channel.unary_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/kill_experiment',
+                request_serializer=master__pb2.Experiment.SerializeToString,
+                response_deserializer=master__pb2.ExperimentsStatus.FromString,
+                )
         self.get_task_status = channel.unary_unary(
                 '/experiment_scheduler.task_manager.grpc_task_manager.Master/get_task_status',
                 request_serializer=master__pb2.Task.SerializeToString,
@@ -56,6 +61,16 @@ class MasterStub(object):
                 request_serializer=master__pb2.TaskList.SerializeToString,
                 response_deserializer=master__pb2.RequestAbnormalExitedTasksResponse.FromString,
                 )
+        self.upload_file = channel.stream_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/upload_file',
+                request_serializer=master__pb2.MasterFileUploadRequest.SerializeToString,
+                response_deserializer=master__pb2.MasterFileUploadResponse.FromString,
+                )
+        self.delete_file = channel.unary_unary(
+                '/experiment_scheduler.task_manager.grpc_task_manager.Master/delete_file',
+                request_serializer=master__pb2.MasterFileDeleteRequest.SerializeToString,
+                response_deserializer=master__pb2.MasterFileDeleteResponse.FromString,
+                )
 
 
 class MasterServicer(object):
@@ -69,6 +84,12 @@ class MasterServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def kill_task(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def kill_experiment(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -110,6 +131,18 @@ class MasterServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def upload_file(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def delete_file(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MasterServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -122,6 +155,11 @@ def add_MasterServicer_to_server(servicer, server):
                     servicer.kill_task,
                     request_deserializer=master__pb2.Task.FromString,
                     response_serializer=master__pb2.TaskStatus.SerializeToString,
+            ),
+            'kill_experiment': grpc.unary_unary_rpc_method_handler(
+                    servicer.kill_experiment,
+                    request_deserializer=master__pb2.Experiment.FromString,
+                    response_serializer=master__pb2.ExperimentsStatus.SerializeToString,
             ),
             'get_task_status': grpc.unary_unary_rpc_method_handler(
                     servicer.get_task_status,
@@ -152,6 +190,16 @@ def add_MasterServicer_to_server(servicer, server):
                     servicer.request_abnormal_exited_tasks,
                     request_deserializer=master__pb2.TaskList.FromString,
                     response_serializer=master__pb2.RequestAbnormalExitedTasksResponse.SerializeToString,
+            ),
+            'upload_file': grpc.stream_unary_rpc_method_handler(
+                    servicer.upload_file,
+                    request_deserializer=master__pb2.MasterFileUploadRequest.FromString,
+                    response_serializer=master__pb2.MasterFileUploadResponse.SerializeToString,
+            ),
+            'delete_file': grpc.unary_unary_rpc_method_handler(
+                    servicer.delete_file,
+                    request_deserializer=master__pb2.MasterFileDeleteRequest.FromString,
+                    response_serializer=master__pb2.MasterFileDeleteResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -195,6 +243,23 @@ class Master(object):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/kill_task',
             master__pb2.Task.SerializeToString,
             master__pb2.TaskStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def kill_experiment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/kill_experiment',
+            master__pb2.Experiment.SerializeToString,
+            master__pb2.ExperimentsStatus.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -297,5 +362,39 @@ class Master(object):
         return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/request_abnormal_exited_tasks',
             master__pb2.TaskList.SerializeToString,
             master__pb2.RequestAbnormalExitedTasksResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def upload_file(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/upload_file',
+            master__pb2.MasterFileUploadRequest.SerializeToString,
+            master__pb2.MasterFileUploadResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def delete_file(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/experiment_scheduler.task_manager.grpc_task_manager.Master/delete_file',
+            master__pb2.MasterFileDeleteRequest.SerializeToString,
+            master__pb2.MasterFileDeleteResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

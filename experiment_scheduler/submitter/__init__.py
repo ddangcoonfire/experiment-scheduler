@@ -48,7 +48,7 @@ def _run_as_daemon_process(command, target):
             print(f"tracking logs in {file_name}")
 
 
-def server_on(target, script_location):
+def server_on(target, script_location, *arg):
     """
     run grpc server on
     :return:
@@ -59,6 +59,8 @@ def server_on(target, script_location):
         "-u",
         os.path.join(DEFAULT_EXS_HOME, script_location),
     ]  # pylint: disable=R1732
+    if arg:
+        command.extend(arg)
     print(f"{target} is initiated. Please wait for a second...")
     if arguments.daemon:
         _run_as_daemon_process(command, target)

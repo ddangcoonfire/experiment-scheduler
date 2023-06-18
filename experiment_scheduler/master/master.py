@@ -11,6 +11,7 @@ import uuid
 from concurrent import futures
 from typing import List
 import datetime
+import configparser
 import grpc
 
 from experiment_scheduler.common.logging import get_logger, start_end_logger
@@ -25,6 +26,8 @@ from experiment_scheduler.master.grpc_master.master_pb2 import (
     TaskLogFile,
     TaskList,
     RequestAbnormalExitedTasksResponse,
+    MasterFileUploadResponse,
+    MasterFileDeleteResponse,
 )
 from experiment_scheduler.master.grpc_master.master_pb2_grpc import (
     MasterServicer,
@@ -75,7 +78,9 @@ class Master(MasterServicer):
         self.process_monitor = ProcessMonitor(self.task_managers_address)
         self.runner_thread = threading.Thread(target=self._execute_command, daemon=True)
         self.runner_thread.start()
-        self.health_check_thread = threading.Thread(target=self._health_check, daemon=True)
+        self.health_check_thread = threading.Thread(
+            target=self._health_check, daemon=True
+        )
         self.health_check_thread.start()
 
     @staticmethod
@@ -109,7 +114,9 @@ class Master(MasterServicer):
             if self.process_monitor.selected_task_manager != -1:
                 unhealthy_task_manager_list = []
                 for task_manager in self.task_managers_address:
-                    if not self.process_monitor.thread_queue[f"is_{task_manager}_healthy"]:
+                    if not self.process_monitor.thread_queue[
+                        f"is_{task_manager}_healthy"
+                    ]:
                         unhealthy_task_manager_list.append(task_manager)
                 if len(unhealthy_task_manager_list) > 0:
                     for unhealthy_task_manager in unhealthy_task_manager_list:
@@ -141,9 +148,7 @@ class Master(MasterServicer):
         :param retry: boolean
         :return: None
         """
-        available_task_managers = (
-            self.process_monitor.get_available_task_managers()
-        )
+        available_task_managers = self.process_monitor.get_available_task_managers()
         if available_task_managers:
             task_manager_address = available_task_managers[0]
             task_manager = TaskManagerEntity.get(address=task_manager_address)
@@ -159,8 +164,9 @@ class Master(MasterServicer):
         :param: unhealthy_task_manager instance
         """
         task_manager = TaskManagerEntity.get(address=unhealthy_task_manager)
-        task_list = TaskEntity.list(status=TaskStatus.Status.RUNNING,
-                                    task_manager_id=task_manager.id)
+        task_list = TaskEntity.list(
+            status=TaskStatus.Status.RUNNING, task_manager_id=task_manager.id
+        )
         for task in task_list:
             self._allocate_task(task, retry=True)
 
@@ -209,6 +215,9 @@ class Master(MasterServicer):
                 task_env=task_env,
                 logfile_name=task_id + "_log.txt",
                 command=task.command,
+                files=",".join(task.files),
+                cwd=task.cwd,
+                num_retry=0,
             )
             exp.tasks.append(task)
         response_status = MasterResponse.ResponseStatus  # pylint: disable=E1101
@@ -227,21 +236,19 @@ class Master(MasterServicer):
         """Request to run abnormally exited task again."""
         task_list = request.task_list
         failed_list = TaskList()
-        running_tasks = TaskEntity.list(
-            status=TaskStatus.Status.RUNNING, order_by=TaskEntity.updated_at
-        )
-        running_tasks = {each_task.id: each_task for each_task in running_tasks}
         for task_class in task_list:
-            if task_class.task_id in running_tasks:
-                task_to_rerun = running_tasks[task_class.task_id]
-                task_to_rerun.status = TaskStatus.Status.NOTSTART
-                task_to_rerun.updated_at = datetime.datetime.now()
-                task_to_rerun.commit()
-            else:
+            task = TaskEntity.get(id=task_class.task_id)
+            if task.num_retry >= 3:
+                task.status = TaskStatus.Status.ABNORMAL
                 self.logger.warning(
                     "├─abnormal exited task_id is not running: %s", task_class.task_id
                 )
                 failed_list.task_list.append(task_class)
+            else:
+                task.status = TaskStatus.Status.NOTSTART
+                task.num_retry += 1
+            task.updated_at = datetime.datetime.now()
+            task.commit()
 
         if not failed_list.task_list:
             response = RequestAbnormalExitedTasksResponse.ResponseStatus.SUCCESS
@@ -277,38 +284,36 @@ class Master(MasterServicer):
         :return: log_file which is byte format and sent by streaming
         """
         task = TaskEntity.get(id=request.task_id)
-        task_manager = TaskManagerEntity.get(id=task.task_manager_id)
-
-        task_manager_address = task_manager.address
-        task_logfile_path = task_manager.log_file_path
-        if task_logfile_path == "":
+        if task is None:
             yield TaskLogFile(
                 log_file=None, error_message=bytes("Check task id", "utf-8")
             )
         else:
+            task_manager = TaskManagerEntity.get(id=task.task_manager_id)
+            task_manager_address = task_manager.address
+            task_logfile_path = task_manager.log_file_path
             for response in self.process_monitor.get_task_log(
-                    task_manager_address, request.task_id, task_logfile_path
+                task_manager_address, request.task_id, task_logfile_path
             ):
                 yield response
 
     @start_end_logger
     def kill_task(self, request, context):
+        return self._kill_task(request.task_id)
+
+    def _kill_task(self, task_id):
         """
         delete certain task
         :param request:
         :param context:
         :return: task's status
         """
-        task = TaskEntity.get(id=request.task_id)
+        task = TaskEntity.get(id=task_id)
         response = None
         if task is None:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.NOTFOUND
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.NOTFOUND)
         elif task.status == TaskStatus.Status.NOTSTART or task.task_manager_id is None:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.KILLED
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.KILLED)
             task.status = TaskStatus.Status.KILLED
             task.commit()
         elif task.status == TaskStatus.Status.RUNNING:
@@ -317,10 +322,27 @@ class Master(MasterServicer):
             task.status = TaskStatus.Status.KILLED
             task.commit()
         elif task.status == TaskStatus.Status.DONE:
-            response = self._wrap_by_task_status(
-                request.task_id, TaskStatus.Status.DONE
-            )
+            response = self._wrap_by_task_status(task_id, TaskStatus.Status.DONE)
         return response
+
+    @start_end_logger
+    def kill_experiment(self, request, context):
+        """
+        delete certain experiment
+        :param request:
+        :param context:
+        :return: task's status
+        """
+
+        all_tasks_status = AllTasksStatus()
+        exp = ExperimentEntity.get(id=request.experiment_id)
+        for task in exp.tasks:
+            all_tasks_status.task_status_array.append(self._kill_task(task.id))
+
+        return ExperimentsStatus(
+            experiment_id=request.experiment_id,
+            task_status_array=all_tasks_status,
+        )
 
     @start_end_logger
     def get_all_tasks(self, request, context):
@@ -375,12 +397,15 @@ class Master(MasterServicer):
         task_env = {  # pylint: disable=R1721
             key: val for key, val in task.task_env.items()
         }
+        self.process_monitor.delete_file(task_manager_address, task.files)
+        self.process_monitor.upload_file(task_manager_address, task.files)
         response = self.process_monitor.run_task(
             task.id,
             task_manager_address,
             task.command,
             task.name,
             task_env,
+            task.cwd,
         )
         if response.status == TaskStatus.Status.RUNNING:
             task.status = TaskStatus.Status.RUNNING
@@ -391,6 +416,13 @@ class Master(MasterServicer):
             task.updated_at = datetime.datetime.now()
             task.commit()
         return response
+
+    @start_end_logger
+    def upload_file(self, request_iterator, context):
+        for request in request_iterator:
+            with open(request.name, "ab+") as file_pointer:
+                file_pointer.write(request.file)
+        return MasterFileUploadResponse(response=MasterResponse.ResponseStatus.SUCCESS)
 
     def _wrap_by_task_status(self, task_id, status):
         return TaskStatus(
@@ -441,6 +473,15 @@ class Master(MasterServicer):
 
         return response
 
+    @start_end_logger
+    def delete_file(self, request, context):
+        file_name = request.name
+        try:
+            os.remove(file_name)
+        except FileNotFoundError:
+            pass
+        return MasterFileDeleteResponse(response=MasterResponse.ResponseStatus.SUCCESS)
+
 
 def serve():
     """
@@ -451,7 +492,21 @@ def serve():
     initialize_db()
     with futures.ThreadPoolExecutor(max_workers=10) as pool:
         master = grpc.server(pool)
-        master_address = ast.literal_eval(USER_CONFIG.get("default", "master_address"))
+        try:
+            master_address = ast.literal_eval(
+                USER_CONFIG.get("default", "master_address")
+            )
+        except configparser.NoOptionError as err:
+            raise ValueError(
+                "There is no option 'master_address' in experiment_scheduler.cfg. "
+                + "Please fill in this option."
+            ) from err
+
+        address, port = master_address.split(":")
+
+        if address == "localhost" and os.environ.get("EXS_DOCKER_MODE") == "true":
+            master_address = ":".join(["0.0.0.0", port])
+
         add_MasterServicer_to_server(Master(), master)
         master.add_insecure_port(master_address)
         master.start()
