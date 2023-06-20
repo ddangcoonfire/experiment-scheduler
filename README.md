@@ -142,5 +142,7 @@ From v0.3, we've been :
 ## To Contribute
 We are currently not maintaining this project. If you want to take this project as maintainer, please contact to "ddangcoonfire@gmail.com".
 
-### This Project has supported by
+## Acknowledgement
+This Project has been supported by <b>Modulabs</b> and <b>K-digital platforms</b>.
+
 <img src = "https://github.com/ddangcoonfire/experiment-scheduler/assets/52615838/905c31ae-8caa-4f57-8253-a6484c6c2f51" width="35%" height="35%">
