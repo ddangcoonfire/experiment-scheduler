@@ -10,10 +10,6 @@ Our goal is to make you only concentrate on experiment by providing easily, fast
 
 ![image](https://user-images.githubusercontent.com/17878758/216975570-f302f017-d9c8-43b4-a6ee-1ffbb054c1d2.png)
 
-
-![image](https://user-images.githubusercontent.com/17878758/216975570-f302f017-d9c8-43b4-a6ee-1ffbb054c1d2.png)
-
-
 # Quick Start
 ## Installation
 ```shell
